@@ -109,7 +109,7 @@
 
               <v-card-text class="pt-4">
                 <div class="d-flex align-center mb-4">
-                  <v-chip color="primary" variant="elevated" size="large" class="mr-2">
+                  <v-chip :color="getServiceColor(reservation.service)" variant="elevated" size="large" class="mr-2">
                     {{ reservation.service }}
                   </v-chip>
                   <v-chip v-if="reservation.isPriority" color="error" size="small">
@@ -123,7 +123,9 @@
                       <div class="text-caption text-medium-emphasis">Fecha</div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-calendar" size="small" color="primary" class="mr-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">{{ reservation.date }}</span>
+                        <span class="text-subtitle-2 font-weight-medium">{{
+                          reservation.date
+                          }}</span>
                       </div>
                     </div>
                   </v-col>
@@ -133,7 +135,9 @@
                       <div class="text-caption text-medium-emphasis">Hora</div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-clock-outline" size="small" color="primary" class="mr-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">{{ reservation.time }}</span>
+                        <span class="text-subtitle-2 font-weight-medium">{{
+                          reservation.time
+                          }}</span>
                       </div>
                     </div>
                   </v-col>
@@ -143,7 +147,9 @@
                       <div class="text-caption text-medium-emphasis">Duración</div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-timer-outline" size="small" color="primary" class="mr-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">{{ reservation.duration || '1 hora' }}</span>
+                        <span class="text-subtitle-2 font-weight-medium">{{
+                          reservation.duration || '1 hora'
+                          }}</span>
                       </div>
                     </div>
                   </v-col>
@@ -153,7 +159,9 @@
                       <div class="text-caption text-medium-emphasis">Precio</div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-cash-multiple" size="small" color="primary" class="mr-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">{{ reservation.price || '35 €' }}</span>
+                        <span class="text-subtitle-2 font-weight-medium">{{
+                          reservation.price || '35 €'
+                          }}</span>
                       </div>
                     </div>
                   </v-col>
@@ -163,7 +171,9 @@
                       <div class="text-caption text-medium-emphasis">Profesional asignado</div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-account" size="small" color="primary" class="mr-1"></v-icon>
-                        <span class="text-subtitle-2 font-weight-medium">{{ reservation.staff }}</span>
+                        <span class="text-subtitle-2 font-weight-medium">{{
+                          reservation.staff
+                          }}</span>
                       </div>
                     </div>
                   </v-col>
@@ -177,24 +187,16 @@
             </v-card>
 
             <v-timeline density="compact" class="mb-0">
-              <v-timeline-item
-                dot-color="primary"
-                size="small"
-              >
+              <v-timeline-item dot-color="primary" size="small">
                 <div class="text-subtitle-2 font-weight-medium">Solicitud recibida</div>
                 <div class="text-caption">
                   {{ reservation.createdAt || '23/05/2025, 08:32 AM' }}
                 </div>
               </v-timeline-item>
 
-              <v-timeline-item
-                dot-color="warning"
-                size="small"
-              >
+              <v-timeline-item dot-color="warning" size="small">
                 <div class="text-subtitle-2 font-weight-medium">Pendiente de aprobación</div>
-                <div class="text-caption">
-                  Esperando su revisión
-                </div>
+                <div class="text-caption">Esperando su revisión</div>
               </v-timeline-item>
             </v-timeline>
           </v-col>
@@ -207,16 +209,12 @@
         <v-btn prepend-icon="mdi-calendar-edit" color="info" variant="text" class="mr-2">
           Modificar
         </v-btn>
-        <v-btn prepend-icon="mdi-email" color="secondary" variant="text">
-          Contactar cliente
-        </v-btn>
+        <v-btn prepend-icon="mdi-email" color="secondary" variant="text"> Contactar cliente </v-btn>
         <v-spacer></v-spacer>
         <v-btn color="error" variant="outlined" class="mr-2" @click="showRejectDialog = true">
           Rechazar
         </v-btn>
-        <v-btn color="success" @click="showApproveDialog = true">
-          Aprobar reserva
-        </v-btn>
+        <v-btn color="success" @click="showApproveDialog = true"> Aprobar reserva </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -230,22 +228,18 @@
       </v-card-title>
 
       <v-card-text class="px-5 pt-2">
-        <p class="mb-4">Estás a punto de aprobar la reserva de <strong>{{ reservation.clientName }}</strong> para el servicio <strong>{{ reservation.service }}</strong> el día <strong>{{ reservation.date }}</strong> a las <strong>{{ reservation.time }}</strong>.</p>
+        <p class="mb-4">
+          Estás a punto de aprobar la reserva de <strong>{{ reservation.clientName }}</strong> para
+          el servicio <strong>{{ reservation.service }}</strong> el día
+          <strong>{{ reservation.date }}</strong> a las <strong>{{ reservation.time }}</strong>.
+        </p>
 
-        <v-text-field
-          label="Mensaje para el cliente (opcional)"
-          placeholder="Añade un mensaje que se enviará junto con la confirmación"
-          variant="outlined"
-          rows="3"
-          auto-grow
-        ></v-text-field>
+        <v-text-field label="Mensaje para el cliente (opcional)"
+          placeholder="Añade un mensaje que se enviará junto con la confirmación" variant="outlined" rows="3"
+          auto-grow></v-text-field>
 
-        <v-checkbox
-          label="Enviar email de confirmación al cliente"
-          hide-details
-          color="success"
-          model-value="true"
-        ></v-checkbox>
+        <v-checkbox label="Enviar email de confirmación al cliente" hide-details color="success"
+          model-value="true"></v-checkbox>
       </v-card-text>
 
       <v-card-actions class="px-5 pb-5">
@@ -267,36 +261,25 @@
       </v-card-title>
 
       <v-card-text class="px-5 pt-2">
-        <p class="mb-4">Estás a punto de rechazar la reserva de <strong>{{ reservation.clientName }}</strong> para el servicio <strong>{{ reservation.service }}</strong> el día <strong>{{ reservation.date }}</strong>.</p>
+        <p class="mb-4">
+          Estás a punto de rechazar la reserva de <strong>{{ reservation.clientName }}</strong> para
+          el servicio <strong>{{ reservation.service }}</strong> el día
+          <strong>{{ reservation.date }}</strong>.
+        </p>
 
-        <v-select
-          label="Motivo del rechazo"
-          :items="[
-            'Horario no disponible',
-            'Servicio no disponible en la fecha solicitada',
-            'Personal no disponible',
-            'Solicitud duplicada',
-            'Otro motivo'
-          ]"
-          variant="outlined"
-          class="mb-4"
-        ></v-select>
+        <v-select label="Motivo del rechazo" :items="[
+          'Horario no disponible',
+          'Servicio no disponible en la fecha solicitada',
+          'Personal no disponible',
+          'Solicitud duplicada',
+          'Otro motivo'
+        ]" variant="outlined" class="mb-4"></v-select>
 
-        <v-textarea
-          label="Mensaje para el cliente"
-          placeholder="Explica al cliente el motivo del rechazo"
-          variant="outlined"
-          rows="3"
-          auto-grow
-          required
-        ></v-textarea>
+        <v-textarea label="Mensaje para el cliente" placeholder="Explica al cliente el motivo del rechazo"
+          variant="outlined" rows="3" auto-grow required></v-textarea>
 
-        <v-checkbox
-          label="Enviar email de notificación al cliente"
-          hide-details
-          color="error"
-          model-value="true"
-        ></v-checkbox>
+        <v-checkbox label="Enviar email de notificación al cliente" hide-details color="error"
+          model-value="true"></v-checkbox>
       </v-card-text>
 
       <v-card-actions class="px-5 pb-5">
@@ -313,6 +296,7 @@
 
 <script setup lang="ts">
 import { ref, defineProps, defineEmits } from 'vue';
+import { getInitials, getServiceColor } from '@/utils/reservationUtils';
 
 // Props
 const props = defineProps({
@@ -321,7 +305,7 @@ const props = defineProps({
     required: true
   },
   reservation: {
-    type: Object,
+
     required: true,
     default: () => ({
       id: 0,
@@ -340,7 +324,8 @@ const props = defineProps({
       address: '',
       staff: '',
       duration: '',
-      price: ''
+      price: '',
+      timeAgo: ''
     })
   }
 });
@@ -353,14 +338,6 @@ const showApproveDialog = ref(false);
 const showRejectDialog = ref(false);
 
 // Métodos
-const getInitials = (name: string) => {
-  return name
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase();
-};
-
 const close = () => {
   emit('close');
 };

@@ -19,10 +19,7 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
-}
 
-/* semantic color variables for this project */
-:root {
   --color-background: var(--vt-c-white);
   --color-background-soft: var(--vt-c-white-soft);
   --color-background-mute: var(--vt-c-white-mute);
@@ -83,4 +80,171 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 599px) {
+  .enhanced-reservation-card {
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    padding: 16px 16px 8px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .client-info {
+    margin-left: 0;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .service-tags {
+    margin-top: 8px;
+  }
+
+  .actions-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .quick-actions {
+    display: none; /* Ocultamos en móvil para evitar problemas de UX */
+  }
+
+  .more-button {
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* Para tablets y pantallas medianas */
+@media (min-width: 600px) and (max-width: 959px) {
+  .client-name {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .client-email {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Para pantallas grandes */
+@media (min-width: 1264px) {
+  .enhanced-reservation-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Ajustes para modo oscuro */
+.v-theme--dark .enhanced-reservation-card {
+  background-color: rgba(30, 30, 46, 0.8);
+}
+
+.v-theme--dark .card-footer {
+  background-color: rgba(55, 55, 70, 0.5);
+}
+
+.v-theme--dark .notes-container {
+  background-color: rgba(var(--v-theme-primary), 0.15);
+}
+
+.v-theme--dark .quick-actions {
+  background: rgba(30, 30, 46, 0.9);
+}
+
+/* Animaciones avanzadas */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--v-theme-primary), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0);
+  }
+}
+
+.priority-card .priority-indicator {
+  animation: pulse 2s infinite;
+}
+
+/* Estados de la tarjeta */
+.card-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.card-error {
+  border: 1px solid rgb(var(--v-theme-error));
+}
+
+.card-success {
+  border: 1px solid rgb(var(--v-theme-success));
+}
+
+/* Variaciones por tipo de servicio */
+.service-background-corte {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-indigo), 0.05),
+    rgba(var(--v-theme-indigo), 0.1)
+  );
+}
+
+.service-background-manicura {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-pink), 0.05),
+    rgba(var(--v-theme-pink), 0.1)
+  );
+}
+
+.service-background-pedicura {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-purple), 0.05),
+    rgba(var(--v-theme-purple), 0.1)
+  );
+}
+
+.service-background-masaje {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-teal), 0.05),
+    rgba(var(--v-theme-teal), 0.1)
+  );
+}
+
+/* Esquema detallado para impresión */
+@media print {
+  .enhanced-reservation-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+  }
+
+  .quick-actions,
+  .actions-container,
+  .more-button {
+    display: none !important;
+  }
+
+  .card-footer {
+    border-top: 1px solid #ddd;
+    background: none !important;
+  }
 }

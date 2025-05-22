@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, Ref } from 'vue';
+import { Ref } from 'vue';
 
 /**
  * Composable to detect clicks outside of a referenced element

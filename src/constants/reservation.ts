@@ -1,10 +1,10 @@
 // src/constants/reservation.ts
-import type { ReservationStatus, Activity, Reservation, CalendarEvent } from '@/types/reservation';
+import type { Reservation } from '@/types/reservation';
 
 /**
  * Reservation status colors mapping
  */
-export const STATUS_COLORS: Record<ReservationStatus, string> = {
+export const STATUS_COLORS = {
   pending: '#FF9800',
   approved: '#2196F3',
   completed: '#4CAF50',
@@ -14,7 +14,7 @@ export const STATUS_COLORS: Record<ReservationStatus, string> = {
 /**
  * Reservation status text mapping
  */
-export const STATUS_TEXT: Record<ReservationStatus, string> = {
+export const STATUS_TEXT = {
   pending: 'Pendiente',
   approved: 'Aprobada',
   completed: 'Completada',

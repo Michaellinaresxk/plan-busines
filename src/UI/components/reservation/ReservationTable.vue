@@ -141,11 +141,11 @@
                   <IconSpinner v-else class="spinner" />
                 </button>
 
-                <button class="action-button reject" :disabled="rejectingId === item.id"
+                <!-- <button class="action-button reject" :disabled="rejectingId === item.id"
                   @click="rejectReservation(item)" aria-label="Reject reservation">
                   <IconDecline v-if="rejectingId !== item.id" />
                   <IconSpinner v-else class="spinner" />
-                </button>
+                </button> -->
 
                 <button class="action-button view" @click="viewDetails(item)" aria-label="View details">
                   <IconView />

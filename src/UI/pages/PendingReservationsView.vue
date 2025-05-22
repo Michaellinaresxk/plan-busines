@@ -8,7 +8,7 @@
         <v-chip color="primary" size="small" class="ml-2">{{ filteredReservations.length }}</v-chip>
       </h1>
       <p class="text-subtitle-1 text-medium-emphasis">
-        Gestiona y aprueba las solicitudes de reserva de servicios
+        Gestiona y aprueba las solicitudes de reserva de servicios desde Firebase
       </p>
     </div>
 
@@ -36,15 +36,27 @@
               {{ activeFiltersCount }}
             </v-chip>
           </v-btn>
+
+          <v-btn color="success" prepend-icon="mdi-check-all" @click="handleApproveAll"
+            :disabled="filteredReservations.length === 0 || loading">
+            Aprobar Todas
+          </v-btn>
         </div>
       </v-card-text>
     </v-card>
 
     <!-- Lista de reservaciones usando el componente ReservationList -->
-    <ReservationsList :reservations="filteredReservations" :loading="loading" v-model:current-page="currentPage"
-      :item-per-page="itemsPerPage" @refresh="refreshData" @approve="handleApprove" @reject="handleReject"
+    <ReservationsList :reservations="paginatedReservations" :loading="loading" v-model:current-page="currentPage"
+      :items-per-page="itemsPerPage" @refresh="refreshData" @approve="handleApprove" @reject="handleReject"
       @view-details="openReservationDetails"
-      empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda." />
+      empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda."
+      empty-state-title="Sin reservaciones pendientes" empty-state-icon="mdi-calendar-check" />
+
+    <!-- Paginación manual si hay muchas reservas -->
+    <div v-if="totalPages > 1" class="d-flex justify-center mt-6">
+      <v-pagination v-model="currentPage" :length="totalPages" :total-visible="7" rounded="circle" color="primary"
+        :disabled="loading"></v-pagination>
+    </div>
 
     <!-- Diálogo de filtros avanzados -->
     <v-dialog v-model="showFilterDialog" max-width="500">
@@ -80,8 +92,31 @@
     <ReservationDetailModal v-if="selectedReservation" :show="showDetailModal" :reservation="selectedReservation"
       @close="closeReservationDetails" @approve="handleApproveFromModal" @reject="handleRejectFromModal" />
 
+    <!-- Diálogo de confirmación para aprobar todas -->
+    <v-dialog v-model="showApproveAllDialog" max-width="400">
+      <v-card>
+        <v-card-title class="text-h6">
+          <v-icon icon="mdi-check-all" color="success" class="mr-2"></v-icon>
+          Confirmar Aprobación Masiva
+        </v-card-title>
+        <v-card-text>
+          ¿Estás seguro de que deseas aprobar todas las {{ filteredReservations.length }} reservaciones pendientes?
+          Esta acción no se puede deshacer.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="secondary" variant="text" @click="showApproveAllDialog = false">
+            Cancelar
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn color="success" @click="confirmApproveAll" :loading="processingApproveAll">
+            Aprobar Todas
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar para notificaciones -->
-    <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="3000">
+    <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="4000">
       <div class="d-flex align-center">
         <v-icon :icon="snackbarIcon" class="mr-2" size="small"></v-icon>
         {{ snackbarText }}
@@ -94,29 +129,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, inject } from 'vue';
 import ReservationsList from '@/UI/components/reservation/ReservationsList.vue';
 import ReservationDetailModal from '@/UI/components/modals/ReservationDetailModal.vue';
-import { ReservationService, ServiceType } from '@/services/ReservationService';
-import { ReservationStatus } from '@/types/reservation';
+import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
+import { ReservationService, ServiceType } from '@/services/ReservationServiceFactory';
+import { reservationServiceKey } from '@/services/ReservationService';
 
-// Mock de datos para desarrollo (se reemplazará por datos reales de Firestore)
-import { MOCK_RESERVATIONS } from '@/constants/reservation';
+// Inyectar el servicio de reservas
+const reservationService = inject(reservationServiceKey);
+
+if (!reservationService) {
+  throw new Error('ReservationService not provided. Make sure it\'s provided in App.vue');
+}
 
 // Estado local
 const loading = ref(false);
-const reservations = ref(MOCK_RESERVATIONS);
+const processingApproveAll = ref(false);
+const reservations = ref([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(9);
 const showFilterDialog = ref(false);
 const showDetailModal = ref(false);
+const showApproveAllDialog = ref(false);
 const selectedReservation = ref(null);
 
 // Notificaciones
 const showSnackbar = ref(false);
 const snackbarText = ref('');
-const snackbarColor = ref('success');
+const snackbarColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
 const snackbarIcon = ref('mdi-check-circle');
 
 // Filtros
@@ -149,9 +191,6 @@ const dateRangeOptions = [
 const filteredReservations = computed(() => {
   let result = [...reservations.value];
 
-  // Filtrar solo reservas pendientes
-  result = result.filter(r => r.status === ReservationStatus.PENDING);
-
   // Filtrar por búsqueda de texto
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
@@ -166,7 +205,7 @@ const filteredReservations = computed(() => {
   // Filtrar por categoría de servicio
   if (filters.value.serviceCategory !== 'all') {
     result = result.filter(r =>
-      ReservationService.detectServiceType(r) === filters.value.serviceCategory
+      ReservationService.detectServiceType(r.toPlainObject()) === filters.value.serviceCategory
     );
   }
 
@@ -187,7 +226,7 @@ const filteredReservations = computed(() => {
     const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
     result = result.filter(r => {
-      const reservationDate = new Date(r.date);
+      const reservationDate = new Date(r.serviceDate || r.date);
       reservationDate.setHours(0, 0, 0, 0);
 
       switch (filters.value.dateRange) {
@@ -220,6 +259,15 @@ const filteredReservations = computed(() => {
   return result;
 });
 
+// Paginación computada
+const totalPages = computed(() => Math.ceil(filteredReservations.value.length / itemsPerPage.value));
+
+const paginatedReservations = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredReservations.value.slice(start, end);
+});
+
 // Contador de filtros activos
 const activeFiltersCount = computed(() => {
   let count = 0;
@@ -232,19 +280,35 @@ const activeFiltersCount = computed(() => {
 
 const hasActiveFilters = computed(() => activeFiltersCount.value > 0);
 
-// Métodos
-function refreshData() {
+// Métodos para Firebase
+
+async function refreshData() {
   loading.value = true;
 
-  // Simulamos la carga de datos (esto sería reemplazado por una llamada real a Firebase)
-  setTimeout(() => {
-    // Aquí iría la llamada a Firestore
-    reservations.value = MOCK_RESERVATIONS;
-    loading.value = false;
+  try {
+    console.log('Fetching pending reservations from Firebase...');
+
+    // Obtener reservas pendientes desde Firebase
+    const pendingReservations = await reservationService.getPendingReservations();
+    reservations.value = pendingReservations;
+
+    console.log(`Loaded ${pendingReservations.length} pending reservations from Firebase`);
 
     // Mostrar notificación
-    showNotification('Datos actualizados correctamente', 'info', 'mdi-refresh');
-  }, 1000);
+    showNotification(
+      `${pendingReservations.length} reservaciones cargadas desde Firebase`,
+      'info',
+      'mdi-refresh'
+    );
+  } catch (error) {
+    console.error('Error fetching reservations from Firebase:', error);
+    showNotification('Error al cargar las reservas desde Firebase', 'error', 'mdi-alert-circle');
+
+    // En caso de error, mantener un array vacío
+    reservations.value = [];
+  } finally {
+    loading.value = false;
+  }
 }
 
 function resetFilters() {
@@ -282,44 +346,32 @@ function closeReservationDetails() {
   selectedReservation.value = null;
 }
 
-async function handleApprove(id, reservation) {
-  // Aquí iría la lógica para aprobar en Firebase
-  // Por ahora, simulamos con un timeout
-  await new Promise(resolve => setTimeout(resolve, 800));
+async function handleApprove(id: string, reservation) {
+  try {
+    console.log(`Approving reservation ${id}...`);
 
-  // Actualizar localmente
-  const index = reservations.value.findIndex(r => r.id === id);
-  if (index !== -1) {
-    reservations.value[index].status = ReservationStatus.APPROVED;
+    // Aprobar en Firebase
+    await reservationService.approveReservation(id);
+
+    // Actualizar localmente removiendo la reserva aprobada de pendientes
+    const index = reservations.value.findIndex(r => r.bookingId === id);
+    if (index !== -1) {
+      reservations.value.splice(index, 1);
+    }
+
+    // Mostrar notificación
+    showNotification(`Reservación de ${reservation.clientName} aprobada con éxito`, 'success', 'mdi-check-circle');
+  } catch (error) {
+    console.error('Error approving reservation:', error);
+    showNotification('Error al aprobar la reservación', 'error', 'mdi-alert-circle');
   }
-
-  // Mostrar notificación
-  showNotification('Reservación aprobada con éxito', 'success', 'mdi-check-circle');
 }
 
-async function handleReject(id, reservation) {
-  // Aquí iría la lógica para rechazar en Firebase
-  // Por ahora, simulamos con un timeout
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // Actualizar localmente
-  const index = reservations.value.findIndex(r => r.id === id);
-  if (index !== -1) {
-    reservations.value[index].status = ReservationStatus.REJECTED;
+async function handleApproveFromModal(id: string) {
+  showDetailModal.value = false;
+  if (selectedReservation.value) {
+    await handleApprove(id, selectedReservation.value);
   }
-
-  // Mostrar notificación
-  showNotification('Reservación rechazada', 'error', 'mdi-close-circle');
-}
-
-async function handleApproveFromModal(id) {
-  showDetailModal.value = false;
-  await handleApprove(id, selectedReservation.value);
-}
-
-async function handleRejectFromModal(id) {
-  showDetailModal.value = false;
-  await handleReject(id, selectedReservation.value);
 }
 
 function showNotification(message: string, color: 'success' | 'error' | 'info' | 'warning', icon: string) {
@@ -329,9 +381,10 @@ function showNotification(message: string, color: 'success' | 'error' | 'info' |
   showSnackbar.value = true;
 }
 
-// Inicializar
-onMounted(() => {
-  refreshData();
+// Inicializar cargando datos desde Firebase
+onMounted(async () => {
+  console.log('PendingReservationsView mounted, loading data...');
+  await refreshData();
 });
 
 // Observar cambios en el filtrado para determinar si debemos ajustar la página actual
@@ -341,11 +394,18 @@ watch(filteredReservations, (newReservations) => {
     currentPage.value = maxPage;
   }
 });
+
+// Observar cambios en filtros para resetear página
+watch([() => filters.value.serviceCategory, () => filters.value.dateRange, () => filters.value.onlyPriority, () => filters.value.onlyNewClients], () => {
+  currentPage.value = 1;
+});
 </script>
 
 <style scoped>
 .pending-reservations-container {
   padding: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header-section {
@@ -361,5 +421,26 @@ watch(filteredReservations, (newReservations) => {
 .filter-field:focus-within {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(var(--v-theme-on-surface), 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .pending-reservations-container {
+    padding: 12px;
+  }
+
+  .header-section h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .d-flex.flex-wrap.gap-4 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-field,
+  .filter-field {
+    max-width: 100% !important;
+  }
 }
 </style>

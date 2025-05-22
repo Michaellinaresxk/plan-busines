@@ -6,9 +6,8 @@
     </div>
 
     <!-- Sin resultados -->
-    <!-- <v-card v-else-if="paginatedReservations.length === 0" -->
-    <v-card v-else-if="paginatedReservations" class="mb-6 pa-8 d-flex flex-column align-center justify-center"
-      elevation="0" rounded="lg" border>
+    <v-card v-else-if="paginatedReservations.length === 0"
+      class="mb-6 pa-8 d-flex flex-column align-center justify-center" elevation="0" rounded="lg" border>
       <slot name="empty-state">
         <v-avatar :color="emptyStateColor" class="mb-4" size="64">
           <v-icon :icon="emptyStateIcon" size="36" color="white"></v-icon>
@@ -38,7 +37,7 @@
       </v-row>
 
       <!-- Paginación si es necesaria -->
-      <div v-if="showPagination" class="d-flex justify-center mt-6">
+      <div v-if="showPagination && totalPages > 1" class="d-flex justify-center mt-6">
         <v-pagination v-model="currentPageModel" :length="totalPages" :total-visible="totalVisible" rounded="circle"
           :disabled="loading" :color="paginationColor"></v-pagination>
       </div>
@@ -119,23 +118,32 @@ const currentPageModel = computed({
   set: (value) => emit('update:current-page', value)
 });
 
-// Calcular número total de páginas
+// FIXED: Calcular número total de páginas correctamente
 const totalPages = computed(() => {
-  // return Math.ceil(props.reservations.length / props.itemsPerPage);
-  console.log(props.reservations);
+  if (!props.reservations || props.reservations.length === 0) {
+    return 1;
+  }
+  return Math.ceil(props.reservations.length / props.itemsPerPage);
 });
 
-// Obtener las reservaciones paginadas
+// FIXED: Obtener las reservaciones paginadas correctamente
 const paginatedReservations = computed(() => {
+  if (!props.reservations || props.reservations.length === 0) {
+    return [];
+  }
+
   const startIndex = (props.currentPage - 1) * props.itemsPerPage;
   const endIndex = startIndex + props.itemsPerPage;
-  // return props.reservations.slice(startIndex, endIndex);
+  return props.reservations.slice(startIndex, endIndex);
 });
 
 // Métodos
 // Generar una clave única para cada reserva
 function getReservationKey(reservation: any, index: number): string {
-  return reservation.id ? String(reservation.id) : `reservation-${index}`;
+  // Usar bookingId primero, luego id, luego índice como fallback
+  if (reservation.bookingId) return String(reservation.bookingId);
+  if (reservation.id) return String(reservation.id);
+  return `reservation-${index}`;
 }
 
 // Manejadores para las acciones
@@ -144,7 +152,10 @@ async function handleApprove(id: string | number): Promise<boolean> {
   processingId.value = id;
 
   try {
-    const reservation = props.reservations.find(r => r.id === id);
+    // Buscar la reserva usando tanto bookingId como id
+    const reservation = props.reservations.find(r =>
+      r.bookingId === id || r.id === id
+    );
 
     if (props.onApprove) {
       const result = await props.onApprove(id);
@@ -171,7 +182,10 @@ async function handleReject(id: string | number): Promise<boolean> {
   processingId.value = id;
 
   try {
-    const reservation = props.reservations.find(r => r.id === id);
+    // Buscar la reserva usando tanto bookingId como id
+    const reservation = props.reservations.find(r =>
+      r.bookingId === id || r.id === id
+    );
 
     if (props.onReject) {
       const result = await props.onReject(id);
@@ -201,17 +215,16 @@ function handleViewDetails(reservation: any) {
   emit('view-details', reservation);
 }
 
-// Observar cambios en las reservaciones para ajustar la paginación
-// watch(() => props.reservations.length, (newLength) => {
-watch(() => props.reservations, (newLength) => {
-  // if (newLength === 0) return;
-  return;
+// FIXED: Observar cambios en las reservaciones para ajustar la paginación
+watch(() => props.reservations, (newReservations) => {
+  if (!newReservations || newReservations.length === 0) return;
 
   // Si la página actual está fuera de rango, volver a la primera página
-  if (props.currentPage > totalPages.value) {
+  const maxPages = Math.ceil(newReservations.length / props.itemsPerPage);
+  if (props.currentPage > maxPages) {
     currentPageModel.value = 1;
   }
-});
+}, { immediate: true });
 </script>
 
 <style scoped>

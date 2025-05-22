@@ -75,11 +75,11 @@
 
     <!-- Actions -->
     <div class="actions-container">
-      <button class="action-button decline" :disabled="isRejecting" @click="rejectReservation">
+      <!-- <button class="action-button decline" :disabled="isRejecting" @click="rejectReservation">
         <IconDecline v-if="!isRejecting" />
         <IconSpinner v-else class="spinner" />
         <span>Decline</span>
-      </button>
+      </button> -->
 
       <button class="action-button approve" :disabled="isApproving" @click="approveReservation">
         <IconApprove v-if="!isApproving" />
@@ -143,21 +143,21 @@ async function approveReservation(): Promise<void> {
   }
 }
 
-async function rejectReservation(): Promise<void> {
-  if (isRejecting.value) return;
+// async function rejectReservation(): Promise<void> {
+//   if (isRejecting.value) return;
 
-  isRejecting.value = true;
+//   isRejecting.value = true;
 
-  try {
-    // Here would be the API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    emit('reject', props.reservation.id);
-  } catch (error) {
-    console.error('Error rejecting reservation:', error);
-  } finally {
-    isRejecting.value = false;
-  }
-}
+//   try {
+//     // Here would be the API call
+//     await new Promise(resolve => setTimeout(resolve, 1000));
+//     emit('reject', props.reservation.id);
+//   } catch (error) {
+//     console.error('Error rejecting reservation:', error);
+//   } finally {
+//     isRejecting.value = false;
+//   }
+// }
 
 function showDetailDialog(): void {
   emit('view-details', props.reservation);

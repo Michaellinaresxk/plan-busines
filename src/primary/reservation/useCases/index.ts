@@ -6,6 +6,7 @@ import { CompleteReservationUseCase } from './CompleteReservationUseCase';
 import { UpdateReservationNotesUseCase } from './UpdateReservationNotesUseCase';
 import { UpdateReservationPriceUseCase } from './UpdateReservationPriceUseCase';
 import { GetReservationStatsUseCase } from './GetReservationStatsUseCase';
+import { GetPendingReservationsUseCase } from './GetPendingReservationsUseCase';
 
 export class ReservationService {
   // Use Cases
@@ -16,6 +17,7 @@ export class ReservationService {
   private updateReservationNotesUseCase: UpdateReservationNotesUseCase;
   private updateReservationPriceUseCase: UpdateReservationPriceUseCase;
   private getReservationStatsUseCase: GetReservationStatsUseCase;
+  private getPendingReservationsUseCase: GetPendingReservationsUseCase;
 
   constructor(private readonly reservationResource: ReservationResource) {
     // Inicializar todos los use cases
@@ -25,6 +27,7 @@ export class ReservationService {
     this.completeReservationUseCase = new CompleteReservationUseCase(reservationResource);
     this.updateReservationNotesUseCase = new UpdateReservationNotesUseCase(reservationResource);
     this.updateReservationPriceUseCase = new UpdateReservationPriceUseCase(reservationResource);
+    this.getPendingReservationsUseCase = new GetPendingReservationsUseCase(reservationResource);
     this.getReservationStatsUseCase = new GetReservationStatsUseCase(reservationResource);
   }
 
@@ -32,6 +35,10 @@ export class ReservationService {
 
   async getAllReservations() {
     return await this.getAllReservationsUseCase.execute();
+  }
+
+  async getPendingReservations() {
+    return await this.getPendingReservationsUseCase.execute();
   }
 
   async getReservationById(bookingId: string) {

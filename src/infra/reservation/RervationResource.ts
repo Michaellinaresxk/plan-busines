@@ -1,5 +1,5 @@
 import type ReservationRepository from '@/domain/reservation/ReservationRepository';
-import type { ReservationStatus } from '@/types/reservation';
+import { ReservationStatus } from '@/types/reservation';
 import { Reservation } from '@/domain/reservation/Reservation';
 import { ReservationCaller } from './ReservationCaller';
 import type { ApiReservation } from './ApiReservation';
@@ -30,15 +30,14 @@ export class ReservationResource implements ReservationRepository {
     return apiReservations.map(this.apiToDomain);
   }
 
+  async getPendingReservations(): Promise<Reservation[]> {
+    return this.getReservationsByStatus(ReservationStatus.PENDING);
+  }
+
   // Obtener reservas por estado
   async getReservationsByStatus(status: ReservationStatus): Promise<Reservation[]> {
     const apiReservations = await this.reservationCaller.getReservationsByStatus(status);
     return apiReservations.map(this.apiToDomain);
-  }
-
-  // Obtener reservas pendientes
-  async getPendingReservations(): Promise<Reservation[]> {
-    return this.getReservationsByStatus(ReservationStatus.PENDING);
   }
 
   // Obtener una reserva por ID

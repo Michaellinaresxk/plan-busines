@@ -24,7 +24,6 @@ export default interface ReservationRepository {
   completeReservation(bookingId: string): Promise<Reservation>;
   cancelReservation(bookingId: string): Promise<Reservation>;
   getReservationsByService(serviceId: string): Promise<Reservation[]>;
-  getReservationsByClient(clientEmail: string): Promise<Reservation[]>;
   getReservationStats(): Promise<{
     total: number;
     pending: number;

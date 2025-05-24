@@ -1,5 +1,5 @@
 <template>
-  <DashboardHeader />
+  <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
   <div class="pending-reservations-container">
     <div class="header-section mb-6">
       <h1 class="text-h4 font-weight-bold mb-2 d-flex align-center">
@@ -35,11 +35,6 @@
             <v-chip v-if="hasActiveFilters" size="x-small" color="primary" class="ml-2">
               {{ activeFiltersCount }}
             </v-chip>
-          </v-btn>
-
-          <v-btn color="success" prepend-icon="mdi-check-all" @click="handleApproveAll"
-            :disabled="filteredReservations.length === 0 || loading">
-            Aprobar Todas
           </v-btn>
         </div>
       </v-card-text>
@@ -135,6 +130,7 @@ import ReservationDetailModal from '@/UI/components/modals/ReservationDetailModa
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import { ReservationService, ServiceType } from '@/services/ReservationServiceFactory';
 import { reservationServiceKey } from '@/services/ReservationService';
+import { useDisplay } from 'vuetify';
 
 // Inyectar el servicio de reservas
 const reservationService = inject(reservationServiceKey);
@@ -160,6 +156,17 @@ const showSnackbar = ref(false);
 const snackbarText = ref('');
 const snackbarColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
 const snackbarIcon = ref('mdi-check-circle');
+
+// Responsive helpers
+const { mdAndUp } = useDisplay();
+// Estado del drawer y rail (sidebar)
+const drawer = ref(true);
+const rail = ref(false);
+
+function toggleTheme() {
+  console.log('Toggle theme');
+}
+
 
 // Filtros
 const filters = ref({

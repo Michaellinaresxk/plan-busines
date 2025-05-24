@@ -6,8 +6,8 @@
     </div>
 
     <!-- Empty State -->
-    <v-card v-else-if="suppliers.length === 0" class="mb-6 pa-8 d-flex flex-column align-center justify-center"
-      elevation="0" rounded="lg" border>
+    <v-card v-else-if="!suppliers || suppliers.length === 0"
+      class="mb-6 pa-8 d-flex flex-column align-center justify-center" elevation="0" rounded="lg" border>
       <v-avatar color="grey-lighten-1" class="mb-4" size="64">
         <v-icon icon="mdi-account-hard-hat" size="36" color="white"></v-icon>
       </v-avatar>
@@ -23,11 +23,12 @@
       </v-btn>
     </v-card>
 
+
     <!-- Suppliers Grid -->
-    <template v-else>
+    <template v-if="suppliers && suppliers.length > 0">
       <v-row>
-        <v-col v-for="supplier in suppliers" :key="supplier.id" :cols="colSize.cols" :sm="colSize.sm" :md="colSize.md"
-          :lg="colSize.lg">
+        <v-col v-for="supplier in (suppliers || [])" :key="supplier.id" :cols="colSize.cols" :sm="colSize.sm"
+          :md="colSize.md" :lg="colSize.lg">
           <SupplierCard :supplier="supplier" @view="handleView" @contact="handleContact" @edit="handleEdit"
             @delete="handleDelete" @toggle-featured="handleToggleFeatured" />
         </v-col>
@@ -43,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import SupplierCard from '@/UI/components/suppliers/SupplierCard.vue';
 
 // Types
@@ -68,7 +69,7 @@ interface ColumnSize {
 
 // Props
 interface Props {
-  suppliers: Supplier[];
+  suppliers?: Supplier[]; // ✅ Hacerlo opcional
   loading?: boolean;
   currentPage?: number;
   totalPages?: number;
@@ -83,6 +84,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  suppliers: () => [], // ✅ Array vacío por defecto
   loading: false,
   currentPage: 1,
   totalPages: 1,
@@ -105,6 +107,14 @@ const emit = defineEmits<{
   'toggle-featured': [supplier: Supplier];
 }>();
 
+// Debug watch
+watch(() => props.suppliers, (newSuppliers) => {
+  console.log('🔍 SupplierList: suppliers prop changed');
+  console.log('  - New suppliers count:', newSuppliers?.length || 0);
+  console.log('  - Suppliers data:', newSuppliers);
+  console.log('  - Loading state:', props.loading);
+}, { immediate: true, deep: true });
+
 // Computed
 const currentPageModel = computed({
   get: () => props.currentPage,
@@ -113,22 +123,27 @@ const currentPageModel = computed({
 
 // Event handlers
 function handleView(supplier: Supplier) {
+  console.log('🔍 SupplierList: handleView called', supplier);
   emit('view', supplier);
 }
 
 function handleContact(supplier: Supplier) {
+  console.log('📞 SupplierList: handleContact called', supplier);
   emit('contact', supplier);
 }
 
 function handleEdit(supplier: Supplier) {
+  console.log('✏️ SupplierList: handleEdit called', supplier);
   emit('edit', supplier);
 }
 
 function handleDelete(supplier: Supplier) {
+  console.log('🗑️ SupplierList: handleDelete called', supplier);
   emit('delete', supplier);
 }
 
 function handleToggleFeatured(supplier: Supplier) {
+  console.log('⭐ SupplierList: handleToggleFeatured called', supplier);
   emit('toggle-featured', supplier);
 }
 </script>

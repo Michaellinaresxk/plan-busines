@@ -20,22 +20,26 @@
       </v-list-subheader>
 
       <v-list nav class="nav-list">
+        <!-- Dashboard -->
         <v-list-item prepend-icon="mdi-view-dashboard-outline" title="Dashboard" value="dashboard"
-          :active="activeItem === 'dashboard'" color="primary" @click="setActiveItem('dashboard')" rounded="lg"
-          class="list-item mb-1" :class="{ 'active-item': activeItem === 'dashboard' }"></v-list-item>
+          :active="currentRoute === '/dashboard'" color="primary" rounded="lg" class="list-item mb-1"
+          :class="{ 'active-item': currentRoute === '/dashboard' }" to="/dashboard"></v-list-item>
 
+        <!-- Approved -->
         <v-list-item prepend-icon="mdi-check-circle" title="Approved" value="approved"
-          :active="activeItem === 'approved'" color="primary" @click="setActiveItem('approved')" :badge="pendingCount"
-          badge-color="error" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': activeItem === 'approved' }"></v-list-item>
+          :active="currentRoute === '/approved'" color="primary" rounded="lg" class="list-item mb-1"
+          :class="{ 'active-item': currentRoute === '/approved' }" to="/approved" :badge="approvedCount"
+          badge-color="success"></v-list-item>
 
+        <!-- Pendientes -->
         <v-list-item prepend-icon="mdi-calendar-clock" title="Pendientes" value="pending"
-          :active="$route.path === '/pending'" color="primary" :badge="pendingCount" badge-color="error" rounded="lg"
-          class="list-item mb-1" :class="{ 'active-item': $route.path === '/pending' }" to="/pending"></v-list-item>
+          :active="currentRoute === '/pending'" color="primary" :badge="pendingCount" badge-color="error" rounded="lg"
+          class="list-item mb-1" :class="{ 'active-item': currentRoute === '/pending' }" to="/pending"></v-list-item>
 
+        <!-- Rechazadas -->
         <v-list-item prepend-icon="mdi-calendar-remove" title="Rechazadas" value="rejected"
-          :active="activeItem === 'rejected'" color="primary" @click="setActiveItem('rejected')" rounded="lg"
-          class="list-item mb-1" :class="{ 'active-item': activeItem === 'rejected' }"></v-list-item>
+          :active="currentRoute === '/rejected'" color="primary" rounded="lg" class="list-item mb-1"
+          :class="{ 'active-item': currentRoute === '/rejected' }" to="/rejected"></v-list-item>
       </v-list>
 
       <!-- Sección Proveedores -->
@@ -46,9 +50,9 @@
       </v-list-subheader>
 
       <v-list nav class="nav-list">
-        <v-list-item prepend-icon="mdi-calendar-clock" title="Proveedores" value="proveedores"
-          :active="$route.path === '/suppliers'" color="primary" :badge="suppliersCount" badge-color="error"
-          rounded="lg" class="list-item mb-1" :class="{ 'active-item': $route.path === '/suppliers' }"
+        <v-list-item prepend-icon="mdi-account-hard-hat" title="Proveedores" value="suppliers"
+          :active="currentRoute === '/suppliers'" color="primary" :badge="suppliersCount" badge-color="info"
+          rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/suppliers' }"
           to="/suppliers"></v-list-item>
       </v-list>
 
@@ -60,13 +64,13 @@
       </v-list-subheader>
 
       <v-list nav class="nav-list">
-        <v-list-item prepend-icon="mdi-history" title="Historial" value="history" :active="activeItem === 'history'"
-          color="primary" @click="setActiveItem('history')" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': activeItem === 'history' }"></v-list-item>
+        <v-list-item prepend-icon="mdi-history" title="Historial" value="history" :active="currentRoute === '/history'"
+          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/history' }"
+          to="/history"></v-list-item>
 
-        <v-list-item prepend-icon="mdi-chart-bar" title="Estadísticas" value="stats" :active="activeItem === 'stats'"
-          color="primary" @click="setActiveItem('stats')" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': activeItem === 'stats' }"></v-list-item>
+        <v-list-item prepend-icon="mdi-chart-bar" title="Estadísticas" value="stats" :active="currentRoute === '/stats'"
+          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/stats' }"
+          to="/stats"></v-list-item>
       </v-list>
     </div>
 
@@ -74,7 +78,7 @@
     <template v-slot:append>
       <div class="actions-container pa-3" v-if="!railModel">
         <v-btn block color="primary" variant="elevated" prepend-icon="mdi-plus" class="action-btn mb-3" elevation="1"
-          rounded="lg">
+          rounded="lg" @click="createNewReservation">
           Nueva reserva
         </v-btn>
       </div>
@@ -89,7 +93,8 @@
             <p class="text-caption text-medium-emphasis">admin@example.com</p>
           </div>
         </div>
-        <v-btn icon="mdi-logout" size="small" variant="text" color="primary" class="logout-btn"></v-btn>
+        <v-btn icon="mdi-logout" size="small" variant="text" color="primary" class="logout-btn"
+          @click="handleLogout"></v-btn>
       </div>
 
       <!-- Avatar compacto en modo rail -->
@@ -103,7 +108,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+// Router composables
+const route = useRoute();
+const router = useRouter();
 
 // Props
 const props = defineProps<{
@@ -112,16 +122,19 @@ const props = defineProps<{
   mdAndUp: boolean;
   pendingCount: number;
   suppliersCount: number;
+  approvedCount?: number;
 }>();
 
 // Emits
 const emit = defineEmits<{
   (e: 'update:drawer', value: boolean): void;
   (e: 'update:rail', value: boolean): void;
+  (e: 'create-reservation'): void;
+  (e: 'logout'): void;
 }>();
 
-// Estado para rastrear el elemento activo
-const activeItem = ref('dashboard');
+// Computed para obtener la ruta actual
+const currentRoute = computed(() => route.path);
 
 // Modelo v-model para drawer y rail
 const drawerModel = computed({
@@ -145,9 +158,16 @@ const onMouseLeave = () => {
   }
 };
 
-const setActiveItem = (item: string) => {
-  activeItem.value = item;
+const createNewReservation = () => {
+  emit('create-reservation');
 };
+
+const handleLogout = () => {
+  emit('logout');
+};
+
+// Debug - Log route changes
+console.log('🔍 Current route:', currentRoute.value);
 </script>
 
 <style scoped>
@@ -199,6 +219,13 @@ const setActiveItem = (item: string) => {
 }
 
 .active-item {
+  background-color: rgba(var(--v-theme-primary), 0.1) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  font-weight: 600;
+}
+
+/* Estilo especial para elementos activos con router-link */
+.list-item.router-link-active {
   background-color: rgba(var(--v-theme-primary), 0.1) !important;
   color: rgb(var(--v-theme-primary)) !important;
   font-weight: 600;

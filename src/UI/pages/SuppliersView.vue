@@ -1,4 +1,3 @@
-<!-- src/UI/views/SuppliersView.vue -->
 <template>
   <v-app>
     <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
@@ -102,9 +101,10 @@
         </v-card>
 
         <!-- Suppliers List -->
-        <SupplierList :suppliers="paginatedSuppliers" :loading="loading" v-model:current-page="currentPage"
-          :total-pages="totalPages" @refresh="refreshData" @view="handleViewSupplier" @contact="handleContactSupplier"
-          @edit="handleEditSupplier" @delete="handleDeleteSupplier" @toggle-featured="handleToggleFeatured" />
+        <SupplierList :suppliers="paginatedSuppliers || []" :loading="loading" :current-page="currentPage"
+          :total-pages="totalPages" v-model:current-page="currentPage" @refresh="refreshData" @view="handleViewSupplier"
+          @contact="handleContactSupplier" @edit="handleEditSupplier" @delete="handleDeleteSupplier"
+          @toggle-featured="handleToggleFeatured" />
       </v-container>
     </v-main>
 
@@ -136,24 +136,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, inject } from 'vue';
 import { useDisplay } from 'vuetify';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
 import SupplierList from '@/UI/components/suppliers/SupplierList.vue';
+import { supplierServiceKey } from '@/services/SupplierService';
+import type { SupplierView } from '@/views/SupplierView';
 
-// Types
-interface Supplier {
-  id: string;
-  name: string;
-  cedula: string;
-  email: string;
-  phone: string;
-  service: string;
-  featured?: boolean;
-  rating?: number;
-  createdAt?: Date;
-}
+console.log('🏗️ SuppliersView: Initializing component...');
+
+// Inject supplier service with better error handling
+const supplierService = inject(supplierServiceKey);
+console.log('🔌 SupplierService injection result:', supplierService ? '✅ Available' : '❌ Not available');
 
 // Responsive helpers
 const { mdAndUp } = useDisplay();
@@ -164,7 +159,7 @@ const rail = ref(false);
 
 // Main state
 const loading = ref(false);
-const suppliers = ref<Supplier[]>([]);
+const allSuppliers = ref<SupplierView[]>([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(12);
@@ -181,40 +176,6 @@ const showSnackbar = ref(false);
 const snackbarText = ref('');
 const snackbarColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
 const snackbarIcon = ref('mdi-check-circle');
-
-// Mock data
-const mockSuppliers: Supplier[] = [
-  {
-    id: '1',
-    name: 'Juan Pérez',
-    cedula: '123456789',
-    email: 'juan.perez@email.com',
-    phone: '3001234567',
-    service: 'Transporte',
-    featured: true,
-    rating: 4.5
-  },
-  {
-    id: '2',
-    name: 'María González',
-    cedula: '987654321',
-    email: 'maria.gonzalez@email.com',
-    phone: '3009876543',
-    service: 'Limpieza',
-    rating: 4.8
-  },
-  {
-    id: '3',
-    name: 'Carlos Rodríguez',
-    cedula: '456789123',
-    email: 'carlos.rodriguez@email.com',
-    phone: '3004567891',
-    service: 'Jardinería',
-    featured: true,
-    rating: 4.2
-  }
-
-];
 
 // Filter options
 const serviceOptions = [
@@ -241,7 +202,7 @@ const featuredOptions = [
 
 // Computed properties
 const filteredSuppliers = computed(() => {
-  let result = [...suppliers.value];
+  let result = [...allSuppliers.value];
 
   // Apply search filter
   if (searchQuery.value) {
@@ -260,12 +221,12 @@ const filteredSuppliers = computed(() => {
     result = result.filter(supplier => supplier.service === filters.value.service);
   }
 
-  // Apply featured filter
-  if (filters.value.featured === 'featured') {
-    result = result.filter(supplier => supplier.featured === true);
-  } else if (filters.value.featured === 'regular') {
-    result = result.filter(supplier => !supplier.featured);
-  }
+  // Apply featured filter (Note: SupplierView doesn't have featured property yet)
+  // if (filters.value.featured === 'featured') {
+  //   result = result.filter(supplier => supplier.featured === true);
+  // } else if (filters.value.featured === 'regular') {
+  //   result = result.filter(supplier => !supplier.featured);
+  // }
 
   return result;
 });
@@ -276,23 +237,31 @@ const totalPages = computed(() => Math.ceil(filteredSuppliers.value.length / ite
 const paginatedSuppliers = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
-  return filteredSuppliers.value.slice(start, end);
+  const result = filteredSuppliers.value.slice(start, end);
+
+  console.log('📄 Pagination computed:');
+  console.log('  - Total suppliers:', filteredSuppliers.value.length);
+  console.log('  - Current page:', currentPage.value);
+  console.log('  - Items per page:', itemsPerPage.value);
+  console.log('  - Start index:', start);
+  console.log('  - End index:', end);
+  console.log('  - Paginated result:', result);
+
+  return result;
 });
 
 // Statistics
 const stats = computed(() => {
-  const total = suppliers.value.length;
-  const featured = suppliers.value.filter(s => s.featured).length;
-  const services = new Set(suppliers.value.map(s => s.service)).size;
-  const avgRating = suppliers.value
-    .filter(s => s.rating)
-    .reduce((sum, s) => sum + (s.rating || 0), 0) / suppliers.value.filter(s => s.rating).length || 0;
+  const total = allSuppliers.value.length;
+  const featured = 0; // TODO: Add featured property to SupplierView
+  const services = new Set(allSuppliers.value.map(s => s.service)).size;
+  const avgRating = '4.5'; // TODO: Add rating property to SupplierView
 
   return {
     total,
     featured,
     services,
-    avgRating: avgRating.toFixed(1)
+    avgRating
   };
 });
 
@@ -305,26 +274,61 @@ const hasActiveFilters = computed(() => {
 
 // Methods
 async function refreshData() {
+  console.log('🔄 Starting refreshData...');
   loading.value = true;
+
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    suppliers.value = [...mockSuppliers];
-    showNotification('Datos actualizados correctamente', 'success', 'mdi-refresh');
+    console.log('🔌 Checking SupplierService availability...');
+
+    if (!supplierService) {
+      console.error('❌ SupplierService not available in refreshData');
+      console.log('🔍 Available keys:', Object.getOwnPropertySymbols({}));
+      throw new Error('SupplierService not available - check App.vue providers and service initialization');
+    }
+
+    console.log('✅ SupplierService is available, calling getAllSuppliers...');
+    const suppliers = await supplierService.getAllSuppliers();
+
+    console.log('📦 Received suppliers:', suppliers);
+    console.log('📊 Suppliers count:', suppliers?.length || 0);
+    console.log('📋 Individual suppliers:');
+    suppliers?.forEach((supplier, index) => {
+      console.log(`  ${index + 1}:`, supplier);
+    });
+
+    allSuppliers.value = suppliers || [];
+
+    const count = allSuppliers.value.length;
+    console.log(`✅ Successfully loaded ${count} suppliers`);
+
+    showNotification(
+      `${count} suppliers cargados correctamente`,
+      'success',
+      'mdi-check-circle'
+    );
   } catch (error) {
-    console.error('Error refreshing data:', error);
-    showNotification('Error al actualizar los datos', 'error', 'mdi-alert-circle');
+    console.error('❌ Error in refreshData:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available');
+
+    showNotification(
+      `Error al cargar suppliers: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'error',
+      'mdi-alert-circle'
+    );
+
+    allSuppliers.value = [];
   } finally {
     loading.value = false;
+    console.log('🏁 refreshData completed');
   }
 }
 
 function handleSearch() {
-  currentPage.value = 1; // Reset to first page when searching
+  currentPage.value = 1;
 }
 
 function applyFilters() {
-  currentPage.value = 1; // Reset to first page when applying filters
+  currentPage.value = 1;
 }
 
 function resetFilters() {
@@ -341,46 +345,32 @@ function toggleTheme() {
 }
 
 // Supplier event handlers
-function handleViewSupplier(supplier: Supplier) {
+function handleViewSupplier(supplier: SupplierView) {
   console.log('View supplier:', supplier);
   showNotification(`Viendo detalles de ${supplier.name}`, 'info', 'mdi-eye');
 }
 
-function handleContactSupplier(supplier: Supplier) {
+function handleContactSupplier(supplier: SupplierView) {
   console.log('Contact supplier:', supplier);
-  // Open phone dialer or email client
   if (supplier.phone) {
     window.open(`tel:${supplier.phone}`);
   }
   showNotification(`Contactando a ${supplier.name}`, 'info', 'mdi-phone');
 }
 
-function handleEditSupplier(supplier: Supplier) {
+function handleEditSupplier(supplier: SupplierView) {
   console.log('Edit supplier:', supplier);
   showNotification(`Editando información de ${supplier.name}`, 'info', 'mdi-pencil');
 }
 
-function handleDeleteSupplier(supplier: Supplier) {
+function handleDeleteSupplier(supplier: SupplierView) {
   console.log('Delete supplier:', supplier);
-  // In a real app, show confirmation dialog first
-  if (confirm(`¿Estás seguro de que deseas eliminar a ${supplier.name}?`)) {
-    suppliers.value = suppliers.value.filter(s => s.id !== supplier.id);
-    showNotification(`${supplier.name} eliminado correctamente`, 'success', 'mdi-delete');
-  }
+  showNotification(`Eliminar ${supplier.name} (no implementado)`, 'warning', 'mdi-delete');
 }
 
-function handleToggleFeatured(supplier: Supplier) {
+function handleToggleFeatured(supplier: SupplierView) {
   console.log('Toggle featured:', supplier);
-  const index = suppliers.value.findIndex(s => s.id === supplier.id);
-  if (index !== -1) {
-    suppliers.value[index] = {
-      ...suppliers.value[index],
-      featured: !suppliers.value[index].featured
-    };
-
-    const action = suppliers.value[index].featured ? 'marcado como destacado' : 'quitado de destacados';
-    showNotification(`${supplier.name} ${action}`, 'success', 'mdi-star');
-  }
+  showNotification(`Toggle featured ${supplier.name} (no implementado)`, 'info', 'mdi-star');
 }
 
 // Utility functions
@@ -393,10 +383,13 @@ function showNotification(message: string, color: 'success' | 'error' | 'info' |
 
 // Lifecycle hooks
 onMounted(async () => {
+  console.log('🚀 SuppliersView mounted');
+
   // Adjust rail based on screen size
   rail.value = mdAndUp.value;
 
   // Load initial data
+  console.log('📡 Loading initial supplier data...');
   await refreshData();
 });
 

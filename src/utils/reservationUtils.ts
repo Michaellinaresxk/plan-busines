@@ -1,11 +1,5 @@
 // src/utils/reservationUtils.ts
-import {
-  SERVICE_COLORS,
-  SERVICE_GRADIENTS,
-  STATUS_COLORS,
-  STATUS_TEXT
-} from '@/constants/reservation';
-import type { ReservationStatus } from '@/types/reservation';
+import { SERVICE_COLORS, SERVICE_GRADIENTS } from '@/constants/reservation';
 
 /**
  * Gets the initials from a full name
@@ -36,24 +30,6 @@ export function getServiceColor(service: string): string {
  */
 export function getServiceGradient(service: string): string {
   return SERVICE_GRADIENTS[service] || 'linear-gradient(135deg, #6366F1, #4F46E5)'; // Default gradient
-}
-
-/**
- * Gets the color for a reservation status
- * @param status - Reservation status
- * @returns CSS color value
- */
-export function getStatusColor(status: ReservationStatus): string {
-  return STATUS_COLORS[status];
-}
-
-/**
- * Gets the translated text for a reservation status
- * @param status - Reservation status
- * @returns Translated status text
- */
-export function getStatusText(status: ReservationStatus): string {
-  return STATUS_TEXT[status];
 }
 
 /**

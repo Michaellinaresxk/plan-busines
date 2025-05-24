@@ -17,3 +17,13 @@ export type ReservationProperties = {
   formData: Record<string, any>; // Objeto dinámico con propiedades específicas por servicio
   notes?: string;
 };
+
+export type SupplierProperties = {
+  id: string;
+  name: string;
+  cedula: string;
+  email: string;
+  phone: string;
+  service: string;
+  canProvideService: boolean;
+};

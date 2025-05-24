@@ -38,6 +38,20 @@
           class="list-item mb-1" :class="{ 'active-item': activeItem === 'rejected' }"></v-list-item>
       </v-list>
 
+      <!-- Sección Proveedores -->
+      <v-divider class="my-3" v-show="!railModel"></v-divider>
+
+      <v-list-subheader v-show="!railModel" class="text-overline font-weight-bold text-primary px-2">
+        Servicios Externos
+      </v-list-subheader>
+
+      <v-list nav class="nav-list">
+        <v-list-item prepend-icon="mdi-calendar-clock" title="Proveedores" value="proveedores"
+          :active="$route.path === '/suppliers'" color="primary" :badge="suppliersCount" badge-color="error"
+          rounded="lg" class="list-item mb-1" :class="{ 'active-item': $route.path === '/suppliers' }"
+          to="/suppliers"></v-list-item>
+      </v-list>
+
       <!-- Sección Análisis -->
       <v-divider class="my-3" v-show="!railModel"></v-divider>
 
@@ -97,6 +111,7 @@ const props = defineProps<{
   rail: boolean;
   mdAndUp: boolean;
   pendingCount: number;
+  suppliersCount: number;
 }>();
 
 // Emits

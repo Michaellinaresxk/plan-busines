@@ -1,8 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '@/UI/pages/HomeView.vue';
 import LoginPage from '@/UI/pages/auth/LoginPage.vue';
-import DashboardView from '@/UI/pages/DashboardView.vue';
-import PendingReservationsView from '@/UI/pages/PendingReservationsView.vue';
 import RegisterPage from '@/UI/pages/auth/RegisterPage.vue';
 
 const router = createRouter({
@@ -10,19 +7,6 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/UI/pages/HomeView.vue')
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('@/UI/pages/AboutView.vue')
-    },
-    {
-      path: '/login',
       name: 'Login',
       component: LoginPage,
       meta: {
@@ -51,6 +35,15 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         title: 'Reservaciones Pendientes'
+      }
+    },
+    {
+      path: '/suppliers',
+      name: 'suppliers',
+      component: () => import('@/UI/pages/SuppliersView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Lista de proveedores'
       }
     }
   ]

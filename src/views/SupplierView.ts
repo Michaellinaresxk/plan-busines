@@ -1,3 +1,4 @@
+// src/views/SupplierView.ts
 import type Supplier from '../domain/supplier/Supplier';
 
 export class SupplierView {
@@ -12,7 +13,9 @@ export class SupplierView {
   ) {}
 
   static fromDomain(supplier: Supplier): SupplierView {
-    const { id, name, cedula, email, phone, service, canProvideService } = supplier;
+    const { id, name, cedula, email, phone, service, canProvideService } = supplier.properties;
     return new SupplierView(id, name, cedula, email, phone, service, canProvideService);
   }
 }
+
+export default SupplierView;

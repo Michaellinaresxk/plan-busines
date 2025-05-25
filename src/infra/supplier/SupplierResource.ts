@@ -60,12 +60,53 @@ export class SupplierResource implements SupplierRepository {
     }
   }
 
+  // ✅ NUEVO: Método para actualizar supplier
+  async updateSupplier(id: string, data: Partial<Omit<ApiSupplier, 'id'>>): Promise<Supplier> {
+    try {
+      console.log('🔧 SupplierResource: Updating supplier...', { id, data });
+
+      const apiSupplier = await this.supplierCaller.updateSupplier(id, data);
+      const domainSupplier = this.apiToDomain(apiSupplier);
+
+      console.log('✅ SupplierResource: Supplier updated successfully');
+      return domainSupplier;
+    } catch (error) {
+      console.error('❌ SupplierResource: Error updating supplier:', error);
+      throw error;
+    }
+  }
+
   // Mantenemos solo estos métodos por ahora
-  async getSupplierById(id: string): Promise<Supplier> {
-    throw new Error('Not implemented yet');
+  async getSupplierById(id: string): Promise<Supplier | null> {
+    try {
+      console.log('🔧 SupplierResource: Getting supplier by ID...', { id });
+
+      const apiSupplier = await this.supplierCaller.getSupplierById(id);
+
+      if (!apiSupplier) {
+        console.log('❌ SupplierResource: Supplier not found');
+        return null;
+      }
+
+      const domainSupplier = this.apiToDomain(apiSupplier);
+      console.log('✅ SupplierResource: Supplier found');
+      return domainSupplier;
+    } catch (error) {
+      console.error(`❌ SupplierResource: Error getting supplier ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteSupplier(id: string): Promise<void> {
-    throw new Error('Not implemented yet');
+    try {
+      console.log('🔧 SupplierResource: Deleting supplier...', { id });
+
+      await this.supplierCaller.deleteSupplier(id);
+
+      console.log('✅ SupplierResource: Supplier deleted successfully');
+    } catch (error) {
+      console.error(`❌ SupplierResource: Error deleting supplier ${id}:`, error);
+      throw error;
+    }
   }
 }

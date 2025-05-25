@@ -20,30 +20,6 @@ export class SupplierResource implements SupplierRepository {
     });
   }
 
-  async createSupplier(
-    name: string,
-    cedula: string,
-    email: string,
-    phone: string,
-    service: string,
-    canProvideService: boolean = true
-  ): Promise<Supplier> {
-    try {
-      const apiSupplier = await this.supplierCaller.createSupplier(
-        name,
-        cedula,
-        email,
-        phone,
-        service,
-        canProvideService
-      );
-      return this.apiToDomain(apiSupplier);
-    } catch (error) {
-      console.error('Error creating supplier:', error);
-      throw error;
-    }
-  }
-
   async getAllSuppliers(): Promise<Supplier[]> {
     try {
       const apiSuppliers = await this.supplierCaller.getAllSuppliers();
@@ -54,47 +30,42 @@ export class SupplierResource implements SupplierRepository {
     }
   }
 
-  async getSupplierById(id: string): Promise<Supplier | null> {
+  async createSupplier(
+    name: string,
+    cedula: string,
+    email: string,
+    phone: string,
+    service: string,
+    canProvideService: boolean = true
+  ): Promise<Supplier> {
     try {
-      const apiSupplier = await this.supplierCaller.getSupplierById(id);
+      console.log('🔧 SupplierResource: Creating supplier...', { name, service });
 
-      if (!apiSupplier) {
-        return null;
-      }
+      const apiSupplier = await this.supplierCaller.createSupplier(
+        name,
+        cedula,
+        email,
+        phone,
+        service,
+        canProvideService
+      );
 
-      return this.apiToDomain(apiSupplier);
+      const domainSupplier = this.apiToDomain(apiSupplier);
+      console.log('✅ SupplierResource: Supplier created successfully');
+
+      return domainSupplier;
     } catch (error) {
-      console.error(`Error getting supplier ${id}:`, error);
+      console.error('❌ SupplierResource: Error creating supplier:', error);
       throw error;
     }
   }
 
-  async updateSupplier(id: string, data: Partial<Omit<ApiSupplier, 'id'>>): Promise<Supplier> {
-    try {
-      const apiSupplier = await this.supplierCaller.updateSupplier(id, data);
-      return this.apiToDomain(apiSupplier);
-    } catch (error) {
-      console.error(`Error updating supplier ${id}:`, error);
-      throw error;
-    }
+  // Mantenemos solo estos métodos por ahora
+  async getSupplierById(id: string): Promise<Supplier> {
+    throw new Error('Not implemented yet');
   }
 
   async deleteSupplier(id: string): Promise<void> {
-    try {
-      await this.supplierCaller.deleteSupplier(id);
-    } catch (error) {
-      console.error(`Error deleting supplier ${id}:`, error);
-      throw error;
-    }
-  }
-
-  async getSuppliersByService(service: string): Promise<Supplier[]> {
-    try {
-      const apiSuppliers = await this.supplierCaller.getSuppliersByService(service);
-      return apiSuppliers.map(apiSupplier => this.apiToDomain(apiSupplier));
-    } catch (error) {
-      console.error(`Error getting suppliers by service ${service}:`, error);
-      throw error;
-    }
+    throw new Error('Not implemented yet');
   }
 }

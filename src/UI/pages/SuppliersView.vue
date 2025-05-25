@@ -1,4 +1,3 @@
-<!-- Actualización parcial de SuppliersView.vue -->
 <template>
   <v-app>
     <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
@@ -33,7 +32,7 @@
             </div>
           </div>
 
-          <!-- Stats Cards - Mantenemos igual -->
+          <!-- Stats Cards -->
           <v-row class="mb-4">
             <v-col cols="12" sm="6" md="3">
               <v-card elevation="0" border rounded="lg">
@@ -48,9 +47,9 @@
             <v-col cols="12" sm="6" md="3">
               <v-card elevation="0" border rounded="lg">
                 <v-card-text class="text-center pa-4">
-                  <v-icon icon="mdi-star" size="32" color="amber" class="mb-2"></v-icon>
-                  <div class="text-h4 font-weight-bold">{{ stats.featured }}</div>
-                  <div class="text-body-2 text-medium-emphasis">Destacados</div>
+                  <v-icon icon="mdi-check-circle" size="32" color="success" class="mb-2"></v-icon>
+                  <div class="text-h4 font-weight-bold">{{ stats.active }}</div>
+                  <div class="text-body-2 text-medium-emphasis">Activos</div>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -68,16 +67,16 @@
             <v-col cols="12" sm="6" md="3">
               <v-card elevation="0" border rounded="lg">
                 <v-card-text class="text-center pa-4">
-                  <v-icon icon="mdi-star-circle" size="32" color="success" class="mb-2"></v-icon>
-                  <div class="text-h4 font-weight-bold">{{ stats.avgRating }}</div>
-                  <div class="text-body-2 text-medium-emphasis">Calificación Prom.</div>
+                  <v-icon icon="mdi-star-circle" size="32" color="amber" class="mb-2"></v-icon>
+                  <div class="text-h4 font-weight-bold">{{ stats.featured }}</div>
+                  <div class="text-body-2 text-medium-emphasis">Destacados</div>
                 </v-card-text>
               </v-card>
             </v-col>
           </v-row>
         </div>
 
-        <!-- Filters and Search - Mantenemos igual -->
+        <!-- Filters and Search -->
         <v-card class="mb-6" elevation="0" border rounded="lg">
           <v-card-text class="py-4">
             <div class="d-flex flex-wrap gap-4 align-center">
@@ -88,7 +87,7 @@
               <v-select v-model="filters.service" :items="serviceOptions" label="Servicio" variant="outlined"
                 density="compact" hide-details style="max-width: 200px" @update:model-value="applyFilters" />
 
-              <v-select v-model="filters.featured" :items="featuredOptions" label="Tipo" variant="outlined"
+              <v-select v-model="filters.status" :items="statusOptions" label="Estado" variant="outlined"
                 density="compact" hide-details style="max-width: 150px" @update:model-value="applyFilters" />
 
               <v-spacer></v-spacer>
@@ -101,7 +100,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- Suppliers List - Mantenemos igual -->
+        <!-- Suppliers List -->
         <SupplierList :suppliers="paginatedSuppliers || []" :loading="loading" :current-page="currentPage"
           :total-pages="totalPages" v-model:current-page="currentPage" @refresh="refreshData" @view="handleViewSupplier"
           @contact="handleContactSupplier" @edit="handleEditSupplier" @delete="handleDeleteSupplier"
@@ -109,8 +108,16 @@
       </v-container>
     </v-main>
 
-    <!-- ✅ NUEVO: Formulario de Crear Proveedor -->
+    <!-- ✅ Formulario de Crear Proveedor -->
     <CreateSupplierForm v-model="showAddSupplierDialog" @supplier-created="handleSupplierCreated" />
+
+    <!-- ✅ Formulario de Editar Proveedor -->
+    <EditSupplierForm v-model="showEditSupplierDialog" :supplier="selectedSupplier"
+      @supplier-updated="handleSupplierUpdated" />
+
+    <!-- ✅ Dialog de Eliminar Proveedor -->
+    <DeleteSupplierDialog v-model="showDeleteSupplierDialog" :supplier="selectedSupplier"
+      @supplier-deleted="handleSupplierDeleted" />
 
     <!-- Snackbar for notifications -->
     <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="4000">
@@ -131,11 +138,14 @@ import { useDisplay } from 'vuetify';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
 import SupplierList from '@/UI/components/suppliers/SupplierList.vue';
-import CreateSupplierForm from '@/UI/components/suppliers/CreateSupplierForm.vue'; // ✅ NUEVO
+import CreateSupplierForm from '@/UI/components/suppliers/CreateSupplierForm.vue';
+import EditSupplierForm from '@/UI/components/suppliers/EditSupplierForm.vue';
+import DeleteSupplierDialog from '@/UI/components/suppliers/DeleteSupplierDialog.vue';
 import { supplierServiceKey } from '@/services/SupplierService';
 import type { SupplierView } from '@/views/SupplierView';
+import { SUPPLIER_SERVICE_OPTIONS } from '@/types/supplier';
 
-// ✅ Interface para el formulario
+// ✅ Interfaces para los formularios
 interface CreateSupplierData {
   name: string;
   cedula: string;
@@ -145,9 +155,18 @@ interface CreateSupplierData {
   canProvideService: boolean;
 }
 
+interface UpdateSupplierData {
+  name?: string;
+  cedula?: string;
+  email?: string;
+  phone?: string;
+  service?: string;
+  canProvideService?: boolean;
+}
+
 console.log('🏗️ SuppliersView: Initializing component...');
 
-// Inject supplier service
+// Inject supplier service con manejo de errores
 const supplierService = inject(supplierServiceKey);
 console.log('🔌 SupplierService injection result:', supplierService ? '✅ Available' : '❌ Not available');
 
@@ -164,12 +183,17 @@ const allSuppliers = ref<SupplierView[]>([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(12);
+
+// Dialog states
 const showAddSupplierDialog = ref(false);
+const showEditSupplierDialog = ref(false);
+const showDeleteSupplierDialog = ref(false);
+const selectedSupplier = ref<SupplierView | null>(null);
 
 // Filters
 const filters = ref({
   service: 'all',
-  featured: 'all'
+  status: 'all'
 });
 
 // Notifications
@@ -179,32 +203,25 @@ const snackbarColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
 const snackbarIcon = ref('mdi-check-circle');
 
 // Filter options
-const serviceOptions = [
+const serviceOptions = computed(() => [
   { title: 'Todos los servicios', value: 'all' },
-  { title: 'Transporte', value: 'Transporte' },
-  { title: 'Limpieza', value: 'Limpieza' },
-  { title: 'Jardinería', value: 'Jardinería' },
-  { title: 'Plomería', value: 'Plomería' },
-  { title: 'Electricidad', value: 'Electricidad' },
-  { title: 'Carpintería', value: 'Carpintería' },
-  { title: 'Pintura', value: 'Pintura' },
-  { title: 'Seguridad', value: 'Seguridad' },
-  { title: 'Catering', value: 'Catering' },
-  { title: 'Fotografía', value: 'Fotografía' },
-  { title: 'Decoración', value: 'Decoración' },
-  { title: 'Tecnología', value: 'Tecnología' }
-];
+  ...SUPPLIER_SERVICE_OPTIONS.map(option => ({
+    title: option.title,
+    value: option.value
+  }))
+]);
 
-const featuredOptions = [
+const statusOptions = [
   { title: 'Todos', value: 'all' },
-  { title: 'Destacados', value: 'featured' },
-  { title: 'Regulares', value: 'regular' }
+  { title: 'Activos', value: 'active' },
+  { title: 'Inactivos', value: 'inactive' }
 ];
 
-// Computed properties - Mantenemos todos igual
+// Computed properties
 const filteredSuppliers = computed(() => {
   let result = [...allSuppliers.value];
 
+  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(supplier =>
@@ -216,8 +233,18 @@ const filteredSuppliers = computed(() => {
     );
   }
 
+  // Apply service filter
   if (filters.value.service !== 'all') {
     result = result.filter(supplier => supplier.service === filters.value.service);
+  }
+
+  // Apply status filter
+  if (filters.value.status !== 'all') {
+    if (filters.value.status === 'active') {
+      result = result.filter(supplier => supplier.canProvideService);
+    } else if (filters.value.status === 'inactive') {
+      result = result.filter(supplier => !supplier.canProvideService);
+    }
   }
 
   return result;
@@ -245,26 +272,28 @@ const paginatedSuppliers = computed(() => {
 // Statistics
 const stats = computed(() => {
   const total = allSuppliers.value.length;
-  const featured = 0; // TODO: Add featured property to SupplierView
+  const active = allSuppliers.value.filter(s => s.canProvideService).length;
+  const featured = 0; // ✅ Por ahora 0, hasta que implementemos featured
   const services = new Set(allSuppliers.value.map(s => s.service)).size;
-  const avgRating = '4.5'; // TODO: Add rating property to SupplierView
 
   return {
     total,
+    active,
     featured,
-    services,
-    avgRating
+    services
   };
 });
 
 // Active filters check
 const hasActiveFilters = computed(() => {
   return filters.value.service !== 'all' ||
-    filters.value.featured !== 'all' ||
+    filters.value.status !== 'all' ||
     searchQuery.value.length > 0;
 });
 
-// Methods
+// ✅ MÉTODOS PRINCIPALES
+
+// Cargar datos
 async function refreshData() {
   console.log('🔄 Starting refreshData...');
   loading.value = true;
@@ -289,7 +318,7 @@ async function refreshData() {
     console.log(`✅ Successfully loaded ${count} suppliers`);
 
     showNotification(
-      `${count} suppliers cargados correctamente`,
+      `${count} proveedores cargados correctamente`,
       'success',
       'mdi-check-circle'
     );
@@ -298,7 +327,7 @@ async function refreshData() {
     console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available');
 
     showNotification(
-      `Error al cargar suppliers: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      `Error al cargar proveedores: ${error instanceof Error ? error.message : 'Unknown error'}`,
       'error',
       'mdi-alert-circle'
     );
@@ -310,7 +339,7 @@ async function refreshData() {
   }
 }
 
-// ✅ NUEVO: Método para crear supplier
+// ✅ CREAR SUPPLIER
 async function handleSupplierCreated(data: CreateSupplierData) {
   console.log('🔄 Creating supplier with data:', data);
 
@@ -356,6 +385,93 @@ async function handleSupplierCreated(data: CreateSupplierData) {
   }
 }
 
+// ✅ ACTUALIZAR SUPPLIER
+async function handleSupplierUpdated(id: string, data: UpdateSupplierData) {
+  console.log('🔄 Updating supplier with data:', { id, data });
+
+  if (!supplierService) {
+    console.error('❌ SupplierService not available');
+    showNotification('Error: Servicio no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  try {
+    const updatedSupplier = await supplierService.updateSupplier(id, data);
+
+    console.log('✅ Supplier updated successfully:', updatedSupplier);
+
+    // Cerrar el dialog
+    showEditSupplierDialog.value = false;
+    selectedSupplier.value = null;
+
+    // Actualizar la lista
+    await refreshData();
+
+    // Mostrar notificación de éxito
+    const changedFields = Object.keys(data).length;
+    showNotification(
+      `Proveedor actualizado exitosamente (${changedFields} campos modificados)`,
+      'success',
+      'mdi-check-circle'
+    );
+
+  } catch (error) {
+    console.error('❌ Error updating supplier:', error);
+
+    showNotification(
+      `Error al actualizar proveedor: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      'error',
+      'mdi-alert-circle'
+    );
+  }
+}
+
+// ✅ ELIMINAR SUPPLIER
+async function handleSupplierDeleted(id: string) {
+  console.log('🗑️ Deleting supplier with ID:', id);
+
+  if (!supplierService) {
+    console.error('❌ SupplierService not available');
+    showNotification('Error: Servicio no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  try {
+    // Obtener el nombre del supplier antes de eliminarlo (para la notificación)
+    const supplierToDelete = selectedSupplier.value;
+    const supplierName = supplierToDelete?.name || 'Proveedor';
+
+    await supplierService.deleteSupplier(id);
+
+    console.log('✅ Supplier deleted successfully');
+
+    // Cerrar el dialog y limpiar selección
+    showDeleteSupplierDialog.value = false;
+    selectedSupplier.value = null;
+
+    // Actualizar la lista
+    await refreshData();
+
+    // Mostrar notificación de éxito
+    showNotification(
+      `Proveedor "${supplierName}" eliminado exitosamente`,
+      'success',
+      'mdi-check-circle'
+    );
+
+  } catch (error) {
+    console.error('❌ Error deleting supplier:', error);
+
+    showNotification(
+      `Error al eliminar proveedor: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      'error',
+      'mdi-alert-circle'
+    );
+  }
+}
+
+// ✅ EVENT HANDLERS
+
 function handleSearch() {
   currentPage.value = 1;
 }
@@ -367,14 +483,14 @@ function applyFilters() {
 function resetFilters() {
   filters.value = {
     service: 'all',
-    featured: 'all'
+    status: 'all'
   };
   searchQuery.value = '';
   currentPage.value = 1;
 }
 
 function toggleTheme() {
-  console.log('Toggle theme');
+  console.log('Toggle theme - implementar más tarde');
 }
 
 // Supplier event handlers
@@ -385,25 +501,45 @@ function handleViewSupplier(supplier: SupplierView) {
 
 function handleContactSupplier(supplier: SupplierView) {
   console.log('Contact supplier:', supplier);
-  if (supplier.phone) {
+
+  // ✅ Lógica simple sin métodos del view
+  const cleanedPhone = supplier.phone.replace(/\D/g, '');
+
+  // Intentar abrir WhatsApp si el teléfono tiene 10 dígitos
+  if (cleanedPhone.length === 10) {
+    const whatsappUrl = `https://wa.me/1809${cleanedPhone}`;
+    window.open(whatsappUrl, '_blank');
+  } else if (supplier.phone) {
     window.open(`tel:${supplier.phone}`);
   }
+
   showNotification(`Contactando a ${supplier.name}`, 'info', 'mdi-phone');
 }
 
 function handleEditSupplier(supplier: SupplierView) {
   console.log('Edit supplier:', supplier);
+
+  // Establecer el supplier seleccionado y abrir el dialog
+  selectedSupplier.value = supplier;
+  showEditSupplierDialog.value = true;
+
   showNotification(`Editando información de ${supplier.name}`, 'info', 'mdi-pencil');
 }
 
 function handleDeleteSupplier(supplier: SupplierView) {
   console.log('Delete supplier:', supplier);
-  showNotification(`Eliminar ${supplier.name} (no implementado)`, 'warning', 'mdi-delete');
+
+  // Establecer el supplier seleccionado y abrir el dialog de confirmación
+  selectedSupplier.value = supplier;
+  showDeleteSupplierDialog.value = true;
+
+  showNotification(`Preparando eliminación de ${supplier.name}`, 'warning', 'mdi-delete-alert');
 }
 
 function handleToggleFeatured(supplier: SupplierView) {
   console.log('Toggle featured:', supplier);
-  showNotification(`Toggle featured ${supplier.name} (no implementado)`, 'info', 'mdi-star');
+  // TODO: Implementar toggle featured cuando agregemos esta funcionalidad
+  showNotification(`Toggle featured ${supplier.name} (implementar más tarde)`, 'info', 'mdi-star');
 }
 
 // Utility functions
@@ -414,7 +550,7 @@ function showNotification(message: string, color: 'success' | 'error' | 'info' |
   showSnackbar.value = true;
 }
 
-// Lifecycle hooks
+// ✅ LIFECYCLE HOOKS
 onMounted(async () => {
   console.log('🚀 SuppliersView mounted');
 
@@ -426,7 +562,7 @@ onMounted(async () => {
   await refreshData();
 });
 
-// Watchers
+// ✅ WATCHERS
 watch(mdAndUp, (newValue) => {
   if (!newValue) {
     rail.value = false;
@@ -438,7 +574,7 @@ watch(mdAndUp, (newValue) => {
 });
 
 // Reset page when filters change
-watch([() => filters.value.service, () => filters.value.featured, searchQuery], () => {
+watch([() => filters.value.service, () => filters.value.status, searchQuery], () => {
   currentPage.value = 1;
 });
 
@@ -449,3 +585,38 @@ watch(totalPages, (newTotalPages) => {
   }
 });
 </script>
+
+<style scoped>
+.suppliers-header {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05));
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.v-chip {
+  font-weight: 600;
+}
+
+:deep(.v-card) {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+:deep(.v-card:hover) {
+  transform: translateY(-2px);
+}
+
+.v-snackbar {
+  margin: 12px;
+}
+
+@media (max-width: 600px) {
+  .suppliers-header {
+    padding: 16px;
+  }
+
+  .d-flex.gap-2 {
+    gap: 8px !important;
+  }
+}
+</style>

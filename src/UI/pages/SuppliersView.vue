@@ -1,3 +1,4 @@
+<!-- Actualización parcial de SuppliersView.vue -->
 <template>
   <v-app>
     <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
@@ -32,7 +33,7 @@
             </div>
           </div>
 
-          <!-- Stats Cards -->
+          <!-- Stats Cards - Mantenemos igual -->
           <v-row class="mb-4">
             <v-col cols="12" sm="6" md="3">
               <v-card elevation="0" border rounded="lg">
@@ -76,7 +77,7 @@
           </v-row>
         </div>
 
-        <!-- Filters and Search -->
+        <!-- Filters and Search - Mantenemos igual -->
         <v-card class="mb-6" elevation="0" border rounded="lg">
           <v-card-text class="py-4">
             <div class="d-flex flex-wrap gap-4 align-center">
@@ -100,7 +101,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- Suppliers List -->
+        <!-- Suppliers List - Mantenemos igual -->
         <SupplierList :suppliers="paginatedSuppliers || []" :loading="loading" :current-page="currentPage"
           :total-pages="totalPages" v-model:current-page="currentPage" @refresh="refreshData" @view="handleViewSupplier"
           @contact="handleContactSupplier" @edit="handleEditSupplier" @delete="handleDeleteSupplier"
@@ -108,19 +109,8 @@
       </v-container>
     </v-main>
 
-    <!-- Add Supplier Dialog (Placeholder) -->
-    <v-dialog v-model="showAddSupplierDialog" max-width="600">
-      <v-card>
-        <v-card-title>Agregar Nuevo Proveedor</v-card-title>
-        <v-card-text>
-          <p>Formulario para agregar proveedor (implementar después)</p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="showAddSupplierDialog = false">Cerrar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- ✅ NUEVO: Formulario de Crear Proveedor -->
+    <CreateSupplierForm v-model="showAddSupplierDialog" @supplier-created="handleSupplierCreated" />
 
     <!-- Snackbar for notifications -->
     <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="4000">
@@ -141,12 +131,23 @@ import { useDisplay } from 'vuetify';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
 import SupplierList from '@/UI/components/suppliers/SupplierList.vue';
+import CreateSupplierForm from '@/UI/components/suppliers/CreateSupplierForm.vue'; // ✅ NUEVO
 import { supplierServiceKey } from '@/services/SupplierService';
 import type { SupplierView } from '@/views/SupplierView';
 
+// ✅ Interface para el formulario
+interface CreateSupplierData {
+  name: string;
+  cedula: string;
+  email: string;
+  phone: string;
+  service: string;
+  canProvideService: boolean;
+}
+
 console.log('🏗️ SuppliersView: Initializing component...');
 
-// Inject supplier service with better error handling
+// Inject supplier service
 const supplierService = inject(supplierServiceKey);
 console.log('🔌 SupplierService injection result:', supplierService ? '✅ Available' : '❌ Not available');
 
@@ -200,11 +201,10 @@ const featuredOptions = [
   { title: 'Regulares', value: 'regular' }
 ];
 
-// Computed properties
+// Computed properties - Mantenemos todos igual
 const filteredSuppliers = computed(() => {
   let result = [...allSuppliers.value];
 
-  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(supplier =>
@@ -216,17 +216,9 @@ const filteredSuppliers = computed(() => {
     );
   }
 
-  // Apply service filter
   if (filters.value.service !== 'all') {
     result = result.filter(supplier => supplier.service === filters.value.service);
   }
-
-  // Apply featured filter (Note: SupplierView doesn't have featured property yet)
-  // if (filters.value.featured === 'featured') {
-  //   result = result.filter(supplier => supplier.featured === true);
-  // } else if (filters.value.featured === 'regular') {
-  //   result = result.filter(supplier => !supplier.featured);
-  // }
 
   return result;
 });
@@ -282,7 +274,6 @@ async function refreshData() {
 
     if (!supplierService) {
       console.error('❌ SupplierService not available in refreshData');
-      console.log('🔍 Available keys:', Object.getOwnPropertySymbols({}));
       throw new Error('SupplierService not available - check App.vue providers and service initialization');
     }
 
@@ -291,10 +282,6 @@ async function refreshData() {
 
     console.log('📦 Received suppliers:', suppliers);
     console.log('📊 Suppliers count:', suppliers?.length || 0);
-    console.log('📋 Individual suppliers:');
-    suppliers?.forEach((supplier, index) => {
-      console.log(`  ${index + 1}:`, supplier);
-    });
 
     allSuppliers.value = suppliers || [];
 
@@ -320,6 +307,52 @@ async function refreshData() {
   } finally {
     loading.value = false;
     console.log('🏁 refreshData completed');
+  }
+}
+
+// ✅ NUEVO: Método para crear supplier
+async function handleSupplierCreated(data: CreateSupplierData) {
+  console.log('🔄 Creating supplier with data:', data);
+
+  if (!supplierService) {
+    console.error('❌ SupplierService not available');
+    showNotification('Error: Servicio no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  try {
+    const newSupplier = await supplierService.createSupplier(
+      data.name,
+      data.cedula,
+      data.email,
+      data.phone,
+      data.service,
+      data.canProvideService
+    );
+
+    console.log('✅ Supplier created successfully:', newSupplier);
+
+    // Cerrar el dialog
+    showAddSupplierDialog.value = false;
+
+    // Actualizar la lista
+    await refreshData();
+
+    // Mostrar notificación de éxito
+    showNotification(
+      `Proveedor "${data.name}" creado exitosamente`,
+      'success',
+      'mdi-check-circle'
+    );
+
+  } catch (error) {
+    console.error('❌ Error creating supplier:', error);
+
+    showNotification(
+      `Error al crear proveedor: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      'error',
+      'mdi-alert-circle'
+    );
   }
 }
 

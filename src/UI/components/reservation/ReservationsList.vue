@@ -6,7 +6,7 @@
     </div>
 
     <!-- Sin resultados -->
-    <v-card v-else-if="paginatedReservations.length === 0"
+    <v-card v-else-if="!reservations || reservations.length === 0"
       class="mb-6 pa-8 d-flex flex-column align-center justify-center" elevation="0" rounded="lg" border>
       <slot name="empty-state">
         <v-avatar :color="emptyStateColor" class="mb-4" size="64">
@@ -29,17 +29,17 @@
       <slot name="list-header"></slot>
 
       <v-row>
-        <v-col v-for="(reservation, index) in paginatedReservations" :key="getReservationKey(reservation, index)"
+        <v-col v-for="(reservation, index) in displayedReservations" :key="getReservationKey(reservation, index)"
           :cols="colSize.cols" :sm="colSize.sm" :md="colSize.md" :lg="colSize.lg">
           <ReservationCardFactory :reservation="reservation" :onApprove="handleApprove" :onReject="handleReject"
             @view-details="handleViewDetails" />
         </v-col>
       </v-row>
 
-      <!-- Paginación si es necesaria -->
-      <div v-if="showPagination && totalPages > 1" class="d-flex justify-center mt-6">
-        <v-pagination v-model="currentPageModel" :length="totalPages" :total-visible="totalVisible" rounded="circle"
-          :disabled="loading" :color="paginationColor"></v-pagination>
+      <!-- Paginación interna del componente -->
+      <div v-if="showInternalPagination && totalInternalPages > 1" class="d-flex justify-center mt-6">
+        <v-pagination v-model="internalCurrentPage" :length="totalInternalPages" :total-visible="totalVisible"
+          rounded="circle" :disabled="loading" :color="paginationColor"></v-pagination>
       </div>
     </template>
   </div>
@@ -109,36 +109,46 @@ const emit = defineEmits<{
   (e: 'view-details', reservation: any): void;
 }>();
 
-// Estado local
+// Estado local para paginación interna
 const processingId = ref<string | number | null>(null);
+const internalCurrentPage = ref(1);
 
-// Modelo reactivo para la página actual
-const currentPageModel = computed({
-  get: () => props.currentPage,
-  set: (value) => emit('update:current-page', value)
+// Determinar si usar paginación externa o interna
+const showInternalPagination = computed(() => {
+  // Si el componente padre no maneja paginación (no hay v-model:current-page), usar paginación interna
+  return props.showPagination && !props.currentPage;
 });
 
-// FIXED: Calcular número total de páginas correctamente
-const totalPages = computed(() => {
+const currentPageToUse = computed(() => {
+  return showInternalPagination.value ? internalCurrentPage.value : props.currentPage;
+});
+
+// Calcular número total de páginas
+const totalInternalPages = computed(() => {
   if (!props.reservations || props.reservations.length === 0) {
     return 1;
   }
   return Math.ceil(props.reservations.length / props.itemsPerPage);
 });
 
-// FIXED: Obtener las reservaciones paginadas correctamente
-const paginatedReservations = computed(() => {
+// Obtener las reservaciones a mostrar (con o sin paginación)
+const displayedReservations = computed(() => {
   if (!props.reservations || props.reservations.length === 0) {
     return [];
   }
 
-  const startIndex = (props.currentPage - 1) * props.itemsPerPage;
+  // Si no hay paginación, mostrar todas
+  if (!props.showPagination) {
+    return props.reservations;
+  }
+
+  // Aplicar paginación
+  const startIndex = (currentPageToUse.value - 1) * props.itemsPerPage;
   const endIndex = startIndex + props.itemsPerPage;
   return props.reservations.slice(startIndex, endIndex);
 });
 
 // Métodos
-// Generar una clave única para cada reserva
 function getReservationKey(reservation: any, index: number): string {
   // Usar bookingId primero, luego id, luego índice como fallback
   if (reservation.bookingId) return String(reservation.bookingId);
@@ -215,16 +225,25 @@ function handleViewDetails(reservation: any) {
   emit('view-details', reservation);
 }
 
-// FIXED: Observar cambios en las reservaciones para ajustar la paginación
+// Watchers
 watch(() => props.reservations, (newReservations) => {
   if (!newReservations || newReservations.length === 0) return;
 
-  // Si la página actual está fuera de rango, volver a la primera página
-  const maxPages = Math.ceil(newReservations.length / props.itemsPerPage);
-  if (props.currentPage > maxPages) {
-    currentPageModel.value = 1;
+  // Si estamos usando paginación interna, ajustar página si es necesario
+  if (showInternalPagination.value) {
+    const maxPages = Math.ceil(newReservations.length / props.itemsPerPage);
+    if (internalCurrentPage.value > maxPages) {
+      internalCurrentPage.value = 1;
+    }
   }
 }, { immediate: true });
+
+// Sincronizar paginación externa con interna si es necesario
+watch(() => props.currentPage, (newPage) => {
+  if (!showInternalPagination.value && newPage) {
+    internalCurrentPage.value = newPage;
+  }
+});
 </script>
 
 <style scoped>

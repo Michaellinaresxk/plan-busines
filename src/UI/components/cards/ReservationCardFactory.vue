@@ -1,7 +1,7 @@
 // src/components/reservation/ReservationCardFactory.vue - Updated
 <template>
   <component :is="cardComponent" :reservation="reservationData" :onApprove="onApprove" :onReject="onReject"
-    @view-details="$emit('view-details', reservation)" />
+    @view-details="handleViewDetails" @approve="handleApprove" @reject="handleReject" />
 </template>
 
 <script setup lang="ts">
@@ -33,6 +33,8 @@ const props = defineProps<{
 // Eventos
 const emit = defineEmits<{
   (e: 'view-details', reservation: any): void;
+  (e: 'approve', id: string, reservation: any): void;
+  (e: 'reject', id: string, reservation: any): void;
 }>();
 
 // Convertir reservation a objeto plano si es una instancia de ReservationView
@@ -62,4 +64,21 @@ const cardComponent = computed(() => {
     return DefaultReservationCard;
   }
 });
+
+// Manejadores de eventos
+function handleApprove() {
+  const id = reservationData.value.bookingId || reservationData.value.id;
+  emit('approve', id, props.reservation);
+}
+
+function handleReject() {
+  const id = reservationData.value.bookingId || reservationData.value.id;
+  emit('reject', id, props.reservation);
+}
+
+// ✅ NUEVO: Handler para view-details
+function handleViewDetails() {
+  console.log('🔍 ReservationCardFactory: handleViewDetails called with reservation:', props.reservation);
+  emit('view-details', props.reservation);
+}
 </script>

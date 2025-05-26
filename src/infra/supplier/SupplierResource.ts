@@ -76,8 +76,26 @@ export class SupplierResource implements SupplierRepository {
     }
   }
 
+  async getSuppliersByService(serviceId: string): Promise<Supplier[]> {
+    try {
+      console.log('🔧 SupplierResource: Getting suppliers by service...', { serviceId });
+
+      const apiSuppliers = await this.supplierCaller.getSuppliersByService(serviceId);
+      const domainSuppliers = apiSuppliers.map(apiSupplier => this.apiToDomain(apiSupplier));
+
+      console.log('✅ SupplierResource: Found suppliers for service:', {
+        serviceId,
+        count: domainSuppliers.length
+      });
+      return domainSuppliers;
+    } catch (error) {
+      console.error(`❌ SupplierResource: Error getting suppliers by service ${serviceId}:`, error);
+      throw error;
+    }
+  }
+
   // Mantenemos solo estos métodos por ahora
-  async getSupplierById(id: string): Promise<Supplier | null> {
+  async getSupplierByID(id: string): Promise<Supplier | null> {
     try {
       console.log('🔧 SupplierResource: Getting supplier by ID...', { id });
 

@@ -7,7 +7,9 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  type Firestore
+  type Firestore,
+  query,
+  where
 } from 'firebase/firestore';
 import type { ApiSupplier } from './ApiSupplier';
 
@@ -104,6 +106,44 @@ export class SupplierCaller {
       };
     } catch (error) {
       console.error('❌ Error creating supplier:', error);
+      throw error;
+    }
+  }
+
+  async getSuppliersByService(serviceId: string): Promise<ApiSupplier[]> {
+    try {
+      console.log('🔥 SupplierCaller: Getting suppliers by service...', { serviceId });
+
+      const supplierCollection = collection(this.db, this.COLLECTION_NAME);
+      const q = query(supplierCollection, where('service', '==', serviceId));
+      const snapshot = await getDocs(q);
+
+      console.log('🔥 Query executed, found suppliers:', snapshot.size);
+
+      if (snapshot.empty) {
+        console.log('🔥 No suppliers found for service:', serviceId);
+        return [];
+      }
+
+      const results = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('🔥 Supplier found:', { id: doc.id, name: data.name, service: data.service });
+
+        return {
+          id: doc.id,
+          name: data.name || '',
+          cedula: data.cedula || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          service: data.service || '',
+          canProvideService: data.canProvideService !== false
+        };
+      }) as ApiSupplier[];
+
+      console.log('✅ Found suppliers for service:', { serviceId, count: results.length });
+      return results;
+    } catch (error) {
+      console.error('❌ Error getting suppliers by service:', error);
       throw error;
     }
   }

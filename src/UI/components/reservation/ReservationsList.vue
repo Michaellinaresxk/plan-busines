@@ -32,7 +32,7 @@
         <v-col v-for="(reservation, index) in displayedReservations" :key="getReservationKey(reservation, index)"
           :cols="colSize.cols" :sm="colSize.sm" :md="colSize.md" :lg="colSize.lg">
           <ReservationCardFactory :reservation="reservation" :onApprove="handleApprove" :onReject="handleReject"
-            @view-details="handleViewDetails" />
+            @view-details="handleViewDetails" @approve="handleApprove" @reject="handleReject" />
         </v-col>
       </v-row>
 

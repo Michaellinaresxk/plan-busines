@@ -1,10 +1,10 @@
 <template>
-  <!-- <v-dialog v-model="show" max-width="850px" class="reservation-detail-dialog" persistent> -->
-  <v-dialog max-width="850px" class="reservation-detail-dialog" persistent>
+  <v-dialog v-model="dialogModel" max-width="850px" class="reservation-detail-dialog" persistent>
     <v-card class="rounded-lg">
       <v-toolbar :color="getServiceColor" class="rounded-t-lg">
         <v-toolbar-title class="text-white">
-          Reservación #{{ reservation.id.slice(0, 8) }} - {{ reservation.serviceName }}
+          Reservación #{{ reservation?.bookingId?.slice(0, 8) || reservation?.id?.slice(0, 8) }} - {{
+            reservation?.serviceName }}
         </v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn icon="mdi-close" variant="text" color="white" @click="close"></v-btn>
@@ -90,52 +90,21 @@
 
           <!-- Columna derecha: Detalles de la reserva -->
           <v-col cols="12" md="7">
+            <!-- Detalles compactos del servicio -->
             <v-card variant="outlined" class="mb-4 rounded-lg">
               <v-card-item>
                 <template v-slot:prepend>
                   <v-icon :icon="getServiceIcon" size="large" :color="getServiceColor"></v-icon>
                 </template>
-                <v-card-title>Detalles de la Reserva</v-card-title>
-                <v-card-subtitle>{{ getReservationTypeName }}</v-card-subtitle>
+                <v-card-title>{{ reservation.serviceName }}</v-card-title>
+                <v-card-subtitle>
+                  {{ reservation.date }} - {{ reservation.time }} | ${{ reservation.totalPrice }}
+                </v-card-subtitle>
               </v-card-item>
-
-              <v-divider></v-divider>
-
-              <v-card-text class="pt-4">
-                <div class="d-flex align-center mb-4">
-                  <v-chip :color="getServiceColor" variant="elevated" size="large" class="mr-2">
-                    {{ reservation.serviceName }}
-                  </v-chip>
-                  <v-chip v-if="reservation.isPriority" color="error" size="small">
-                    Prioritario
-                  </v-chip>
-                </div>
-
-                <!-- Componente dinámico según el tipo de reservación -->
-                <component :is="detailComponent" :reservation="reservation" class="reservation-details"></component>
-
-                <v-alert v-if="reservation.notes" density="compact" type="info" variant="tonal" class="mt-3">
-                  <p class="text-body-2 mb-1 font-weight-medium">Notas:</p>
-                  <p class="text-body-2">{{ reservation.notes }}</p>
-                </v-alert>
-              </v-card-text>
             </v-card>
 
-            <v-timeline density="compact" class="mb-0">
-              <v-timeline-item dot-color="primary" size="small">
-                <div class="text-subtitle-2 font-weight-medium">Solicitud recibida</div>
-                <div class="text-caption">
-                  {{ formatDateTime(reservation.createdAt) }}
-                </div>
-              </v-timeline-item>
-
-              <v-timeline-item dot-color="warning" size="small">
-                <div class="text-subtitle-2 font-weight-medium">Pendiente de aprobación</div>
-                <div class="text-caption">
-                  Esperando su revisión
-                </div>
-              </v-timeline-item>
-            </v-timeline>
+            <!-- Componente de proveedores filtrados -->
+            <ReservationSuppliersSection :reservation="reservation" @supplier-selected="handleSupplierSelected" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -226,13 +195,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-
+import { ref, computed, watch } from 'vue';
+import ReservationSuppliersSection from '@/UI/components/reservation/ReservationSuppliersSection.vue';
+import type { SupplierView } from '@/views/SupplierView';
 
 // Props
 const props = defineProps<{
   show: boolean;
-  reservation,
+  reservation: any;
 }>();
 
 // Eventos
@@ -241,6 +211,16 @@ const emit = defineEmits<{
   (e: 'approve', id: string): void;
   (e: 'reject', id: string): void;
 }>();
+
+// Computed para el v-model del dialog
+const dialogModel = computed({
+  get: () => props.show,
+  set: (value: boolean) => {
+    if (!value) {
+      close();
+    }
+  }
+});
 
 // Estado
 const approveLoading = ref(false);
@@ -283,65 +263,49 @@ const serviceIcons = {
   'default': 'mdi-calendar-check'
 };
 
-// Mapeo de tipos de servicio a nombres legibles
-const serviceTypeNames = {
-  'airportTransfer': 'Transferencia Aeroportuaria',
-  'babysitter': 'Servicio de Niñera',
-  'customDecoration': 'Decoraciones Personalizadas',
-  'grocery': 'Compras de Supermercado',
-  'yoga': 'Sesión de Yoga',
-  'chef': 'Chef Privado',
-  'default': 'Servicio Estándar'
-};
-
-// Obtener color basado en la categoría del servicio
-const getServiceColor = computed(() => {
-  return categoryColors[props.reservation.serviceCategory as keyof typeof categoryColors] || 'primary';
+// Watch para debug
+watch(() => props.show, (newValue) => {
+  console.log('🔍 ReservationDetailModal: show prop changed to:', newValue);
 });
 
-// Obtener color para el avatar
+watch(() => props.reservation, (newValue) => {
+  console.log('🔍 ReservationDetailModal: reservation prop changed to:', newValue);
+});
+
+// Computed properties
+const getServiceColor = computed(() => {
+  return categoryColors[props.reservation?.serviceCategory as keyof typeof categoryColors] || 'primary';
+});
+
 const getAvatarColor = computed(() => {
   const color = getServiceColor.value;
   return `${color}-lighten-1`;
 });
 
-// Obtener icono basado en el tipo de servicio
 const getServiceIcon = computed(() => {
-  const type = getReservationType(props.reservation.serviceId);
-  return serviceIcons[type as keyof typeof serviceIcons] || serviceIcons.default;
-});
-
-// Obtener nombre legible del tipo de servicio
-const getReservationTypeName = computed(() => {
-  const type = getReservationType(props.reservation.serviceId);
-  return serviceTypeNames[type as keyof typeof serviceTypeNames] || serviceTypeNames.default;
-});
-
-// Determinar qué componente de detalle utilizar
-const detailComponent = computed(() => {
-  if (isAirportTransferReservation(props.reservation)) {
-    return AirportTransferDetails;
-  } else if (isBabysitterReservation(props.reservation)) {
-    return BabysitterDetails;
-  } else if (isCustomDecorationReservation(props.reservation)) {
-    return CustomDecorationDetails;
-  } else if (isGroceryReservation(props.reservation)) {
-    return GroceryDetails;
-  } else if (isYogaReservation(props.reservation)) {
-    return YogaDetails;
-  } else if (isChefReservation(props.reservation)) {
-    return ChefDetails;
-  } else {
-    return DefaultReservationDetails;
-  }
+  // Simplificado por ahora
+  return serviceIcons.default;
 });
 
 // Métodos
 function close() {
+  console.log('🔍 ReservationDetailModal: close() called');
   emit('close');
 }
 
+function handleSupplierSelected(supplier: SupplierView) {
+  console.log('🎯 Supplier selected for reservation:', {
+    reservation: props.reservation?.bookingId || props.reservation?.id,
+    supplier: supplier.name,
+    service: supplier.service
+  });
+
+  // Por ahora solo loggeamos, en el siguiente paso implementaremos el envío
+  alert(`Proveedor seleccionado: ${supplier.name}\nEmail: ${supplier.email}\nTeléfono: ${supplier.phone}`);
+}
+
 function getInitials(name: string): string {
+  if (!name) return 'NN';
   return name
     .split(' ')
     .map(part => part.charAt(0))
@@ -349,28 +313,12 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function formatDateTime(date: Date): string {
-  if (!date) return '';
-
-  try {
-    return new Date(date).toLocaleString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    return String(date);
-  }
-}
-
 async function approveReservation() {
   approveLoading.value = true;
 
   try {
-    // Aquí podrías agregar código para enviar mensajes por email si sendApprovalEmail está activo
-    emit('approve', props.reservation.id);
+    const reservationId = props.reservation?.bookingId || props.reservation?.id;
+    emit('approve', reservationId);
     showApproveDialog.value = false;
   } finally {
     approveLoading.value = false;
@@ -383,8 +331,8 @@ async function rejectReservation() {
   rejectLoading.value = true;
 
   try {
-    // Aquí podrías agregar código para enviar mensajes por email si sendRejectEmail está activo
-    emit('reject', props.reservation.id);
+    const reservationId = props.reservation?.bookingId || props.reservation?.id;
+    emit('reject', reservationId);
     showRejectDialog.value = false;
   } finally {
     rejectLoading.value = false;

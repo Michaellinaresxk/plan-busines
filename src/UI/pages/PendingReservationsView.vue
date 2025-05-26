@@ -59,6 +59,7 @@
               empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda."
               empty-state-title="Sin reservaciones pendientes" empty-state-icon="mdi-calendar-check" />
 
+
             <!-- Paginación manual si hay muchas reservas -->
             <div v-if="totalPages > 1" class="d-flex justify-center mt-6">
               <v-pagination v-model="currentPage" :length="totalPages" :total-visible="7" rounded="circle"
@@ -102,6 +103,7 @@
       <!-- Modal de detalles de reservación -->
       <ReservationDetailModal v-if="selectedReservation" :show="showDetailModal" :reservation="selectedReservation"
         @close="closeReservationDetails" @approve="handleApproveFromModal" @reject="handleRejectFromModal" />
+
 
       <!-- Snackbar para notificaciones -->
       <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="4000">

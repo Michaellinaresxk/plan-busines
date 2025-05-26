@@ -1,6 +1,6 @@
 <template>
   <BaseReservationCard :reservation="reservation" :onApprove="onApprove" :onReject="onReject"
-    @view-details="$emit('view-details', reservation)">
+    @view-details="$emit('view-details', reservation)" @approve="$emit('approve')" @reject="$emit('reject')">
     <div class="reservation-details">
       <!-- Fecha y Hora -->
       <div class="detail-item">
@@ -55,7 +55,9 @@ const props = defineProps<{
 
 // Eventos
 const emit = defineEmits<{
-  (e: 'view-details', reservation): void;
+  (e: 'view-details', reservation: any): void;
+  (e: 'approve'): void;
+  (e: 'reject'): void;
 }>();
 
 // Método para formatear fechas

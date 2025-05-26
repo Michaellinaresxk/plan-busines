@@ -126,28 +126,21 @@
     <v-divider v-if="$slots.actions"></v-divider>
 
     <!-- Card Actions Section -->
-    <slot name="actions">
-      <v-card-actions v-if="showTimeAgo || $slots.timeAgo || $slots['default-actions']" class="pa-2">
-        <div v-if="showTimeAgo || $slots.timeAgo" class="d-flex align-center text-caption text-medium-emphasis">
-          <slot name="timeAgo">
-            <v-icon icon="mdi-clock-time-four-outline" size="x-small" class="mr-1"></v-icon>
-            <span>{{ timeAgoPrefix }} {{ timeAgo }}</span>
-          </slot>
-        </div>
+    <slot name="default-actions">
+      <!-- ✅ Botón Ver Detalles siempre visib le -->
+      <v-btn color="info" size="small" variant="outlined" @click="handleViewDetails" prepend-icon="mdi-eye-outline"
+        class="mr-2">
+        Ver Detalles
+      </v-btn>
 
-        <v-spacer></v-spacer>
-
-        <slot name="default-actions">
-          <v-btn v-if="onReject && onApprove" color="error" size="small" variant="text" @click="handleReject"
-            :disabled="isProcessing" prepend-icon="mdi-close">
-            Rechazar
-          </v-btn>
-          <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click="handleApprove"
-            :disabled="isProcessing" prepend-icon="mdi-check">
-            Aprobar
-          </v-btn>
-        </slot>
-      </v-card-actions>
+      <v-btn v-if="onReject && onApprove" color="error" size="small" variant="text" @click="handleReject"
+        :disabled="isProcessing" prepend-icon="mdi-close">
+        Rechazar
+      </v-btn>
+      <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click="handleApprove"
+        :disabled="isProcessing" prepend-icon="mdi-check">
+        Aprobar
+      </v-btn>
     </slot>
   </v-card>
 </template>
@@ -315,6 +308,12 @@ async function handleReject() {
   } finally {
     isProcessing.value = false;
   }
+}
+
+function handleViewDetails() {
+  console.log('🔍 BaseReservationCard: handleViewDetails called!');
+  console.log('🔍 BaseReservationCard: Emitting view-details event');
+  emit('view-details');
 }
 </script>
 

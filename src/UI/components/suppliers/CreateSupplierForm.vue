@@ -1,4 +1,3 @@
-<!-- src/UI/components/suppliers/CreateSupplierForm.vue -->
 <template>
   <v-dialog v-model="dialogModel" max-width="600" persistent>
     <v-card rounded="xl" elevation="0" border>

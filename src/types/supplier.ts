@@ -136,30 +136,15 @@ export interface Supplier {
   featured?: boolean;
   rating?: number;
   status?: SupplierStatus;
-  address?: string;
   description?: string;
-  website?: string;
   profileImage?: string;
   createdAt?: Date;
   updatedAt?: Date;
-  lastContactAt?: Date;
   // Additional metadata
   metadata?: {
     experience?: number; // years
     certifications?: string[];
     languages?: string[];
-    availability?: {
-      days: string[];
-      hours: string;
-    };
-    pricing?: {
-      currency: string;
-      priceRange: {
-        min: number;
-        max: number;
-      };
-      unit: string; // 'hour', 'day', 'project'
-    };
   };
 }
 

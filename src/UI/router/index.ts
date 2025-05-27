@@ -45,6 +45,15 @@ const router = createRouter({
         requiresAuth: true,
         title: 'Lista de proveedores'
       }
+    },
+    {
+      path: '/supplier-confirmation',
+      name: 'supplier-confirmation',
+      component: () => import('@/UI/pages/SupplierConfirmationView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Vista de confirmación de servicios'
+      }
     }
   ]
 });

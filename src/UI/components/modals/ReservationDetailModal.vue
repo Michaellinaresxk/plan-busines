@@ -47,45 +47,8 @@
 
             <v-divider class="my-4"></v-divider>
 
-            <h3 class="text-subtitle-1 font-weight-bold mb-3">Historial de cliente</h3>
 
-            <v-list lines="two">
-              <v-list-item>
-                <template v-slot:prepend>
-                  <v-avatar color="info" size="36">
-                    <v-icon icon="mdi-history" size="small"></v-icon>
-                  </v-avatar>
-                </template>
-                <v-list-item-title>Reservas anteriores</v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ reservation.previousReservations || 0 }} reservas completadas
-                </v-list-item-subtitle>
-              </v-list-item>
 
-              <v-list-item>
-                <template v-slot:prepend>
-                  <v-avatar color="info" size="36">
-                    <v-icon icon="mdi-currency-usd" size="small"></v-icon>
-                  </v-avatar>
-                </template>
-                <v-list-item-title>Valor promedio</v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ reservation.averageSpending || '$0.00' }} por visita
-                </v-list-item-subtitle>
-              </v-list-item>
-
-              <v-list-item>
-                <template v-slot:prepend>
-                  <v-avatar color="info" size="36">
-                    <v-icon icon="mdi-calendar-clock" size="small"></v-icon>
-                  </v-avatar>
-                </template>
-                <v-list-item-title>Última visita</v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ reservation.lastVisit || 'Primera visita' }}
-                </v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
           </v-col>
 
           <!-- Columna derecha: Detalles de la reserva -->
@@ -112,9 +75,6 @@
       <v-divider></v-divider>
 
       <v-card-actions class="pa-6">
-        <v-btn prepend-icon="mdi-calendar-edit" color="info" variant="text" class="mr-2">
-          Modificar
-        </v-btn>
         <v-btn prepend-icon="mdi-email" color="secondary" variant="text">
           Contactar cliente
         </v-btn>

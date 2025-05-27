@@ -1,4 +1,3 @@
-<!-- src/UI/components/reservation/ReservationInquiryStatus.vue -->
 <template>
   <div class="inquiry-status-container">
     <!-- Loading State -->

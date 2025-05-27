@@ -1,420 +1,522 @@
+<!-- src/UI/views/SupplierConfirmationView.vue -->
 <template>
-  <div class="supplier-confirmation-view">
-    <!-- Loading State -->
-    <div v-if="loading" class="d-flex justify-center align-center" style="min-height: 60vh;">
-      <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-    </div>
+  <v-app>
+    <!-- Header Section -->
+    <v-app-bar elevation="0" color="primary" class="px-4">
+      <v-avatar color="white" size="40" class="mr-3">
+        <v-icon icon="mdi-account-check" color="primary"></v-icon>
+      </v-avatar>
 
-    <!-- Error State -->
-    <v-container v-else-if="error" class="text-center py-16">
-      <v-icon icon="mdi-alert-circle" size="64" color="error" class="mb-4"></v-icon>
-      <h2 class="text-h4 mb-4">Error al cargar la solicitud</h2>
-      <p class="text-body-1 text-medium-emphasis mb-6">{{ error }}</p>
-      <v-btn color="primary" @click="loadReservationData">
-        Intentar de nuevo
-      </v-btn>
-    </v-container>
+      <v-app-bar-title class="text-white font-weight-bold">
+        Confirmación de Servicio
+      </v-app-bar-title>
+
+      <v-spacer></v-spacer>
+
+      <v-chip color="white" text-color="primary" size="small" class="font-weight-medium">
+        {{ supplier?.name || 'Proveedor' }}
+      </v-chip>
+    </v-app-bar>
 
     <!-- Main Content -->
-    <v-container v-else-if="reservation" class="py-6" max-width="800">
-      <!-- Header -->
-      <div class="text-center mb-8">
-        <v-avatar color="primary" size="80" class="mb-4">
-          <v-icon icon="mdi-account-check" size="40" color="white"></v-icon>
-        </v-avatar>
-        <h1 class="text-h3 font-weight-bold mb-2">Confirmación de Servicio</h1>
-        <p class="text-h6 text-medium-emphasis">
-          Se te ha solicitado realizar el siguiente servicio
-        </p>
-      </div>
+    <v-main>
+      <v-container class="pa-6" style="max-width: 800px;">
 
-      <!-- Reservation Details Card -->
-      <v-card class="mb-6" rounded="xl" elevation="2">
-        <v-card-title class="pa-6 pb-4">
-          <div class="d-flex align-center">
-            <v-icon :icon="getServiceIcon()" size="32" :color="getServiceColor()" class="mr-3"></v-icon>
-            <div>
-              <h2 class="text-h5 font-weight-bold">{{ reservation.serviceName }}</h2>
-              <p class="text-body-2 text-medium-emphasis mb-0">
-                Reserva #{{ reservation.bookingId?.slice(0, 8) }}
-              </p>
-            </div>
-          </div>
-        </v-card-title>
-
-        <v-divider></v-divider>
-
-        <!-- Client Information -->
-        <v-card-text class="pa-6">
-          <div class="mb-6">
-            <h3 class="text-h6 font-weight-bold mb-4">Información del Cliente</h3>
-            <div class="client-info-grid">
-              <div class="info-item">
-                <v-icon icon="mdi-account" size="20" class="mr-2"></v-icon>
-                <div>
-                  <div class="text-caption text-medium-emphasis">Cliente</div>
-                  <div class="font-weight-medium">{{ reservation.clientName }}</div>
-                </div>
-              </div>
-
-              <div class="info-item">
-                <v-icon icon="mdi-email" size="20" class="mr-2"></v-icon>
-                <div>
-                  <div class="text-caption text-medium-emphasis">Email</div>
-                  <div class="font-weight-medium">{{ reservation.clientEmail }}</div>
-                </div>
-              </div>
-
-              <div class="info-item">
-                <v-icon icon="mdi-phone" size="20" class="mr-2"></v-icon>
-                <div>
-                  <div class="text-caption text-medium-emphasis">Teléfono</div>
-                  <div class="font-weight-medium">{{ reservation.clientPhone }}</div>
-                </div>
-              </div>
-
-              <div class="info-item">
-                <v-icon icon="mdi-calendar" size="20" class="mr-2"></v-icon>
-                <div>
-                  <div class="text-caption text-medium-emphasis">Fecha y Hora</div>
-                  <div class="font-weight-medium">{{ formatBookingDate() }}</div>
-                </div>
-              </div>
-
-              <div class="info-item">
-                <v-icon icon="mdi-currency-usd" size="20" class="mr-2"></v-icon>
-                <div>
-                  <div class="text-caption text-medium-emphasis">Precio</div>
-                  <div class="font-weight-medium text-success">${{ reservation.totalPrice }}</div>
-                </div>
+        <!-- Reservation Details Section -->
+        <v-card class="mb-6" elevation="2" rounded="xl">
+          <v-card-title class="pa-6 pb-4">
+            <div class="d-flex align-center">
+              <v-icon icon="mdi-calendar-check" color="primary" size="28" class="mr-3"></v-icon>
+              <div>
+                <h2 class="text-h5 font-weight-bold">Detalles de la Reserva</h2>
+                <p class="text-body-2 text-medium-emphasis mb-0">
+                  Solicitud de servicio #{{ reservation?.bookingId?.slice(0, 8) }}
+                </p>
               </div>
             </div>
-          </div>
+          </v-card-title>
 
-          <!-- Service Details using Factory -->
-          <div class="mb-6">
-            <h3 class="text-h6 font-weight-bold mb-4">Detalles del Servicio</h3>
-            <SupplierConfirmationFactory :reservation="reservation" :service-type="detectedServiceType" />
-          </div>
+          <v-divider></v-divider>
 
-          <!-- Notes if any -->
-          <div v-if="reservation.notes" class="mb-6">
-            <h3 class="text-h6 font-weight-bold mb-4">Notas Adicionales</h3>
-            <v-card color="blue-grey-lighten-5" rounded="lg" class="pa-4">
-              <p class="mb-0">{{ reservation.notes }}</p>
-            </v-card>
-          </div>
-        </v-card-text>
-      </v-card>
+          <v-card-text class="pa-6">
+            <v-row>
+              <!-- Client Information -->
+              <v-col cols="12" md="4">
+                <div class="info-section">
+                  <h3 class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center">
+                    <v-icon icon="mdi-account" size="20" class="mr-2" color="primary"></v-icon>
+                    Información del Cliente
+                  </h3>
 
-      <!-- Response Form -->
-      <v-card rounded="xl" elevation="2">
-        <v-card-title class="pa-6 pb-4">
-          <h2 class="text-h5 font-weight-bold">Tu Respuesta</h2>
-        </v-card-title>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="info-label">Nombre:</span>
+                      <span class="info-value">{{ reservation?.clientName }}</span>
+                    </div>
 
-        <v-card-text class="pa-6 pt-0">
-          <v-form ref="formRef" v-model="isFormValid">
-            <!-- Response Options -->
+                    <div class="info-item">
+                      <span class="info-label">Email:</span>
+                      <span class="info-value">{{ reservation?.clientEmail }}</span>
+                    </div>
+
+                    <div class="info-item">
+                      <span class="info-label">Teléfono:</span>
+                      <span class="info-value">{{ reservation?.clientPhone }}</span>
+                    </div>
+
+                    <div class="info-item">
+                      <span class="info-label">Precio:</span>
+                      <span class="info-value font-weight-bold text-success">
+                        ${{ reservation?.totalPrice }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </v-col>
+
+              <!-- Service Details Factory -->
+              <v-col cols="12" md="8">
+                <ReservationDetailsFactory v-if="reservation" :reservation="reservation" />
+              </v-col>
+            </v-row>
+
+            <!-- Additional Notes -->
+            <div v-if="reservation?.notes" class="mt-4">
+              <v-alert color="info" variant="tonal" rounded="lg">
+                <div class="d-flex align-start">
+                  <v-icon icon="mdi-note-text" class="mr-2 mt-1"></v-icon>
+                  <div>
+                    <div class="font-weight-medium mb-1">Notas adicionales:</div>
+                    <div class="text-body-2">{{ reservation.notes }}</div>
+                  </div>
+                </div>
+              </v-alert>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Response Section -->
+        <v-card elevation="2" rounded="xl">
+          <v-card-title class="pa-6 pb-4">
+            <div class="d-flex align-center">
+              <v-icon icon="mdi-message-reply" color="primary" size="28" class="mr-3"></v-icon>
+              <div>
+                <h2 class="text-h5 font-weight-bold">Su Respuesta</h2>
+                <p class="text-body-2 text-medium-emphasis mb-0">
+                  Confirme si puede realizar este servicio
+                </p>
+              </div>
+            </div>
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <!-- Decision Buttons -->
             <div class="mb-6">
-              <h3 class="text-subtitle-1 font-weight-bold mb-4">¿Puedes realizar este servicio?</h3>
-              <v-radio-group v-model="response.status" :rules="[rules.required]" class="response-options">
-                <v-radio value="accepted" color="success" class="accept-option">
-                  <template v-slot:label>
-                    <div class="d-flex align-center">
-                      <v-icon icon="mdi-check-circle" color="success" class="mr-2"></v-icon>
-                      <div>
-                        <div class="font-weight-bold">Sí, acepto realizar el servicio</div>
-                        <div class="text-caption text-medium-emphasis">Confirmo que puedo completar esta solicitud</div>
-                      </div>
-                    </div>
-                  </template>
-                </v-radio>
+              <h3 class="text-subtitle-1 font-weight-bold mb-4">¿Puede realizar este servicio?</h3>
 
-                <v-radio value="declined" color="error" class="decline-option">
-                  <template v-slot:label>
-                    <div class="d-flex align-center">
-                      <v-icon icon="mdi-close-circle" color="error" class="mr-2"></v-icon>
-                      <div>
-                        <div class="font-weight-bold">No puedo realizar el servicio</div>
-                        <div class="text-caption text-medium-emphasis">No estoy disponible o no puedo completar esta
-                          solicitud</div>
-                      </div>
-                    </div>
-                  </template>
-                </v-radio>
-              </v-radio-group>
+              <div class="d-flex flex-column flex-sm-row gap-4">
+                <v-btn :color="response.decision === 'accept' ? 'success' : 'default'"
+                  :variant="response.decision === 'accept' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
+                  prepend-icon="mdi-check-circle" @click="selectDecision('accept')" :disabled="loading">
+                  Sí, puedo realizarlo
+                </v-btn>
+
+                <v-btn :color="response.decision === 'decline' ? 'error' : 'default'"
+                  :variant="response.decision === 'decline' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
+                  prepend-icon="mdi-close-circle" @click="selectDecision('decline')" :disabled="loading">
+                  No puedo realizarlo
+                </v-btn>
+              </div>
             </div>
 
-            <!-- Additional Message -->
+            <!-- Message Textarea -->
             <div class="mb-6">
               <h3 class="text-subtitle-1 font-weight-bold mb-3">
-                Mensaje Adicional
-                <span class="text-caption text-medium-emphasis font-weight-regular">(Opcional)</span>
+                {{ response.decision === 'accept' ? 'Mensaje de confirmación' : 'Motivo del rechazo' }}
+                <span class="text-error">*</span>
               </h3>
-              <v-textarea v-model="response.message" label="Agrega cualquier información adicional..."
-                placeholder="Ejemplo: Confirmo disponibilidad para la fecha solicitada. Estaré contactando al cliente 30 minutos antes del servicio."
-                variant="outlined" rows="4" counter="500" :rules="[rules.maxLength(500)]" rounded="lg"></v-textarea>
+
+              <v-textarea v-model="response.message" :label="getTextareaLabel()" :placeholder="getTextareaPlaceholder()"
+                variant="outlined" rows="4" auto-grow :rules="messageRules" :disabled="loading || !response.decision"
+                :color="response.decision === 'accept' ? 'success' : 'error'" counter maxlength="500"></v-textarea>
             </div>
 
-            <!-- Actions -->
-            <div class="d-flex flex-column flex-sm-row gap-3">
-              <v-btn color="success" size="large" :loading="submitting"
-                :disabled="!isFormValid || response.status !== 'accepted'" @click="handleSubmit"
-                prepend-icon="mdi-check-circle" class="flex-grow-1">
-                Confirmar Aceptación
-              </v-btn>
-
-              <v-btn color="error" size="large" variant="outlined" :loading="submitting"
-                :disabled="!isFormValid || response.status !== 'declined'" @click="handleSubmit"
-                prepend-icon="mdi-close-circle" class="flex-grow-1">
-                Confirmar Rechazo
+            <!-- Submit Button -->
+            <div class="d-flex justify-end">
+              <v-btn :color="response.decision === 'accept' ? 'success' : 'error'" size="large" :loading="loading"
+                :disabled="!canSubmit" @click="submitResponse" prepend-icon="mdi-send">
+                {{ response.decision === 'accept' ? 'Confirmar Servicio' : 'Enviar Rechazo' }}
               </v-btn>
             </div>
+          </v-card-text>
+        </v-card>
 
-            <div class="text-center mt-4">
-              <p class="text-caption text-medium-emphasis">
-                Tu respuesta será enviada inmediatamente al cliente y al administrador
-              </p>
-            </div>
-          </v-form>
-        </v-card-text>
-      </v-card>
-    </v-container>
+        <!-- Success/Error Messages -->
+        <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom center" timeout="5000"
+          rounded="pill">
+          <div class="d-flex align-center">
+            <v-icon :icon="snackbarIcon" class="mr-2"></v-icon>
+            {{ snackbarMessage }}
+          </div>
+          <template v-slot:actions>
+            <v-btn icon="mdi-close" variant="text" @click="showSnackbar = false"></v-btn>
+          </template>
+        </v-snackbar>
 
-    <!-- Success Dialog -->
-    <v-dialog v-model="showSuccessDialog" max-width="500" persistent>
-      <v-card rounded="xl">
-        <v-card-text class="text-center pa-8">
-          <v-icon :icon="response.status === 'accepted' ? 'mdi-check-circle' : 'mdi-information'"
-            :color="response.status === 'accepted' ? 'success' : 'info'" size="64" class="mb-4"></v-icon>
-
-          <h2 class="text-h4 font-weight-bold mb-4">
-            {{ response.status === 'accepted' ? '¡Servicio Confirmado!' : 'Respuesta Enviada' }}
-          </h2>
-
-          <p class="text-body-1 mb-6">
-            {{ response.status === 'accepted'
-              ? 'Has confirmado que realizarás este servicio. El cliente será notificado.'
-              : 'Tu respuesta ha sido registrada. El cliente será notificado.'
-            }}
-          </p>
-
-          <v-btn color="primary" size="large" @click="handleGoHome" prepend-icon="mdi-home">
-            Finalizar
-          </v-btn>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-  </div>
+      </v-container>
+    </v-main>
+  </v-app>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { ReservationService, ServiceType } from '@/services/ReservationServiceFactory';
-import SupplierConfirmationFactory from '@/UI/components/suppliers/confirmation/SupplierConfirmationFactory';
+import { useRoute, useRouter } from 'vue-router';
+import { useDisplay } from 'vuetify';
+import ReservationDetailsFactory from '@/UI/components/suppliers/confirmation/ConfirmationDetailsFactory.vue';
+
+// Responsive helper
+const { mdAndUp } = useDisplay();
 
 // Router
 const route = useRoute();
+const router = useRouter();
 
-// Props from route
-const reservationId = computed(() => route.params.reservationId as string);
-const supplierId = computed(() => route.params.supplierId as string);
-
-// State
-const loading = ref(true);n
-const submitting = ref(false);
-const error = ref('');
+// Reactive data
+const loading = ref(false);
+const supplier = ref(null);
 const reservation = ref(null);
-const isFormValid = ref(false);
-const showSuccessDialog = ref(false);
-const formRef = ref();
 
-// Form data
 const response = ref({
-  status: '',
+  decision: null as 'accept' | 'decline' | null,
   message: ''
 });
 
-// Validation rules
-const rules = {
-  required: (value: string) => !!value || 'Este campo es requerido',
-  maxLength: (max: number) => (value: string) =>
-    !value || value.length <= max || `Máximo ${max} caracteres`
-};
+// Snackbar state
+const showSnackbar = ref(false);
+const snackbarMessage = ref('');
+const snackbarColor = ref<'success' | 'error' | 'warning'>('success');
+const snackbarIcon = ref('mdi-check-circle');
 
-// Computed
-const detectedServiceType = computed(() => {
-  if (!reservation.value) return ServiceType.UNKNOWN;
-  return ReservationService.detectServiceType(reservation.value);
+// Validation rules
+const messageRules = [
+  (v: string) => !!v?.trim() || 'Este campo es requerido',
+  (v: string) => v?.length >= 10 || 'El mensaje debe tener al menos 10 caracteres',
+  (v: string) => v?.length <= 500 || 'El mensaje no puede exceder 500 caracteres'
+];
+
+// Computed properties
+const canSubmit = computed(() => {
+  return response.value.decision &&
+    response.value.message?.trim().length >= 10 &&
+    !loading.value;
 });
 
 // Methods
-function getServiceIcon(): string {
-  return ReservationService.getServiceIcon(detectedServiceType.value);
+function selectDecision(decision: 'accept' | 'decline') {
+  response.value.decision = decision;
+  response.value.message = ''; // Clear previous message
 }
 
-function getServiceColor(): string {
-  return ReservationService.getServiceColor(detectedServiceType.value);
+function getTextareaLabel(): string {
+  if (!response.value.decision) return 'Seleccione una opción primero';
+  return response.value.decision === 'accept'
+    ? 'Mensaje de confirmación (opcional)'
+    : 'Explique el motivo del rechazo';
 }
 
-function formatBookingDate(): string {
-  if (!reservation.value?.bookingDate) return '';
+function getTextareaPlaceholder(): string {
+  if (!response.value.decision) return '';
 
-  const date = new Date(reservation.value.bookingDate);
-  return date.toLocaleDateString('es-ES', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return response.value.decision === 'accept'
+    ? 'Confirmo que puedo realizar este servicio. Estaré disponible en la fecha y hora solicitada...'
+    : 'Lamentablemente no puedo realizar este servicio debido a...';
 }
 
-async function loadReservationData() {
+async function submitResponse() {
+  if (!canSubmit.value) return;
+
   loading.value = true;
-  error.value = '';
 
   try {
-    // TODO: Aquí irá la llamada al servicio real
-    // Por ahora simulamos los datos
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('🔄 Submitting supplier response:', {
+      decision: response.value.decision,
+      message: response.value.message,
+      reservationId: reservation.value?.bookingId,
+      supplierId: supplier.value?.id
+    });
 
-    // Mock data - esto vendrá del servicio
-    reservation.value = {
-      bookingId: reservationId.value,
-      serviceName: 'Transporte al Aeropuerto',
-      clientName: 'María González',
-      clientEmail: 'maria@example.com',
-      clientPhone: '(809) 555-0123',
-      totalPrice: 75,
-      bookingDate: new Date(),
-      notes: 'Necesito llegar al aeropuerto a las 6:00 AM. Vuelo internacional.',
-      formData: {
-        flightNumber: 'AA1234',
-        vehicleType: 'suv',
-        passengerCount: 2,
-        kidsCount: 0,
-        needsCarSeat: false,
-        isRoundTrip: false,
-        pickupLocation: 'Hotel Dreams Suites',
-        dropoffLocation: 'Aeropuerto Internacional Las Américas'
-      }
-    };
+    // TODO: Implement actual API call
+    // const supplierInquiryService = inject(supplierInquiryServiceKey);
+    // await supplierInquiryService.respondToInquiry(inquiryId, response.value);
 
-    console.log('Reservation loaded:', reservation.value);
-  } catch (err) {
-    console.error('Error loading reservation:', err);
-    error.value = 'No se pudo cargar la información de la reserva. Verifica el enlace e intenta de nuevo.';
+    // Simulate API call for now
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Show success message
+    const isAccept = response.value.decision === 'accept';
+    showNotification(
+      isAccept
+        ? '¡Servicio confirmado exitosamente!'
+        : 'Respuesta enviada correctamente',
+      'success',
+      'mdi-check-circle'
+    );
+
+    // Redirect after success
+    setTimeout(() => {
+      // router.push('/supplier-dashboard'); // Uncomment when route exists
+      console.log('🔄 Would redirect to supplier dashboard');
+    }, 2000);
+
+  } catch (error) {
+    console.error('❌ Error submitting response:', error);
+    showNotification(
+      'Error al enviar la respuesta. Inténtelo nuevamente.',
+      'error',
+      'mdi-alert-circle'
+    );
   } finally {
     loading.value = false;
   }
 }
 
-async function handleSubmit() {
-  if (!isFormValid.value) return;
+function showNotification(message: string, color: 'success' | 'error' | 'warning', icon: string) {
+  snackbarMessage.value = message;
+  snackbarColor.value = color;
+  snackbarIcon.value = icon;
+  showSnackbar.value = true;
+}
 
-  submitting.value = true;
-
+// Load data on mount
+onMounted(async () => {
   try {
-    // TODO: Aquí irá la llamada al servicio real
-    console.log('Submitting response:', {
-      reservationId: reservationId.value,
-      supplierId: supplierId.value,
-      response: response.value
-    });
+    // Get IDs from route params
+    const inquiryId = route.params.inquiryId as string;
+    const reservationId = route.params.reservationId as string;
+    const supplierId = route.params.supplierId as string;
 
-    // Simular envío
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('📡 Loading confirmation data:', { inquiryId, reservationId, supplierId });
 
-    showSuccessDialog.value = true;
-  } catch (err) {
-    console.error('Error submitting response:', err);
-    // TODO: Mostrar error al usuario
-  } finally {
-    submitting.value = false;
+    // TODO: Replace with actual API calls
+    // const reservationService = inject(reservationServiceKey);
+    // const supplierService = inject(supplierServiceKey);
+    //
+    // const [reservationData, supplierData] = await Promise.all([
+    //   reservationService.getReservationById(reservationId),
+    //   supplierService.getSupplierById(supplierId)
+    // ]);
+
+    // Mock data - replace with actual API calls
+    supplier.value = {
+      id: supplierId || 'supplier-123',
+      name: 'Juan Pérez',
+      email: 'juan@email.com',
+      phone: '(809) 555-0123',
+      service: 'Transporte Aeropuerto'
+    };
+
+    // Mock reservation data with different service types for testing
+    const serviceType = route.query.type || 'airport';
+
+    if (serviceType === 'airport') {
+      reservation.value = {
+        bookingId: reservationId || 'booking-456',
+        serviceName: 'Transporte Aeropuerto',
+        clientName: 'María González',
+        clientEmail: 'maria@email.com',
+        clientPhone: '(809) 555-0456',
+        date: '2024-01-25',
+        time: '14:30',
+        totalPrice: 75,
+        notes: 'Vuelo internacional, necesito llegada 2 horas antes.',
+        formData: {
+          flightNumber: 'AA1234',
+          vehicleType: 'vanMedium',
+          passengerCount: 2,
+          kidsCount: 1,
+          needsCarSeat: true,
+          carSeatCount: 1,
+          isRoundTrip: true,
+          returnDate: '2024-01-30',
+          returnFlightNumber: 'AA5678',
+          specialRequests: 'Por favor llegar 15 minutos antes de la hora programada'
+        }
+      };
+    } else if (serviceType === 'babysitter') {
+      reservation.value = {
+        bookingId: reservationId || 'booking-789',
+        serviceName: 'Servicio de Niñera',
+        clientName: 'Ana López',
+        clientEmail: 'ana@email.com',
+        clientPhone: '(809) 555-0789',
+        date: '2024-01-26',
+        time: '19:00',
+        totalPrice: 120,
+        notes: 'Los niños van a dormir a las 21:00. Hay cena preparada en la nevera.',
+        formData: {
+          childrenCount: 2,
+          childrenAges: ['5', '8'],
+          startTime: '19:00',
+          endTime: '23:30',
+          hasSpecialNeeds: true,
+          specialNeedsDetails: 'El niño menor tiene alergia a las nueces',
+          specialRequests: 'Por favor revisar las tareas de matemáticas con el mayor'
+        }
+      };
+    } else if (serviceType === 'decoration') {
+      reservation.value = {
+        bookingId: reservationId || 'booking-101',
+        serviceName: 'Decoración Personalizada',
+        clientName: 'Carlos Martínez',
+        clientEmail: 'carlos@email.com',
+        clientPhone: '(809) 555-0101',
+        date: '2024-02-14',
+        time: '18:00',
+        totalPrice: 250,
+        notes: 'Es una sorpresa, por favor ser discretos al llegar.',
+        formData: {
+          occasion: 'romantic',
+          location: 'Casa privada',
+          exactAddress: 'Calle Principal #123, Bella Vista, Santo Domingo',
+          colors: ['#FF69B4', '#DC143C', '#FFD700'],
+          referenceImage: 'https://example.com/romantic-setup.jpg',
+          specialRequests: 'Incluir pétalos de rosa y velas aromáticas'
+        }
+      };
+    } else if (serviceType === 'grocery') {
+      reservation.value = {
+        bookingId: reservationId || 'booking-202',
+        serviceName: 'Compras de Supermercado',
+        clientName: 'Sofia Herrera',
+        clientEmail: 'sofia@email.com',
+        clientPhone: '(809) 555-0202',
+        date: '2024-01-27',
+        time: '10:00',
+        totalPrice: 85,
+        notes: 'Preferiblemente productos orgánicos cuando sea posible.',
+        formData: {
+          deliveryAddress: 'Torre Corporativa, Piso 12, Oficina 1205, Piantini',
+          hour: '10:00',
+          hasAllergies: 'yes',
+          allergyDetails: 'Alergia severa al maní y frutos secos',
+          foodRestrictions: 'Dieta vegetariana estricta',
+          items: [
+            { name: 'Leche de almendras', quantity: 2, note: 'Sin azúcar añadida' },
+            { name: 'Pan integral', quantity: 1, note: 'Preferiblemente artesanal' },
+            { name: 'Tomates orgánicos', quantity: 1, note: '1 libra aproximadamente' },
+            { name: 'Queso vegano', quantity: 1, note: 'Marca Violife si está disponible' },
+            { name: 'Pasta integral', quantity: 2, note: 'Cualquier forma está bien' }
+          ],
+          specialRequests: 'Por favor revisar todas las etiquetas para confirmar que no contengan ingredientes de origen animal'
+        }
+      };
+    }
+
+    console.log('✅ Data loaded successfully');
+
+  } catch (error) {
+    console.error('❌ Error loading data:', error);
+    showNotification(
+      'Error al cargar los datos de la reserva',
+      'error',
+      'mdi-alert-circle'
+    );
   }
-}
-
-function handleGoHome() {
-  // TODO: Redirigir a donde sea apropiado
-  window.close(); // O redirigir a una página de inicio
-}
-
-// Lifecycle
-onMounted(() => {
-  console.log('SupplierConfirmationView mounted', {
-    reservationId: reservationId.value,
-    supplierId: supplierId.value
-  });
-
-  loadReservationData();
 });
 </script>
 
 <style scoped>
-.supplier-confirmation-view {
-  min-height: 100vh;
-  background-color: #f5f5f5;
+.confirmation-header {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05), rgba(var(--v-theme-secondary), 0.02));
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
 }
 
-.client-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+.info-section {
+  height: 100%;
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .info-item {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 1rem;
-  background-color: rgba(var(--v-theme-surface-variant), 0.3);
-  border-radius: 8px;
-}
-
-.response-options {
-  display: flex;
   flex-direction: column;
-  gap: 1rem;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.05);
 }
 
-.accept-option,
-.decline-option {
-  padding: 1rem;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+.info-item:last-child {
+  border-bottom: none;
 }
 
-.accept-option {
-  border: 2px solid rgba(var(--v-theme-success), 0.2);
-  background-color: rgba(var(--v-theme-success), 0.05);
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  margin-bottom: 4px;
 }
 
-.decline-option {
-  border: 2px solid rgba(var(--v-theme-error), 0.2);
-  background-color: rgba(var(--v-theme-error), 0.05);
+.info-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  word-break: break-word;
 }
 
-.accept-option:hover {
-  border-color: rgba(var(--v-theme-success), 0.4);
-  background-color: rgba(var(--v-theme-success), 0.1);
+/* Card hover effects */
+.v-card {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.decline-option:hover {
-  border-color: rgba(var(--v-theme-error), 0.4);
-  background-color: rgba(var(--v-theme-error), 0.1);
+.v-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
+/* Button animations */
+.v-btn {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.v-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
 @media (max-width: 600px) {
-  .client-info-grid {
-    grid-template-columns: 1fr;
+  .v-container {
+    padding: 16px;
   }
 
-  .d-flex.flex-column.flex-sm-row {
-    flex-direction: column;
+  .info-item {
+    padding: 6px 0;
+  }
+
+  .d-flex.gap-4 {
+    gap: 12px !important;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+
+  .v-card,
+  .v-btn {
+    transition: none;
+  }
+
+  .v-card:hover,
+  .v-btn:hover {
+    transform: none;
   }
 }
 </style>

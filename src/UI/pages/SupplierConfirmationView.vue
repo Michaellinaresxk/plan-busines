@@ -1,4 +1,3 @@
-<!-- src/UI/views/SupplierConfirmationView.vue -->
 <template>
   <v-app>
     <!-- Header Section -->
@@ -14,7 +13,7 @@
       <v-spacer></v-spacer>
 
       <v-chip color="white" text-color="primary" size="small" class="font-weight-medium">
-        {{ supplier?.name || 'Proveedor' }}
+        {{ supplierName }}
       </v-chip>
     </v-app-bar>
 
@@ -22,138 +21,224 @@
     <v-main>
       <v-container class="pa-6" style="max-width: 800px;">
 
-        <!-- Reservation Details Section -->
-        <v-card class="mb-6" elevation="2" rounded="xl">
-          <v-card-title class="pa-6 pb-4">
-            <div class="d-flex align-center">
-              <v-icon icon="mdi-calendar-check" color="primary" size="28" class="mr-3"></v-icon>
-              <div>
-                <h2 class="text-h5 font-weight-bold">Detalles de la Reserva</h2>
-                <p class="text-body-2 text-medium-emphasis mb-0">
-                  Solicitud de servicio #{{ reservation?.bookingId?.slice(0, 8) }}
-                </p>
-              </div>
-            </div>
-          </v-card-title>
+        <!-- Loading State -->
+        <div v-if="initialLoading" class="d-flex justify-center align-center py-12">
+          <div class="text-center">
+            <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
+            <h3 class="text-h6">Cargando información...</h3>
+            <p class="text-body-2 text-medium-emphasis">Obteniendo detalles de la reserva</p>
+          </div>
+        </div>
 
-          <v-divider></v-divider>
-
-          <v-card-text class="pa-6">
-            <v-row>
-              <!-- Client Information -->
-              <v-col cols="12" md="4">
-                <div class="info-section">
-                  <h3 class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center">
-                    <v-icon icon="mdi-account" size="20" class="mr-2" color="primary"></v-icon>
-                    Información del Cliente
-                  </h3>
-
-                  <div class="info-grid">
-                    <div class="info-item">
-                      <span class="info-label">Nombre:</span>
-                      <span class="info-value">{{ reservation?.clientName }}</span>
-                    </div>
-
-                    <div class="info-item">
-                      <span class="info-label">Email:</span>
-                      <span class="info-value">{{ reservation?.clientEmail }}</span>
-                    </div>
-
-                    <div class="info-item">
-                      <span class="info-label">Teléfono:</span>
-                      <span class="info-value">{{ reservation?.clientPhone }}</span>
-                    </div>
-
-                    <div class="info-item">
-                      <span class="info-label">Precio:</span>
-                      <span class="info-value font-weight-bold text-success">
-                        ${{ reservation?.totalPrice }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </v-col>
-
-              <!-- Service Details Factory -->
-              <v-col cols="12" md="8">
-                <ReservationDetailsFactory v-if="reservation" :reservation="reservation" />
-              </v-col>
-            </v-row>
-
-            <!-- Additional Notes -->
-            <div v-if="reservation?.notes" class="mt-4">
-              <v-alert color="info" variant="tonal" rounded="lg">
-                <div class="d-flex align-start">
-                  <v-icon icon="mdi-note-text" class="mr-2 mt-1"></v-icon>
-                  <div>
-                    <div class="font-weight-medium mb-1">Notas adicionales:</div>
-                    <div class="text-body-2">{{ reservation.notes }}</div>
-                  </div>
-                </div>
-              </v-alert>
-            </div>
-          </v-card-text>
+        <!-- Error State -->
+        <v-card v-else-if="hasError" class="pa-8 text-center" color="error" variant="tonal">
+          <v-icon icon="mdi-alert-circle" size="64" color="error" class="mb-4"></v-icon>
+          <h3 class="text-h5 mb-2">Error al cargar la solicitud</h3>
+          <p class="text-body-1 mb-4">{{ errorMessage }}</p>
+          <v-btn color="error" variant="outlined" @click="retryLoad">
+            <v-icon icon="mdi-refresh" class="mr-2"></v-icon>
+            Intentar nuevamente
+          </v-btn>
         </v-card>
 
-        <!-- Response Section -->
-        <v-card elevation="2" rounded="xl">
-          <v-card-title class="pa-6 pb-4">
-            <div class="d-flex align-center">
-              <v-icon icon="mdi-message-reply" color="primary" size="28" class="mr-3"></v-icon>
-              <div>
-                <h2 class="text-h5 font-weight-bold">Su Respuesta</h2>
-                <p class="text-body-2 text-medium-emphasis mb-0">
-                  Confirme si puede realizar este servicio
-                </p>
+        <!-- Success State -->
+        <template v-else>
+          <!-- Reservation Details Section -->
+          <v-card class="mb-6" elevation="2" rounded="xl">
+            <v-card-title class="pa-6 pb-4">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-calendar-check" color="primary" size="28" class="mr-3"></v-icon>
+                <div>
+                  <h2 class="text-h5 font-weight-bold">Detalles de la Reserva</h2>
+                  <p class="text-body-2 text-medium-emphasis mb-0">
+                    Solicitud #{{ bookingIdShort }}
+                  </p>
+                </div>
               </div>
-            </div>
-          </v-card-title>
+            </v-card-title>
 
-          <v-divider></v-divider>
+            <v-divider></v-divider>
 
-          <v-card-text class="pa-6">
-            <!-- Decision Buttons -->
-            <div class="mb-6">
-              <h3 class="text-subtitle-1 font-weight-bold mb-4">¿Puede realizar este servicio?</h3>
+            <v-card-text class="pa-6">
+              <v-row>
+                <!-- Client Information -->
+                <v-col cols="12" md="4">
+                  <div class="info-section">
+                    <h3 class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center">
+                      <v-icon icon="mdi-account" size="20" class="mr-2" color="primary"></v-icon>
+                      Información del Cliente
+                    </h3>
 
-              <div class="d-flex flex-column flex-sm-row gap-4">
-                <v-btn :color="response.decision === 'accept' ? 'success' : 'default'"
-                  :variant="response.decision === 'accept' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
-                  prepend-icon="mdi-check-circle" @click="selectDecision('accept')" :disabled="loading">
-                  Sí, puedo realizarlo
-                </v-btn>
+                    <div class="info-grid">
+                      <div class="info-item">
+                        <span class="info-label">Nombre:</span>
+                        <span class="info-value">{{ clientName }}</span>
+                      </div>
 
-                <v-btn :color="response.decision === 'decline' ? 'error' : 'default'"
-                  :variant="response.decision === 'decline' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
-                  prepend-icon="mdi-close-circle" @click="selectDecision('decline')" :disabled="loading">
-                  No puedo realizarlo
+                      <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ clientEmail }}</span>
+                      </div>
+
+                      <div class="info-item">
+                        <span class="info-label">Teléfono:</span>
+                        <span class="info-value">{{ clientPhone }}</span>
+                      </div>
+
+                      <div class="info-item">
+                        <span class="info-label">Precio:</span>
+                        <span class="info-value font-weight-bold text-success">
+                          ${{ totalPrice }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </v-col>
+
+                <!-- Service Details -->
+                <v-col cols="12" md="8">
+                  <div class="service-details">
+                    <h3 class="text-subtitle-1 font-weight-bold mb-4 d-flex align-center">
+                      <v-icon icon="mdi-tools" size="24" color="primary" class="mr-2"></v-icon>
+                      {{ serviceName }}
+                    </h3>
+
+                    <div class="details-grid">
+                      <div class="detail-row">
+                        <span class="detail-label">Fecha:</span>
+                        <span class="detail-value">{{ serviceDate }}</span>
+                      </div>
+
+                      <div class="detail-row">
+                        <span class="detail-label">Hora:</span>
+                        <span class="detail-value">{{ serviceTime }}</span>
+                      </div>
+
+                      <div v-if="flightNumber" class="detail-row">
+                        <span class="detail-label">Número de vuelo:</span>
+                        <span class="detail-value">{{ flightNumber }}</span>
+                      </div>
+
+                      <div v-if="vehicleType" class="detail-row">
+                        <span class="detail-label">Tipo de vehículo:</span>
+                        <span class="detail-value">{{ vehicleTypeLabel }}</span>
+                      </div>
+
+                      <div v-if="passengerCount > 0" class="detail-row">
+                        <span class="detail-label">Pasajeros:</span>
+                        <span class="detail-value">{{ passengerCount }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </v-col>
+              </v-row>
+
+              <!-- Additional Notes -->
+              <div v-if="notes" class="mt-4">
+                <v-alert color="info" variant="tonal" rounded="lg">
+                  <div class="d-flex align-start">
+                    <v-icon icon="mdi-note-text" class="mr-2 mt-1"></v-icon>
+                    <div>
+                      <div class="font-weight-medium mb-1">Notas adicionales:</div>
+                      <div class="text-body-2">{{ notes }}</div>
+                    </div>
+                  </div>
+                </v-alert>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- Response Section -->
+          <v-card elevation="2" rounded="xl">
+            <v-card-title class="pa-6 pb-4">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-message-reply" color="primary" size="28" class="mr-3"></v-icon>
+                <div>
+                  <h2 class="text-h5 font-weight-bold">Su Respuesta</h2>
+                  <p class="text-body-2 text-medium-emphasis mb-0">
+                    Confirme si puede realizar este servicio
+                  </p>
+                </div>
+              </div>
+            </v-card-title>
+
+            <v-divider></v-divider>
+
+            <v-card-text class="pa-6">
+              <!-- Decision Buttons -->
+              <div class="mb-6">
+                <h3 class="text-subtitle-1 font-weight-bold mb-4">¿Puede realizar este servicio?</h3>
+
+                <div class="d-flex flex-column flex-sm-row gap-4">
+                  <v-btn :color="decision === 'accept' ? 'success' : 'default'"
+                    :variant="decision === 'accept' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
+                    prepend-icon="mdi-check-circle" @click="selectDecision('accept')" :disabled="loading">
+                    Sí, puedo realizarlo
+                  </v-btn>
+
+                  <v-btn :color="decision === 'decline' ? 'error' : 'default'"
+                    :variant="decision === 'decline' ? 'elevated' : 'outlined'" size="large" class="flex-fill"
+                    prepend-icon="mdi-close-circle" @click="selectDecision('decline')" :disabled="loading">
+                    No puedo realizarlo
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Message Textarea -->
+              <div class="mb-6">
+                <h3 class="text-subtitle-1 font-weight-bold mb-3">
+                  {{ decision === 'accept' ? 'Mensaje de confirmación' : 'Motivo del rechazo' }}
+                  <span class="text-error">*</span>
+                </h3>
+
+                <v-textarea v-model="message" :label="textareaLabel" :placeholder="textareaPlaceholder"
+                  variant="outlined" rows="4" auto-grow :disabled="loading || !decision"
+                  :color="decision === 'accept' ? 'success' : 'error'" counter maxlength="500"></v-textarea>
+
+                <!-- Template button -->
+                <div v-if="decision" class="mt-2">
+                  <v-btn size="small" variant="text" :color="decision === 'accept' ? 'success' : 'error'"
+                    @click="useTemplate">
+                    <v-icon icon="mdi-text-box-plus" class="mr-1"></v-icon>
+                    Usar plantilla
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-flex justify-end">
+                <v-btn :color="decision === 'accept' ? 'success' : 'error'" size="large" :loading="loading"
+                  :disabled="!canSubmit" @click="handleSubmit" prepend-icon="mdi-send">
+                  {{ decision === 'accept' ? 'Confirmar Servicio' : 'Enviar Rechazo' }}
                 </v-btn>
               </div>
-            </div>
+            </v-card-text>
+          </v-card>
+        </template>
 
-            <!-- Message Textarea -->
-            <div class="mb-6">
-              <h3 class="text-subtitle-1 font-weight-bold mb-3">
-                {{ response.decision === 'accept' ? 'Mensaje de confirmación' : 'Motivo del rechazo' }}
-                <span class="text-error">*</span>
+        <!-- Success Dialog -->
+        <v-dialog v-model="showSuccessDialog" max-width="500" persistent>
+          <v-card rounded="xl">
+            <v-card-text class="pa-8 text-center">
+              <v-avatar :color="decision === 'accept' ? 'success' : 'info'" size="80" class="mb-4">
+                <v-icon :icon="decision === 'accept' ? 'mdi-check-circle' : 'mdi-information'" size="40"
+                  color="white"></v-icon>
+              </v-avatar>
+
+              <h3 class="text-h5 mb-3">
+                {{ decision === 'accept' ? '¡Servicio Confirmado!' : 'Respuesta Enviada' }}
               </h3>
 
-              <v-textarea v-model="response.message" :label="getTextareaLabel()" :placeholder="getTextareaPlaceholder()"
-                variant="outlined" rows="4" auto-grow :rules="messageRules" :disabled="loading || !response.decision"
-                :color="response.decision === 'accept' ? 'success' : 'error'" counter maxlength="500"></v-textarea>
-            </div>
+              <p class="text-body-1 mb-6">{{ successMessage }}</p>
 
-            <!-- Submit Button -->
-            <div class="d-flex justify-end">
-              <v-btn :color="response.decision === 'accept' ? 'success' : 'error'" size="large" :loading="loading"
-                :disabled="!canSubmit" @click="submitResponse" prepend-icon="mdi-send">
-                {{ response.decision === 'accept' ? 'Confirmar Servicio' : 'Enviar Rechazo' }}
+              <v-btn color="primary" @click="handleRedirect">
+                Continuar
               </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
+            </v-card-text>
+          </v-card>
+        </v-dialog>
 
-        <!-- Success/Error Messages -->
+        <!-- Snackbar for notifications -->
         <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom center" timeout="5000"
           rounded="pill">
           <div class="d-flex align-center">
@@ -170,105 +255,131 @@
   </v-app>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
-import ReservationDetailsFactory from '@/UI/components/suppliers/confirmation/ConfirmationDetailsFactory.vue';
-
-// Responsive helper
-const { mdAndUp } = useDisplay();
 
 // Router
 const route = useRoute();
 const router = useRouter();
 
 // Reactive data
+const initialLoading = ref(true);
 const loading = ref(false);
-const supplier = ref(null);
-const reservation = ref(null);
+const hasError = ref(false);
+const errorMessage = ref('');
 
-const response = ref({
-  decision: null as 'accept' | 'decline' | null,
-  message: ''
-});
+// Reservation data
+const bookingId = ref('');
+const serviceName = ref('');
+const clientName = ref('');
+const clientEmail = ref('');
+const clientPhone = ref('');
+const serviceDate = ref('');
+const serviceTime = ref('');
+const totalPrice = ref(0);
+const notes = ref('');
+
+// Service specific data
+const flightNumber = ref('');
+const vehicleType = ref('');
+const passengerCount = ref(0);
+
+// Supplier data
+const supplierId = ref('');
+const supplierName = ref('');
+
+// Response data
+const decision = ref(null);
+const message = ref('');
+
+// Dialog states
+const showSuccessDialog = ref(false);
+const successMessage = ref('');
 
 // Snackbar state
 const showSnackbar = ref(false);
 const snackbarMessage = ref('');
-const snackbarColor = ref<'success' | 'error' | 'warning'>('success');
+const snackbarColor = ref('success');
 const snackbarIcon = ref('mdi-check-circle');
 
-// Validation rules
-const messageRules = [
-  (v: string) => !!v?.trim() || 'Este campo es requerido',
-  (v: string) => v?.length >= 10 || 'El mensaje debe tener al menos 10 caracteres',
-  (v: string) => v?.length <= 500 || 'El mensaje no puede exceder 500 caracteres'
-];
-
 // Computed properties
+const bookingIdShort = computed(() => {
+  return bookingId.value ? bookingId.value.slice(0, 8) : '';
+});
+
+const vehicleTypeLabel = computed(() => {
+  const vehicleTypes = {
+    'vanSmall': 'Van Pequeña (1-6 personas)',
+    'vanMedium': 'Van Mediana (7-10 personas)',
+    'vanLarge': 'Van Grande (11-16 personas)',
+    'suv': 'SUV (1-6 personas)'
+  };
+
+  return vehicleTypes[vehicleType.value] || vehicleType.value;
+});
+
+const textareaLabel = computed(() => {
+  if (!decision.value) return 'Seleccione una opción primero';
+  return decision.value === 'accept'
+    ? 'Mensaje de confirmación'
+    : 'Explique el motivo del rechazo';
+});
+
+const textareaPlaceholder = computed(() => {
+  if (!decision.value) return '';
+
+  return decision.value === 'accept'
+    ? 'Confirmo que puedo realizar este servicio. Estaré disponible en la fecha y hora solicitada...'
+    : 'Lamentablemente no puedo realizar este servicio debido a...';
+});
+
 const canSubmit = computed(() => {
-  return response.value.decision &&
-    response.value.message?.trim().length >= 10 &&
+  return decision.value &&
+    message.value &&
+    message.value.trim().length >= 10 &&
     !loading.value;
 });
 
 // Methods
-function selectDecision(decision: 'accept' | 'decline') {
-  response.value.decision = decision;
-  response.value.message = ''; // Clear previous message
+function selectDecision(newDecision) {
+  decision.value = newDecision;
+  message.value = '';
 }
 
-function getTextareaLabel(): string {
-  if (!response.value.decision) return 'Seleccione una opción primero';
-  return response.value.decision === 'accept'
-    ? 'Mensaje de confirmación (opcional)'
-    : 'Explique el motivo del rechazo';
+function useTemplate() {
+  if (!decision.value) return;
+
+  if (decision.value === 'accept') {
+    message.value = `Confirmo que puedo realizar el servicio de ${serviceName.value} para el ${serviceDate.value} a las ${serviceTime.value}. Estaré disponible y llegaré puntualmente.`;
+  } else {
+    message.value = 'Lamentablemente no puedo realizar este servicio en la fecha solicitada debido a compromisos previos. Gracias por considerarme.';
+  }
 }
 
-function getTextareaPlaceholder(): string {
-  if (!response.value.decision) return '';
-
-  return response.value.decision === 'accept'
-    ? 'Confirmo que puedo realizar este servicio. Estaré disponible en la fecha y hora solicitada...'
-    : 'Lamentablemente no puedo realizar este servicio debido a...';
-}
-
-async function submitResponse() {
+async function handleSubmit() {
   if (!canSubmit.value) return;
 
   loading.value = true;
 
   try {
     console.log('🔄 Submitting supplier response:', {
-      decision: response.value.decision,
-      message: response.value.message,
-      reservationId: reservation.value?.bookingId,
-      supplierId: supplier.value?.id
+      decision: decision.value,
+      message: message.value,
+      reservationId: bookingId.value,
+      supplierId: supplierId.value
     });
 
-    // TODO: Implement actual API call
-    // const supplierInquiryService = inject(supplierInquiryServiceKey);
-    // await supplierInquiryService.respondToInquiry(inquiryId, response.value);
-
-    // Simulate API call for now
+    // Simular llamada a API
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Show success message
-    const isAccept = response.value.decision === 'accept';
-    showNotification(
-      isAccept
-        ? '¡Servicio confirmado exitosamente!'
-        : 'Respuesta enviada correctamente',
-      'success',
-      'mdi-check-circle'
-    );
+    // Mostrar mensaje de éxito
+    const isAccept = decision.value === 'accept';
+    successMessage.value = isAccept
+      ? '¡Servicio confirmado exitosamente! El cliente será notificado.'
+      : 'Respuesta enviada correctamente. Buscaremos otro proveedor disponible.';
 
-    // Redirect after success
-    setTimeout(() => {
-      // router.push('/supplier-dashboard'); // Uncomment when route exists
-      console.log('🔄 Would redirect to supplier dashboard');
-    }, 2000);
+    showSuccessDialog.value = true;
 
   } catch (error) {
     console.error('❌ Error submitting response:', error);
@@ -282,159 +393,76 @@ async function submitResponse() {
   }
 }
 
-function showNotification(message: string, color: 'success' | 'error' | 'warning', icon: string) {
-  snackbarMessage.value = message;
+function handleRedirect() {
+  router.push('/');
+}
+
+async function loadConfirmationData() {
+  initialLoading.value = true;
+  hasError.value = false;
+
+  try {
+    // Obtener parámetros de la URL
+    const urlBookingId = route.query.booking;
+    const urlSupplierId = route.query.supplier;
+
+    console.log('📡 Loading confirmation data:', {
+      booking: urlBookingId,
+      supplier: urlSupplierId
+    });
+
+    if (!urlBookingId || !urlSupplierId) {
+      throw new Error('Parámetros de URL inválidos');
+    }
+
+    // Simular carga de datos
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Asignar datos simulados
+    bookingId.value = urlBookingId;
+    supplierId.value = urlSupplierId;
+    serviceName.value = 'Transporte Aeropuerto';
+    clientName.value = 'María González';
+    clientEmail.value = 'maria@email.com';
+    clientPhone.value = '(809) 555-0456';
+    serviceDate.value = '2024-01-25';
+    serviceTime.value = '14:30';
+    totalPrice.value = 75;
+    notes.value = 'Vuelo internacional, necesito llegada 2 horas antes.';
+    flightNumber.value = 'AA1234';
+    vehicleType.value = 'vanMedium';
+    passengerCount.value = 2;
+    supplierName.value = 'Juan Pérez';
+
+    console.log('✅ Confirmation data loaded successfully');
+
+  } catch (error) {
+    console.error('❌ Error loading confirmation data:', error);
+    hasError.value = true;
+    errorMessage.value = error.message || 'Error al cargar los datos';
+  } finally {
+    initialLoading.value = false;
+  }
+}
+
+async function retryLoad() {
+  await loadConfirmationData();
+}
+
+function showNotification(messageText, color, icon) {
+  snackbarMessage.value = messageText;
   snackbarColor.value = color;
   snackbarIcon.value = icon;
   showSnackbar.value = true;
 }
 
-// Load data on mount
-onMounted(async () => {
-  try {
-    // Get IDs from route params
-    const inquiryId = route.params.inquiryId as string;
-    const reservationId = route.params.reservationId as string;
-    const supplierId = route.params.supplierId as string;
-
-    console.log('📡 Loading confirmation data:', { inquiryId, reservationId, supplierId });
-
-    // TODO: Replace with actual API calls
-    // const reservationService = inject(reservationServiceKey);
-    // const supplierService = inject(supplierServiceKey);
-    //
-    // const [reservationData, supplierData] = await Promise.all([
-    //   reservationService.getReservationById(reservationId),
-    //   supplierService.getSupplierById(supplierId)
-    // ]);
-
-    // Mock data - replace with actual API calls
-    supplier.value = {
-      id: supplierId || 'supplier-123',
-      name: 'Juan Pérez',
-      email: 'juan@email.com',
-      phone: '(809) 555-0123',
-      service: 'Transporte Aeropuerto'
-    };
-
-    // Mock reservation data with different service types for testing
-    const serviceType = route.query.type || 'airport';
-
-    if (serviceType === 'airport') {
-      reservation.value = {
-        bookingId: reservationId || 'booking-456',
-        serviceName: 'Transporte Aeropuerto',
-        clientName: 'María González',
-        clientEmail: 'maria@email.com',
-        clientPhone: '(809) 555-0456',
-        date: '2024-01-25',
-        time: '14:30',
-        totalPrice: 75,
-        notes: 'Vuelo internacional, necesito llegada 2 horas antes.',
-        formData: {
-          flightNumber: 'AA1234',
-          vehicleType: 'vanMedium',
-          passengerCount: 2,
-          kidsCount: 1,
-          needsCarSeat: true,
-          carSeatCount: 1,
-          isRoundTrip: true,
-          returnDate: '2024-01-30',
-          returnFlightNumber: 'AA5678',
-          specialRequests: 'Por favor llegar 15 minutos antes de la hora programada'
-        }
-      };
-    } else if (serviceType === 'babysitter') {
-      reservation.value = {
-        bookingId: reservationId || 'booking-789',
-        serviceName: 'Servicio de Niñera',
-        clientName: 'Ana López',
-        clientEmail: 'ana@email.com',
-        clientPhone: '(809) 555-0789',
-        date: '2024-01-26',
-        time: '19:00',
-        totalPrice: 120,
-        notes: 'Los niños van a dormir a las 21:00. Hay cena preparada en la nevera.',
-        formData: {
-          childrenCount: 2,
-          childrenAges: ['5', '8'],
-          startTime: '19:00',
-          endTime: '23:30',
-          hasSpecialNeeds: true,
-          specialNeedsDetails: 'El niño menor tiene alergia a las nueces',
-          specialRequests: 'Por favor revisar las tareas de matemáticas con el mayor'
-        }
-      };
-    } else if (serviceType === 'decoration') {
-      reservation.value = {
-        bookingId: reservationId || 'booking-101',
-        serviceName: 'Decoración Personalizada',
-        clientName: 'Carlos Martínez',
-        clientEmail: 'carlos@email.com',
-        clientPhone: '(809) 555-0101',
-        date: '2024-02-14',
-        time: '18:00',
-        totalPrice: 250,
-        notes: 'Es una sorpresa, por favor ser discretos al llegar.',
-        formData: {
-          occasion: 'romantic',
-          location: 'Casa privada',
-          exactAddress: 'Calle Principal #123, Bella Vista, Santo Domingo',
-          colors: ['#FF69B4', '#DC143C', '#FFD700'],
-          referenceImage: 'https://example.com/romantic-setup.jpg',
-          specialRequests: 'Incluir pétalos de rosa y velas aromáticas'
-        }
-      };
-    } else if (serviceType === 'grocery') {
-      reservation.value = {
-        bookingId: reservationId || 'booking-202',
-        serviceName: 'Compras de Supermercado',
-        clientName: 'Sofia Herrera',
-        clientEmail: 'sofia@email.com',
-        clientPhone: '(809) 555-0202',
-        date: '2024-01-27',
-        time: '10:00',
-        totalPrice: 85,
-        notes: 'Preferiblemente productos orgánicos cuando sea posible.',
-        formData: {
-          deliveryAddress: 'Torre Corporativa, Piso 12, Oficina 1205, Piantini',
-          hour: '10:00',
-          hasAllergies: 'yes',
-          allergyDetails: 'Alergia severa al maní y frutos secos',
-          foodRestrictions: 'Dieta vegetariana estricta',
-          items: [
-            { name: 'Leche de almendras', quantity: 2, note: 'Sin azúcar añadida' },
-            { name: 'Pan integral', quantity: 1, note: 'Preferiblemente artesanal' },
-            { name: 'Tomates orgánicos', quantity: 1, note: '1 libra aproximadamente' },
-            { name: 'Queso vegano', quantity: 1, note: 'Marca Violife si está disponible' },
-            { name: 'Pasta integral', quantity: 2, note: 'Cualquier forma está bien' }
-          ],
-          specialRequests: 'Por favor revisar todas las etiquetas para confirmar que no contengan ingredientes de origen animal'
-        }
-      };
-    }
-
-    console.log('✅ Data loaded successfully');
-
-  } catch (error) {
-    console.error('❌ Error loading data:', error);
-    showNotification(
-      'Error al cargar los datos de la reserva',
-      'error',
-      'mdi-alert-circle'
-    );
-  }
+// Lifecycle
+onMounted(() => {
+  loadConfirmationData();
 });
 </script>
 
 <style scoped>
-.confirmation-header {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05), rgba(var(--v-theme-secondary), 0.02));
-  border-radius: 16px;
-  padding: 24px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
 .info-section {
   height: 100%;
 }
@@ -472,7 +500,40 @@ onMounted(async () => {
   word-break: break-word;
 }
 
-/* Card hover effects */
+.service-details {
+  width: 100%;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.05);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  text-align: right;
+}
+
 .v-card {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -482,7 +543,6 @@ onMounted(async () => {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* Button animations */
 .v-btn {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -491,7 +551,6 @@ onMounted(async () => {
   transform: translateY(-1px);
 }
 
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .v-container {
     padding: 16px;
@@ -501,22 +560,14 @@ onMounted(async () => {
     padding: 6px 0;
   }
 
-  .d-flex.gap-4 {
-    gap: 12px !important;
-  }
-}
-
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-
-  .v-card,
-  .v-btn {
-    transition: none;
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
-  .v-card:hover,
-  .v-btn:hover {
-    transform: none;
+  .detail-value {
+    text-align: left;
   }
 }
 </style>

@@ -51,8 +51,7 @@ const router = createRouter({
       name: 'supplier-confirmation',
       component: () => import('@/UI/pages/SupplierConfirmationView.vue'),
       meta: {
-        requiresAuth: true,
-        title: 'Vista de confirmación de servicios'
+        title: 'Confirmación de Servicio - Plan Business'
       }
     }
   ]

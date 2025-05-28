@@ -75,16 +75,15 @@
       <v-divider></v-divider>
 
       <v-card-actions class="pa-6">
-        <v-btn prepend-icon="mdi-email" color="secondary" variant="text">
-          Contactar cliente
-        </v-btn>
-        <v-spacer></v-spacer>
         <v-btn color="error" variant="outlined" class="mr-2" @click="showRejectDialog = true" :loading="rejectLoading">
           Rechazar
         </v-btn>
-        <v-btn color="success" @click="showApproveDialog = true" :loading="approveLoading">
-          Aprobar reserva
+
+        <v-spacer></v-spacer>
+        <v-btn prepend-icon="mdi-email" color="secondary" variant="text">
+          Contactar cliente
         </v-btn>
+
       </v-card-actions>
     </v-card>
 

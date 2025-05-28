@@ -137,10 +137,10 @@
         :disabled="isProcessing" prepend-icon="mdi-close">
         Rechazar
       </v-btn>
-      <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click="handleApprove"
+      <!-- <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click="handleApprove"
         :disabled="isProcessing" prepend-icon="mdi-check">
         Aprobar
-      </v-btn>
+      </v-btn> -->
     </slot>
   </v-card>
 </template>

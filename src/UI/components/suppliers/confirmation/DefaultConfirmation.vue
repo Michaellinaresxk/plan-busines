@@ -1,4 +1,3 @@
-<!-- src/UI/components/reservation/details/DefaultReservationDetails.vue -->
 <template>
   <div class="service-details">
     <h3 class="text-subtitle-1 font-weight-bold mb-4 d-flex align-center">

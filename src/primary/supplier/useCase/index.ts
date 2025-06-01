@@ -5,15 +5,17 @@ import { CreateSupplierUseCase } from './CreateSuplierUseCase';
 import { UpdateSupplierUseCase } from './UpdateSupplierUseCase';
 import { DeleteSupplierUseCase } from './DeleteSuplierUseCase';
 import { GetSupplierByIdUseCase } from './GetSuplierByIdUseCase';
-import { GetSuppliersByServiceUseCase } from './GetSuppliersByServiceUseCase'; // ✅ Nuevo
+import { GetSuppliersByServiceUseCase } from './GetSuppliersByServiceUseCase';
+import { FindCompatibleSuppliersUseCase } from './FindCompatibleSuppliersUseCase';
 
 export class SupplierService {
   private getAllSuppliersUseCase: GetAllSuppliersUseCase;
   private createSupplierUseCase: CreateSupplierUseCase;
   private updateSupplierUseCase: UpdateSupplierUseCase;
   private getSupplierByIdUseCase: GetSupplierByIdUseCase;
-  private getSuppliersByServiceUseCase: GetSuppliersByServiceUseCase; // ✅ Nuevo
+  private getSuppliersByServiceUseCase: GetSuppliersByServiceUseCase;
   private deleteSupplierUseCase: DeleteSupplierUseCase;
+  private findCompatibleSuppliersUseCase: FindCompatibleSuppliersUseCase;
 
   constructor(private readonly supplierResource: SupplierResource) {
     this.getAllSuppliersUseCase = new GetAllSuppliersUseCase(supplierResource);
@@ -21,7 +23,8 @@ export class SupplierService {
     this.updateSupplierUseCase = new UpdateSupplierUseCase(supplierResource);
     this.getSupplierByIdUseCase = new GetSupplierByIdUseCase(supplierResource);
     this.deleteSupplierUseCase = new DeleteSupplierUseCase(supplierResource);
-    this.getSuppliersByServiceUseCase = new GetSuppliersByServiceUseCase(supplierResource); // ✅ Nuevo
+    this.getSuppliersByServiceUseCase = new GetSuppliersByServiceUseCase(supplierResource);
+    this.findCompatibleSuppliersUseCase = new FindCompatibleSuppliersUseCase(supplierResource);
   }
 
   async getAllSuppliers() {
@@ -34,7 +37,8 @@ export class SupplierService {
     email: string,
     phone: string,
     service: string,
-    canProvideService: boolean = true
+    canProvideService: boolean = true,
+    vehicleType?: string // ✅ Agregar parámetro vehicleType
   ) {
     return await this.createSupplierUseCase.execute(
       name,
@@ -42,7 +46,8 @@ export class SupplierService {
       email,
       phone,
       service,
-      canProvideService
+      canProvideService,
+      vehicleType // ✅ Pasar vehicleType al use case
     );
   }
 
@@ -55,6 +60,7 @@ export class SupplierService {
       phone?: string;
       service?: string;
       canProvideService?: boolean;
+      vehicleType?: string; // ✅ Agregar vehicleType a los datos de actualización
     }
   ) {
     return await this.updateSupplierUseCase.execute(id, data);
@@ -68,8 +74,11 @@ export class SupplierService {
     return await this.deleteSupplierUseCase.execute(id);
   }
 
-  // ✅ NUEVO: Método para obtener proveedores por servicio
   async getSuppliersByService(serviceId: string) {
     return await this.getSuppliersByServiceUseCase.execute(serviceId);
+  }
+
+  async findCompatibleSuppliers(serviceId: string, vehicleType?: string) {
+    return await this.findCompatibleSuppliersUseCase.execute({ serviceId, vehicleType });
   }
 }

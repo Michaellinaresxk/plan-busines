@@ -16,7 +16,8 @@ export class SupplierResource implements SupplierRepository {
       email: apiSupplier.email,
       phone: apiSupplier.phone,
       service: apiSupplier.service,
-      canProvideService: apiSupplier.canProvideService
+      canProvideService: apiSupplier.canProvideService,
+      vehicleType: apiSupplier.vehicleType
     });
   }
 
@@ -36,10 +37,11 @@ export class SupplierResource implements SupplierRepository {
     email: string,
     phone: string,
     service: string,
-    canProvideService: boolean = true
+    canProvideService: boolean = true,
+    vehicleType?: string
   ): Promise<Supplier> {
     try {
-      console.log('🔧 SupplierResource: Creating supplier...', { name, service });
+      console.log('🔧 SupplierResource: Creating supplier...', { name, service, vehicleType });
 
       const apiSupplier = await this.supplierCaller.createSupplier(
         name,
@@ -47,7 +49,8 @@ export class SupplierResource implements SupplierRepository {
         email,
         phone,
         service,
-        canProvideService
+        canProvideService,
+        vehicleType
       );
 
       const domainSupplier = this.apiToDomain(apiSupplier);
@@ -60,8 +63,18 @@ export class SupplierResource implements SupplierRepository {
     }
   }
 
-  // ✅ NUEVO: Método para actualizar supplier
-  async updateSupplier(id: string, data: Partial<Omit<ApiSupplier, 'id'>>): Promise<Supplier> {
+  async updateSupplier(
+    id: string,
+    data: {
+      name?: string;
+      cedula?: string;
+      email?: string;
+      phone?: string;
+      service?: string;
+      canProvideService?: boolean;
+      vehicleType?: string;
+    }
+  ): Promise<Supplier> {
     try {
       console.log('🔧 SupplierResource: Updating supplier...', { id, data });
 
@@ -94,8 +107,7 @@ export class SupplierResource implements SupplierRepository {
     }
   }
 
-  // Mantenemos solo estos métodos por ahora
-  async getSupplierByID(id: string): Promise<Supplier | null> {
+  async getSupplierById(id: string): Promise<Supplier | null> {
     try {
       console.log('🔧 SupplierResource: Getting supplier by ID...', { id });
 

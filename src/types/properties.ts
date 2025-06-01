@@ -27,4 +27,5 @@ export type SupplierProperties = {
   phone: string;
   service: string;
   canProvideService: boolean;
+  vehicleType?: string;
 };

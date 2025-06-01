@@ -1,192 +1,168 @@
+<!-- src/UI/components/reservation/ReservationSuppliersSection.vue -->
 <template>
-  <div class="suppliers-section">
-    <div class="d-flex align-center justify-space-between mb-4">
-      <h3 class="text-h6 font-weight-bold">
-        <v-icon icon="mdi-account-hard-hat" class="mr-2"></v-icon>
-        Proveedores Disponibles
-      </h3>
+  <v-card class="suppliers-section" rounded="xl" elevation="0" border>
+    <v-card-title class="pa-6 pb-4">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center">
+          <v-icon icon="mdi-account-search" color="primary" size="28" class="mr-3"></v-icon>
+          <div>
+            <h3 class="text-h6 font-weight-bold mb-1">Proveedores Disponibles</h3>
+            <p class="text-body-2 text-medium-emphasis mb-0">
+              {{ getSearchDescription() }}
+            </p>
+          </div>
+        </div>
 
-      <v-btn color="primary" variant="tonal" size="small" prepend-icon="mdi-refresh" :loading="loading"
-        @click="refreshSuppliers">
-        Actualizar
-      </v-btn>
-    </div>
+        <v-chip v-if="compatibleSuppliers.length > 0" color="primary" size="small" variant="elevated">
+          {{ compatibleSuppliers.length }} disponibles
+        </v-chip>
+      </div>
+    </v-card-title>
 
-    <!-- Estado de carga -->
-    <div v-if="loading" class="d-flex justify-center align-center py-6">
-      <v-progress-circular indeterminate color="primary" size="32"></v-progress-circular>
-      <span class="ml-3 text-body-2">Cargando proveedores...</span>
-    </div>
+    <v-divider></v-divider>
 
-    <!-- Sin proveedores -->
-    <v-card v-else-if="suppliers.length === 0" class="pa-6 text-center" variant="tonal" color="grey-lighten-4">
-      <v-icon icon="mdi-account-off" size="48" color="grey-lighten-1" class="mb-3"></v-icon>
-      <h4 class="text-subtitle-1 font-weight-bold mb-2">No hay proveedores disponibles</h4>
-      <p class="text-body-2 text-medium-emphasis mb-0">
-        No se encontraron proveedores para el servicio: <strong>{{ reservation.serviceName }}</strong>
-      </p>
-    </v-card>
+    <v-card-text class="pa-6">
+      <!-- ✅ Mostrar criterios de búsqueda -->
+      <v-alert v-if="searchCriteria" color="info" variant="tonal" rounded="lg" class="mb-6">
+        <div class="search-info">
+          <h4 class="text-subtitle-2 font-weight-bold mb-2">Búsqueda realizada:</h4>
+          <div class="criteria-list">
+            <div class="criteria-item">
+              <v-icon icon="mdi-tools" size="16" class="mr-2"></v-icon>
+              <strong>Servicio:</strong> {{ reservation.serviceName }}
+            </div>
 
-    <!-- Lista de proveedores -->
-    <div v-else class="suppliers-list">
-      <v-card v-for="supplier in suppliers" :key="supplier.id" class="supplier-item mb-3"
-        :color="supplier.canProvideService ? 'default' : 'grey-lighten-4'" variant="outlined" rounded="lg">
-        <v-card-text class="pa-4">
-          <div class="d-flex align-center justify-space-between">
-            <!-- Info del proveedor -->
-            <div class="d-flex align-center flex-grow-1">
-              <v-avatar :color="supplier.canProvideService ? 'primary' : 'grey'" size="40" class="mr-3">
+            <div v-if="searchCriteria.vehicleType" class="criteria-item">
+              <v-icon icon="mdi-car" size="16" class="mr-2"></v-icon>
+              <strong>Tipo de Vehículo:</strong> {{ getVehicleDisplayName(searchCriteria.vehicleType) }}
+            </div>
+          </div>
+        </div>
+      </v-alert>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="d-flex justify-center align-center py-8">
+        <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
+      </div>
+
+      <!-- Suppliers Grid -->
+      <div v-else-if="compatibleSuppliers.length > 0" class="suppliers-grid">
+        <v-card v-for="supplier in compatibleSuppliers" :key="supplier.id" class="supplier-item" rounded="lg"
+          elevation="0" border>
+          <v-card-text class="pa-4">
+            <div class="d-flex align-center mb-3">
+              <v-avatar color="primary" size="40" class="mr-3">
                 <span class="text-white font-weight-bold">
                   {{ getInitials(supplier.name) }}
                 </span>
               </v-avatar>
 
-              <div class="supplier-info">
-                <h5 class="text-subtitle-2 font-weight-bold mb-1">
-                  {{ supplier.name }}
-                  <v-chip :color="supplier.canProvideService ? 'success' : 'error'" size="x-small" variant="flat"
-                    class="ml-2">
-                    {{ supplier.canProvideService ? 'Activo' : 'Inactivo' }}
-                  </v-chip>
-                </h5>
+              <div class="flex-grow-1">
+                <h4 class="text-subtitle-1 font-weight-bold">{{ supplier.name }}</h4>
+                <p class="text-body-2 text-medium-emphasis mb-0">{{ supplier.email }}</p>
+              </div>
 
-                <div class="contact-info">
-                  <div class="d-flex align-center mb-1">
-                    <v-icon icon="mdi-email-outline" size="14" class="mr-2"></v-icon>
-                    <span class="text-body-2">{{ supplier.email }}</span>
-                  </div>
-                  <div class="d-flex align-center">
-                    <v-icon icon="mdi-phone-outline" size="14" class="mr-2"></v-icon>
-                    <span class="text-body-2">{{ supplier.phone }}</span>
-                  </div>
-                </div>
+              <v-chip color="success" size="small" variant="flat">
+                Activo
+              </v-chip>
+            </div>
+
+            <!-- Supplier Details -->
+            <div class="supplier-details mb-4">
+              <div class="detail-row">
+                <v-icon icon="mdi-phone" size="14" class="mr-2"></v-icon>
+                <span class="text-body-2">{{ supplier.phone }}</span>
+              </div>
+
+              <!-- ✅ Mostrar vehicleType si es airport transfer -->
+              <div v-if="supplier.vehicleType && isAirportTransfer" class="detail-row">
+                <v-icon icon="mdi-car" size="14" class="mr-2"></v-icon>
+                <span class="text-body-2">{{ getVehicleDisplayName(supplier.vehicleType) }}</span>
               </div>
             </div>
 
-            <!-- Acciones -->
-            <div class="supplier-actions">
-              <v-btn color="success" size="small" variant="elevated" prepend-icon="mdi-whatsapp"
-                :disabled="!supplier.canProvideService || processingSupplier === supplier.id"
-                :loading="processingSupplier === supplier.id" @click="consultSupplier(supplier)"
-                class="whatsapp-consult-btn">
-                {{ processingSupplier === supplier.id ? 'Enviando...' : 'Consultar por WhatsApp' }}
+            <!-- Actions -->
+            <div class="d-flex gap-2">
+              <v-btn color="primary" size="small" variant="elevated" @click="handleSupplierSelected(supplier)"
+                prepend-icon="mdi-check">
+                Seleccionar
+              </v-btn>
+
+              <v-btn color="secondary" size="small" variant="outlined" @click="handleContactSupplier(supplier)"
+                prepend-icon="mdi-whatsapp">
+                Consultar
               </v-btn>
             </div>
-          </div>
-
-          <!-- Indicador de solicitud enviada -->
-          <div v-if="sentRequests.has(supplier.id)" class="sent-indicator mt-3">
-            <v-alert color="info" variant="tonal" density="compact" prepend-icon="mdi-check-circle" class="text-body-2">
-              Solicitud enviada por WhatsApp - {{ getSentTime(supplier.id) }}
-              <template v-slot:append>
-                <v-btn size="x-small" color="warning" variant="text" @click="sendReminder(supplier)"
-                  :loading="sendingReminder === supplier.id">
-                  {{ sendingReminder === supplier.id ? 'Enviando...' : 'Recordatorio' }}
-                </v-btn>
-              </template>
-            </v-alert>
-          </div>
-        </v-card-text>
-      </v-card>
-    </div>
-
-    <!-- Panel de seguimiento -->
-    <v-card v-if="sentRequests.size > 0" class="mt-6" variant="tonal" color="primary">
-      <v-card-title class="text-subtitle-1 pa-4">
-        <v-icon icon="mdi-whatsapp" class="mr-2"></v-icon>
-        Solicitudes Enviadas ({{ sentRequests.size }})
-      </v-card-title>
-      <v-card-text class="pt-0">
-        <p class="text-body-2 text-medium-emphasis">
-          Se han enviado {{ sentRequests.size }} solicitudes por WhatsApp para la reserva
-          <strong>#{{ reservation.bookingId }}</strong>.
-          Los proveedores pueden confirmar su disponibilidad a través del enlace enviado.
-        </p>
-
-        <!-- Debug: Mostrar última URL generada -->
-        <div v-if="lastGeneratedUrl" class="mt-3">
-          <v-btn size="x-small" color="primary" variant="outlined" prepend-icon="mdi-link"
-            @click="showUrlDialog = true">
-            Ver URL de confirmación
-          </v-btn>
-        </div>
-      </v-card-text>
-    </v-card>
-
-    <!-- Snackbar para notificaciones -->
-    <v-snackbar v-model="showNotification" :color="notificationColor" location="bottom end" timeout="4000">
-      <div class="d-flex align-center">
-        <v-icon :icon="notificationIcon" class="mr-2" size="small"></v-icon>
-        {{ notificationMessage }}
+          </v-card-text>
+        </v-card>
       </div>
-      <template v-slot:actions>
-        <v-btn icon="mdi-close" variant="text" @click="showNotification = false"></v-btn>
-      </template>
-    </v-snackbar>
 
-    <!-- Dialog para mostrar URL (debugging) -->
-    <v-dialog v-model="showUrlDialog" max-width="600">
-      <v-card>
-        <v-card-title>URL de Confirmación Generada</v-card-title>
-        <v-card-text>
-          <v-text-field :model-value="lastGeneratedUrl" label="URL de confirmación" readonly variant="outlined"
-            class="mb-3"></v-text-field>
-          <p class="text-body-2 text-medium-emphasis">
-            Esta URL se envía automáticamente a los proveedores por WhatsApp.
-          </p>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn @click="copyUrlToClipboard">Copiar</v-btn>
-          <v-btn @click="showUrlDialog = false">Cerrar</v-btn>
-        </v-card-actions>
+      <!-- Empty State -->
+      <v-card v-else class="pa-8 text-center" variant="tonal" color="grey-lighten-4">
+        <v-icon icon="mdi-account-off" size="48" color="grey-lighten-1" class="mb-4"></v-icon>
+        <h3 class="text-h6 mb-2">No hay proveedores compatibles</h3>
+        <p class="text-body-2 text-medium-emphasis mb-4">
+          {{ getEmptyStateMessage() }}
+        </p>
+        <v-btn color="primary" variant="outlined" @click="refreshSuppliers" :loading="loading">
+          <v-icon icon="mdi-refresh" class="mr-2"></v-icon>
+          Buscar nuevamente
+        </v-btn>
       </v-card>
-    </v-dialog>
-  </div>
+    </v-card-text>
+  </v-card>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue';
+import { ref, computed, onMounted, inject } from 'vue';
 import { supplierServiceKey } from '@/services/SupplierService';
-import { WhatsappService, type ReservationSummary, type SupplierInfo } from '@/services/whatsapp/WhatsappService';
 import type { SupplierView } from '@/views/SupplierView';
 import type { ReservationView } from '@/views/ReservationView';
 
-// Props
-const props = defineProps<{
-  reservation: ReservationView;
-}>();
+// ✅ Función local para verificar airport transfer
+function isAirportTransferService(service: string): boolean {
+  const airportServices = ['airport-transfer', 'airport-transfers', 'transporte-aeropuerto'];
+  const normalizedService = service.toLowerCase();
+  return airportServices.some(airportService =>
+    normalizedService.includes(airportService) || airportService.includes(normalizedService)
+  );
+}
 
-// Emits
+// Props & Emits
+interface Props {
+  reservation: ReservationView;
+}
+
+const props = defineProps<Props>();
+
 const emit = defineEmits<{
   'supplier-selected': [supplier: SupplierView];
-  'supplier-contacted': [supplier: SupplierView, result: { success: boolean; confirmationUrl?: string; }];
+  'supplier-contacted': [supplier: SupplierView, result: any];
 }>();
 
 // Services
 const supplierService = inject(supplierServiceKey);
-const whatsappService = new WhatsappService();
 
-// Estado
+// Reactive Data
 const loading = ref(false);
-const suppliers = ref<SupplierView[]>([]);
-const processingSupplier = ref<string | null>(null);
-const sendingReminder = ref<string | null>(null);
+const compatibleSuppliers = ref<SupplierView[]>([]);
 
-// Control de solicitudes enviadas
-const sentRequests = ref<Map<string, Date>>(new Map());
+// Computed
+const isAirportTransfer = computed(() =>
+  isAirportTransferService(props.reservation.serviceName || props.reservation.serviceId || '')
+);
 
-// Sistema de notificaciones
-const showNotification = ref(false);
-const notificationMessage = ref('');
-const notificationColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
-const notificationIcon = ref('mdi-check-circle');
+const searchCriteria = computed(() => {
+  const serviceId = props.reservation.serviceId || props.reservation.serviceName;
+  const vehicleType = isAirportTransfer.value ? props.reservation.formData?.vehicleType : undefined;
 
-// Debug URL
-const showUrlDialog = ref(false);
-const lastGeneratedUrl = ref('');
+  return {
+    serviceId,
+    vehicleType
+  };
+});
 
-// Métodos
+// Methods
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -196,187 +172,32 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-/**
- * 🎯 MÉTODO PRINCIPAL: Consultar proveedor por WhatsApp
- */
-async function consultSupplier(supplier: SupplierView): Promise<void> {
-  console.log('🎯 Starting supplier consultation:', {
-    supplier: supplier.name,
-    bookingId: props.reservation.bookingId,
-    supplierId: supplier.id
-  });
+function getVehicleDisplayName(vehicleType: string): string {
+  const vehicleTypes: Record<string, string> = {
+    'vanSmall': 'Van Pequeña (1-6 personas)',
+    'vanMedium': 'Van Mediana (7-10 personas)',
+    'vanLarge': 'Van Grande (11-16 personas)',
+    'suv': 'SUV (1-6 personas)'
+  };
 
-  processingSupplier.value = supplier.id;
+  return vehicleTypes[vehicleType] || vehicleType;
+}
 
-  try {
-    // Preparar datos del proveedor
-    const supplierInfo: SupplierInfo = {
-      id: supplier.id,
-      name: supplier.name,
-      phone: supplier.phone,
-      email: supplier.email,
-      service: supplier.service
-    };
-
-    // Preparar resumen de la reserva
-    const reservationSummary: ReservationSummary = {
-      bookingId: props.reservation.bookingId,
-      serviceName: props.reservation.serviceName,
-      date: props.reservation.date,
-      time: props.reservation.time,
-      clientName: props.reservation.clientName,
-      clientPhone: props.reservation.clientPhone,
-      clientEmail: props.reservation.clientEmail,
-      totalPrice: props.reservation.totalPrice,
-      location: getReservationLocation(),
-      notes: props.reservation.notes
-    };
-
-    // Enviar solicitud por WhatsApp
-    const result = await whatsappService.sendSupplierServiceRequest(supplierInfo, reservationSummary);
-
-    if (result.success) {
-      // Marcar como enviado
-      sentRequests.value.set(supplier.id, new Date());
-      lastGeneratedUrl.value = result.confirmationUrl;
-
-      // Emitir eventos
-      emit('supplier-selected', supplier);
-      emit('supplier-contacted', supplier, result);
-
-      // Mostrar notificación de éxito
-      displayNotification(
-        `✅ Solicitud enviada a ${supplier.name} por WhatsApp`,
-        'success',
-        'mdi-whatsapp'
-      );
-
-      console.log('✅ WhatsApp consultation sent successfully', {
-        confirmationUrl: result.confirmationUrl
-      });
-    } else {
-      throw new Error(result.error || 'Error desconocido al enviar WhatsApp');
-    }
-
-  } catch (error) {
-    console.error('❌ Error sending WhatsApp consultation:', error);
-
-    displayNotification(
-      `❌ Error al contactar a ${supplier.name}: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-      'error',
-      'mdi-alert-circle'
-    );
-  } finally {
-    processingSupplier.value = null;
+function getSearchDescription(): string {
+  if (isAirportTransfer.value && searchCriteria.value.vehicleType) {
+    return `Proveedores con vehículo ${getVehicleDisplayName(searchCriteria.value.vehicleType)}`;
   }
+  return `Proveedores para ${props.reservation.serviceName}`;
 }
 
-/**
- * Enviar recordatorio al proveedor
- */
-async function sendReminder(supplier: SupplierView): Promise<void> {
-  console.log('📢 Sending reminder to supplier:', supplier.name);
-
-  sendingReminder.value = supplier.id;
-
-  try {
-    const supplierInfo: SupplierInfo = {
-      id: supplier.id,
-      name: supplier.name,
-      phone: supplier.phone,
-      email: supplier.email,
-      service: supplier.service
-    };
-
-    const reservationSummary = {
-      bookingId: props.reservation.bookingId,
-      serviceName: props.reservation.serviceName,
-      date: props.reservation.date,
-      time: props.reservation.time,
-      clientName: props.reservation.clientName,
-      totalPrice: props.reservation.totalPrice
-    };
-
-    const result = await whatsappService.sendSupplierReminder(supplierInfo, reservationSummary, 12);
-
-    if (result.success) {
-      displayNotification(
-        `📢 Recordatorio enviado a ${supplier.name}`,
-        'warning',
-        'mdi-bell-ring'
-      );
-    } else {
-      throw new Error(result.error || 'Error enviando recordatorio');
-    }
-
-  } catch (error) {
-    console.error('❌ Error sending reminder:', error);
-    displayNotification(
-      `❌ Error enviando recordatorio: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-      'error',
-      'mdi-alert-circle'
-    );
-  } finally {
-    sendingReminder.value = null;
+function getEmptyStateMessage(): string {
+  if (isAirportTransfer.value && searchCriteria.value.vehicleType) {
+    return `No se encontraron proveedores de transporte aeropuerto con vehículo tipo "${getVehicleDisplayName(searchCriteria.value.vehicleType)}"`;
   }
+  return `No se encontraron proveedores para el servicio "${props.reservation.serviceName}"`;
 }
 
-/**
- * Obtener ubicación de la reserva
- */
-function getReservationLocation(): string {
-  const plainObj = props.reservation.toPlainObject();
-
-  return plainObj.location ||
-    plainObj.exactAddress ||
-    plainObj.deliveryAddress ||
-    'Por confirmar con el cliente';
-}
-
-/**
- * Obtener hora de envío formateada
- */
-function getSentTime(supplierId: string): string {
-  const sentDate = sentRequests.value.get(supplierId);
-  if (!sentDate) return '';
-
-  return sentDate.toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-/**
- * Mostrar notificaciones del sistema
- */
-function displayNotification(
-  message: string,
-  color: 'success' | 'error' | 'info' | 'warning',
-  icon: string
-): void {
-  notificationMessage.value = message;
-  notificationColor.value = color;
-  notificationIcon.value = icon;
-  showNotification.value = true;
-}
-
-/**
- * Copiar URL al portapapeles
- */
-async function copyUrlToClipboard(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(lastGeneratedUrl.value);
-    displayNotification('URL copiada al portapapeles', 'success', 'mdi-content-copy');
-  } catch (error) {
-    console.error('Error copying to clipboard:', error);
-    displayNotification('Error al copiar URL', 'error', 'mdi-alert-circle');
-  }
-}
-
-/**
- * Cargar proveedores disponibles
- */
-async function loadSuppliers(): Promise<void> {
+async function loadCompatibleSuppliers() {
   if (!supplierService) {
     console.error('❌ SupplierService not available');
     return;
@@ -384,58 +205,59 @@ async function loadSuppliers(): Promise<void> {
 
   loading.value = true;
   try {
-    console.log('🔍 Loading suppliers for service:', {
-      serviceId: props.reservation.serviceId,
-      serviceName: props.reservation.serviceName
-    });
+    console.log('🔍 Loading compatible suppliers with criteria:', searchCriteria.value);
 
-    const serviceSuppliers = await supplierService.getSuppliersByService(
-      props.reservation.serviceId || props.reservation.serviceName
+    // ✅ Usar el nuevo UseCase inteligente
+    const suppliers = await supplierService.findCompatibleSuppliers(
+      searchCriteria.value.serviceId,
+      searchCriteria.value.vehicleType
     );
 
-    suppliers.value = serviceSuppliers || [];
+    compatibleSuppliers.value = suppliers || [];
 
-    console.log(`✅ Loaded ${suppliers.value.length} suppliers for service: ${props.reservation.serviceName}`);
-
-    suppliers.value.forEach(supplier => {
-      console.log(`  - Found: ${supplier.name} (${supplier.service}) - Active: ${supplier.canProvideService}`);
-    });
+    console.log(`✅ Found ${compatibleSuppliers.value.length} compatible suppliers`);
 
   } catch (error) {
-    console.error('❌ Error loading suppliers:', error);
-    suppliers.value = [];
-
-    displayNotification(
-      'Error cargando proveedores',
-      'error',
-      'mdi-alert-circle'
-    );
+    console.error('❌ Error loading compatible suppliers:', error);
+    compatibleSuppliers.value = [];
   } finally {
     loading.value = false;
   }
 }
 
-/**
- * Refrescar lista de proveedores
- */
-async function refreshSuppliers(): Promise<void> {
-  await loadSuppliers();
+function refreshSuppliers() {
+  loadCompatibleSuppliers();
+}
+
+function handleSupplierSelected(supplier: SupplierView) {
+  console.log('🎯 Supplier selected:', supplier.name);
+  emit('supplier-selected', supplier);
+}
+
+function handleContactSupplier(supplier: SupplierView) {
+  console.log('📞 Contacting supplier:', supplier.name);
+
+  // Simular envío de consulta por WhatsApp
+  const phone = supplier.phone.replace(/\D/g, '');
+  const message = `Hola ${supplier.name}, tengo una reserva de ${props.reservation.serviceName} para el ${props.reservation.date} a las ${props.reservation.time}. ¿Puedes confirmar disponibilidad?`;
+  const whatsappUrl = `https://wa.me/1809${phone}?text=${encodeURIComponent(message)}`;
+
+  window.open(whatsappUrl, '_blank');
+
+  emit('supplier-contacted', supplier, { method: 'whatsapp', success: true });
 }
 
 // Lifecycle
 onMounted(() => {
-  loadSuppliers();
+  loadCompatibleSuppliers();
 });
 </script>
 
 <style scoped>
-.suppliers-section {
-  width: 100%;
-}
-
-.suppliers-list {
-  max-height: 400px;
-  overflow-y: auto;
+.suppliers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 .supplier-item {
@@ -443,82 +265,44 @@ onMounted(() => {
 }
 
 .supplier-item:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.supplier-info {
-  flex-grow: 1;
-  min-width: 0;
+.search-info {
+  font-size: 0.875rem;
 }
 
-.contact-info {
-  margin-top: 4px;
+.criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.supplier-actions {
-  margin-left: 16px;
+.criteria-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
 }
 
-/* Botón WhatsApp */
-.whatsapp-consult-btn {
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
-  transition: all 0.3s ease;
+.supplier-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.whatsapp-consult-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+.detail-row {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: rgba(var(--v-theme-on-surface), 0.7);
 }
 
-.whatsapp-consult-btn:disabled {
-  transform: none !important;
-}
-
-/* Indicador de envío */
-.sent-indicator {
-  border-left: 3px solid rgb(var(--v-theme-success));
-  padding-left: 12px;
-  background-color: rgba(var(--v-theme-success), 0.05);
-  border-radius: 0 8px 8px 0;
-}
-
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 600px) {
-  .d-flex.align-center.justify-space-between {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .suppliers-grid {
+    grid-template-columns: 1fr;
   }
-
-  .supplier-actions {
-    margin-left: 0;
-    margin-top: 12px;
-    width: 100%;
-  }
-
-  .whatsapp-consult-btn {
-    width: 100%;
-  }
-}
-
-/* Scrollbar styling */
-.suppliers-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.suppliers-list::-webkit-scrollbar-track {
-  background: rgba(var(--v-theme-surface-variant), 0.1);
-  border-radius: 3px;
-}
-
-.suppliers-list::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-primary), 0.3);
-  border-radius: 3px;
-}
-
-.suppliers-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-primary), 0.5);
 }
 </style>

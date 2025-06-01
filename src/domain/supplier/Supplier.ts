@@ -9,13 +9,14 @@ export class Supplier {
     public readonly email: string,
     public readonly phone: string,
     public readonly service: string,
-    public readonly canProvideService: boolean
+    public readonly canProvideService: boolean,
+    public readonly vehicleType?: string
   ) {}
 
   static fromProperties(properties: SupplierProperties): Supplier {
-    const { id, name, cedula, email, phone, service, canProvideService } = properties;
+    const { id, name, cedula, email, phone, service, canProvideService, vehicleType } = properties;
 
-    return new Supplier(id, name, cedula, email, phone, service, canProvideService);
+    return new Supplier(id, name, cedula, email, phone, service, canProvideService, vehicleType);
   }
 
   get properties(): SupplierProperties {
@@ -26,11 +27,12 @@ export class Supplier {
       email: this.email,
       phone: this.phone,
       service: this.service,
-      canProvideService: this.canProvideService
+      canProvideService: this.canProvideService,
+      vehicleType: this.vehicleType // ✅ Incluir en properties
     });
   }
 
-  // Métodos de negocio
+  // Métodos de negocio existentes
   activate(): Supplier {
     return Supplier.fromProperties({
       ...this.properties,
@@ -60,7 +62,15 @@ export class Supplier {
     });
   }
 
-  // Getters para validaciones de negocio
+  // ✅ Nuevo método para actualizar vehicleType
+  updateVehicleType(vehicleType: string): Supplier {
+    return Supplier.fromProperties({
+      ...this.properties,
+      vehicleType
+    });
+  }
+
+  // Getters para validaciones de negocio existentes
   isActive(): boolean {
     return this.canProvideService;
   }
@@ -71,7 +81,6 @@ export class Supplier {
   }
 
   isValidCedula(): boolean {
-    // Validación básica de cédula dominicana (xxx-xxxxxxx-x)
     const cedulaRegex = /^\d{3}-?\d{7}-?\d{1}$/;
     return cedulaRegex.test(this.cedula.replace(/-/g, ''));
   }

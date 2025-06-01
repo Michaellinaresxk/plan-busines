@@ -6,4 +6,5 @@ export type ApiSupplier = {
   phone: string;
   service: string;
   canProvideService: boolean;
+  vehicleType?: string;
 };

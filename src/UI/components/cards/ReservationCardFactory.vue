@@ -1,12 +1,12 @@
-// src/components/reservation/ReservationCardFactory.vue - Updated
 <template>
-  <component :is="cardComponent" :reservation="reservationData" :onApprove="onApprove" :onReject="onReject"
-    @view-details="handleViewDetails" @approve="handleApprove" @reject="handleReject" />
+  <component :is="cardComponent" :reservation="reservationData" :on-approve="handleApproveAction"
+    :on-reject="handleRejectAction" @view-details="handleViewDetails" @approve="handleApprove" @reject="handleReject" />
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw } from 'vue';
+import { computed, markRaw, type Component } from 'vue';
 import { ServiceType, ReservationService } from '@/services/ReservationServiceFactory';
+import type { ReservationView } from '@/types/reservations';
 
 // Importar componentes de tarjetas
 import AirportTransfer from '@/UI/components/cards/AirportTransfer.vue';
@@ -15,70 +15,138 @@ import CustomDecorationCard from '@/UI/components/cards/CustomDecorationCard.vue
 import GroceryShopping from '@/UI/components/cards/GroceryShopping.vue';
 import DefaultReservationCard from '@/UI/components/cards/DefaultReservationCard.vue';
 
-// Mapeo de tipos de servicio a componentes
-const SERVICE_COMPONENTS = {
+// Tipos
+interface PlainReservation {
+  bookingId?: string;
+  id?: string;
+  [key: string]: any;
+}
+
+type ReservationInput = ReservationView | PlainReservation;
+
+interface Props {
+  reservation: ReservationInput;
+  onApprove: (id: string) => Promise<boolean>;
+  onReject: (id: string) => Promise<boolean>;
+}
+
+interface Emits {
+  'view-details': [reservation: ReservationInput];
+  'approve': [id: string, reservation: ReservationInput];
+  'reject': [id: string, reservation: ReservationInput];
+}
+
+// Props y eventos tipados
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
+
+// Mapeo de tipos de servicio a componentes con mejor tipado
+const SERVICE_COMPONENTS: Record<ServiceType, Component> = {
   [ServiceType.AIRPORT_TRANSFER]: markRaw(AirportTransfer),
   [ServiceType.BABYSITTER]: markRaw(BabySitter),
   [ServiceType.CUSTOM_DECORATION]: markRaw(CustomDecorationCard),
   [ServiceType.GROCERY_SHOPPING]: markRaw(GroceryShopping),
+} as const;
+
+// Utilitades
+const isReservationView = (reservation: any): reservation is ReservationView => {
+  return reservation && typeof reservation.toPlainObject === 'function';
 };
 
-// Propiedades - Puede recibir ReservationView o un objeto plano
-const props = defineProps<{
-  reservation: any;
-  onApprove: (id: string) => Promise<boolean>;
-  onReject: (id: string) => Promise<boolean>;
-}>();
+const getReservationId = (reservation: PlainReservation): string => {
+  return reservation.bookingId || reservation.id || '';
+};
 
-// Eventos
-const emit = defineEmits<{
-  (e: 'view-details', reservation: any): void;
-  (e: 'approve', id: string, reservation: any): void;
-  (e: 'reject', id: string, reservation: any): void;
-}>();
-
-// Convertir reservation a objeto plano si es una instancia de ReservationView
-const reservationData = computed(() => {
-  if (props.reservation && typeof props.reservation.toPlainObject === 'function') {
-    // Es una instancia de ReservationView
+// Computed properties
+const reservationData = computed((): PlainReservation => {
+  if (isReservationView(props.reservation)) {
     return props.reservation.toPlainObject();
   }
-  // Ya es un objeto plano
-  return props.reservation;
+  return props.reservation as PlainReservation;
 });
 
-// Determinar qué componente utilizar según el tipo de reservación
-const cardComponent = computed(() => {
-  const serviceType = ReservationService.detectServiceType(reservationData.value);
+const cardComponent = computed((): Component => {
+  try {
+    const serviceType = ReservationService.detectServiceType(reservationData.value);
+    const component = SERVICE_COMPONENTS[serviceType];
 
-  // Buscar el componente correspondiente en el mapeo
-  const component = SERVICE_COMPONENTS[serviceType];
+    if (!component) {
+      console.warn(`Tipo de reserva no reconocido: ${serviceType}`, {
+        reservation: reservationData.value,
+        availableTypes: Object.keys(SERVICE_COMPONENTS)
+      });
+      return markRaw(DefaultReservationCard);
+    }
 
-  if (component) {
     return component;
-  } else {
-    // Registrar advertencia para tipos desconocidos
-    console.warn(`Tipo de reserva no reconocido: ${serviceType}`, reservationData.value);
-
-    // Devolver el componente por defecto para tipos desconocidos
-    return DefaultReservationCard;
+  } catch (error) {
+    console.error('Error detectando tipo de servicio:', error, reservationData.value);
+    return markRaw(DefaultReservationCard);
   }
 });
 
-// Manejadores de eventos
-function handleApprove() {
-  const id = reservationData.value.bookingId || reservationData.value.id;
-  emit('approve', id, props.reservation);
-}
+// Handlers con manejo de errores mejorado
+const handleApproveAction = async (id: string): Promise<boolean> => {
+  try {
+    const result = await props.onApprove(id);
+    if (result) {
+      console.log(`✅ Reserva ${id} aprobada exitosamente`);
+    }
+    return result;
+  } catch (error) {
+    console.error(`❌ Error aprobando reserva ${id}:`, error);
+    return false;
+  }
+};
 
-function handleReject() {
-  const id = reservationData.value.bookingId || reservationData.value.id;
-  emit('reject', id, props.reservation);
-}
+const handleRejectAction = async (id: string): Promise<boolean> => {
+  try {
+    const result = await props.onReject(id);
+    if (result) {
+      console.log(`❌ Reserva ${id} rechazada exitosamente`);
+    }
+    return result;
+  } catch (error) {
+    console.error(`❌ Error rechazando reserva ${id}:`, error);
+    return false;
+  }
+};
 
-// ✅ NUEVO: Handler para view-details
-function handleViewDetails() {
-  console.log('🔍 ReservationCardFactory: handleViewDetails called with reservation:', props.reservation);
-  emit('view-details', props.reservation);
-}
+const handleApprove = (): void => {
+  try {
+    const id = getReservationId(reservationData.value);
+    if (!id) {
+      console.warn('⚠️ No se pudo obtener ID de la reserva para aprobar');
+      return;
+    }
+    emit('approve', id, props.reservation);
+  } catch (error) {
+    console.error('Error en handleApprove:', error);
+  }
+};
+
+const handleReject = (): void => {
+  try {
+    const id = getReservationId(reservationData.value);
+    if (!id) {
+      console.warn('⚠️ No se pudo obtener ID de la reserva para rechazar');
+      return;
+    }
+    emit('reject', id, props.reservation);
+  } catch (error) {
+    console.error('Error en handleReject:', error);
+  }
+};
+
+const handleViewDetails = (): void => {
+  try {
+    console.log('🔍 ReservationCardFactory: Visualizando detalles de reserva:', {
+      id: getReservationId(reservationData.value),
+      type: ReservationService.detectServiceType(reservationData.value)
+    });
+    emit('view-details', props.reservation);
+  } catch (error) {
+    console.error('Error en handleViewDetails:', error);
+  }
+};
 </script>

@@ -14,7 +14,7 @@ import {
 import type { ApiSupplier } from './ApiSupplier';
 
 export class SupplierCaller {
-  private readonly COLLECTION_NAME = 'supliers'; // ✅ Nombre correcto de tu colección
+  private readonly COLLECTION_NAME = 'supliers';
 
   constructor(private readonly db: Firestore) {}
 
@@ -74,7 +74,8 @@ export class SupplierCaller {
     email: string,
     phone: string,
     service: string,
-    canProvideService: boolean = true
+    canProvideService: boolean = true,
+    vehicleType?: string
   ): Promise<ApiSupplier> {
     try {
       console.log('🔥 SupplierCaller: Creating new supplier...', { name, service });
@@ -86,6 +87,7 @@ export class SupplierCaller {
         phone: phone.trim(),
         service: service.trim(),
         canProvideService,
+        vehicleType: vehicleType?.trim(),
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -102,7 +104,8 @@ export class SupplierCaller {
         email: supplierData.email,
         phone: supplierData.phone,
         service: supplierData.service,
-        canProvideService: supplierData.canProvideService
+        canProvideService: supplierData.canProvideService,
+        vehicleType: supplierData.vehicleType
       };
     } catch (error) {
       console.error('❌ Error creating supplier:', error);

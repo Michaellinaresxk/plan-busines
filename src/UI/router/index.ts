@@ -53,6 +53,16 @@ const router = createRouter({
       meta: {
         title: 'Confirmación de Servicio - Plan Business'
       }
+    },
+    {
+      path: '/reservation/:id',
+      name: 'ReservationDetails',
+      component: () => import('@/UI/pages/ReservationDetailsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Detalles de Reserva'
+      },
+      props: true // Permite pasar el parámetro 'id' como prop
     }
   ]
 });

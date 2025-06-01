@@ -139,7 +139,7 @@ function formatPropValue(value: any): string {
 }
 </script>
 
-<styles scoped>
+<style scoped>
 .service-details {
   width: 100%;
 }
@@ -248,4 +248,4 @@ function formatPropValue(value: any): string {
     text-align: left;
   }
 }
-</styles>
+</style>

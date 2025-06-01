@@ -128,6 +128,10 @@
                         <span class="detail-label">Pasajeros:</span>
                         <span class="detail-value">{{ passengerCount }}</span>
                       </div>
+                      <div v-if="formData > 0" class="detail-row">
+                        <span class="detail-label">Pasajeros:</span>
+                        <span class="detail-value">{{ formData.needsCarSeat }}</span>
+                      </div>
                     </div>
                   </div>
                 </v-col>

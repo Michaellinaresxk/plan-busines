@@ -1,4 +1,3 @@
-<!-- src/UI/components/suppliers/EditSupplierForm.vue -->
 <template>
   <v-dialog v-model="dialogModel" max-width="600" persistent>
     <v-card rounded="xl" elevation="0" border>
@@ -53,7 +52,25 @@
             <v-col cols="12" md="6">
               <v-select v-model="formData.service" :items="serviceOptions" label="Servicio que Ofrece"
                 placeholder="Selecciona un servicio" prepend-inner-icon="mdi-tools" variant="outlined"
-                :rules="[rules.required]" :disabled="loading" @update:model-value="markAsChanged('service')"></v-select>
+                :rules="[rules.required]" :disabled="loading" @update:model-value="handleServiceChange"></v-select>
+            </v-col>
+
+            <!-- ✅ Tipo de Vehículo (solo para airport transfer) -->
+            <v-col cols="12" md="6" v-if="showVehicleTypeField">
+              <v-select v-model="formData.vehicleType" :items="vehicleTypeOptions" label="Tipo de Vehículo"
+                placeholder="Selecciona el tipo de vehículo" prepend-inner-icon="mdi-car" variant="outlined"
+                :rules="vehicleTypeRules" :disabled="loading" @update:model-value="markAsChanged('vehicleType')">
+                <template v-slot:prepend-item>
+                  <v-list-item>
+                    <v-list-item-content>
+                      <v-list-item-title class="text-caption text-medium-emphasis">
+                        Selecciona el tipo de vehículo para transporte aeropuerto
+                      </v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-divider class="mb-2"></v-divider>
+                </template>
+              </v-select>
             </v-col>
 
             <!-- Switch para Activo -->
@@ -93,7 +110,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { SUPPLIER_SERVICE_OPTIONS } from '@/types/supplier';
+import { SUPPLIER_SERVICE_OPTIONS, VEHICLE_TYPE_OPTIONS, isAirportTransferService } from '@/types/supplier';
 
 // Props & Emits
 interface Props {
@@ -117,6 +134,7 @@ interface SupplierData {
   phone: string;
   service: string;
   canProvideService: boolean;
+  vehicleType?: string; // ✅ Agregar vehicleType
 }
 
 interface UpdateSupplierData {
@@ -126,6 +144,7 @@ interface UpdateSupplierData {
   phone?: string;
   service?: string;
   canProvideService?: boolean;
+  vehicleType?: string; // ✅ Agregar vehicleType
 }
 
 // Reactive Data
@@ -142,8 +161,11 @@ const formData = ref<SupplierData>({
   email: '',
   phone: '',
   service: '',
-  canProvideService: true
+  canProvideService: true,
+  vehicleType: undefined // ✅ Inicializar vehicleType
 });
+
+// ✅ Usar función importada en lugar de duplicar lógica
 
 // Computed
 const dialogModel = computed({
@@ -158,6 +180,22 @@ const serviceOptions = computed(() =>
   }))
 );
 
+// ✅ Mostrar campo vehicleType solo para airport transfer
+const showVehicleTypeField = computed(() =>
+  isAirportTransferService(formData.value.service)
+);
+
+// ✅ Opciones de tipos de vehículos
+const vehicleTypeOptions = computed(() => VEHICLE_TYPE_OPTIONS);
+
+// ✅ Reglas de validación para vehicleType
+const vehicleTypeRules = computed(() => {
+  if (showVehicleTypeField.value) {
+    return [rules.required];
+  }
+  return [];
+});
+
 const hasChanges = computed(() => changedFields.value.size > 0);
 
 const changedFieldsText = computed(() => {
@@ -167,7 +205,8 @@ const changedFieldsText = computed(() => {
     email: 'Email',
     phone: 'Teléfono',
     service: 'Servicio',
-    canProvideService: 'Estado'
+    canProvideService: 'Estado',
+    vehicleType: 'Tipo de Vehículo' // ✅ Agregar label
   };
 
   return Array.from(changedFields.value)
@@ -240,6 +279,17 @@ function formatPhone() {
   markAsChanged('phone');
 }
 
+// ✅ Manejar cambio de servicio
+function handleServiceChange(newService: string) {
+  markAsChanged('service');
+
+  // Si cambia a un servicio que NO es airport transfer, limpiar vehicleType
+  if (!isAirportTransferService(newService)) {
+    formData.value.vehicleType = undefined;
+    changedFields.value.delete('vehicleType'); // No marcar como cambio si se limpia
+  }
+}
+
 function loadSupplierData() {
   if (props.supplier) {
     console.log('📝 Loading supplier data for editing:', props.supplier);
@@ -262,7 +312,8 @@ function resetForm() {
     email: '',
     phone: '',
     service: '',
-    canProvideService: true
+    canProvideService: true,
+    vehicleType: undefined // ✅ Reset vehicleType
   };
 
   originalSupplier.value = null;
@@ -297,6 +348,11 @@ async function handleSubmit() {
         updateData[field as keyof UpdateSupplierData] = formData.value[field as keyof SupplierData];
       }
     });
+
+    // ✅ Si el servicio cambió y no es airport transfer, asegurar que vehicleType se quite
+    if (changedFields.value.has('service') && !showVehicleTypeField.value) {
+      updateData.vehicleType = undefined;
+    }
 
     console.log('🔄 Sending update data:', updateData);
 

@@ -9,13 +9,25 @@ export class SupplierView {
     public readonly email: string,
     public readonly phone: string,
     public readonly service: string,
-    public readonly canProvideService: boolean
+    public readonly canProvideService: boolean,
+    public readonly vehicleType?: string
   ) {}
 
   static fromDomain(supplier: Supplier): SupplierView {
-    const { id, name, cedula, email, phone, service, canProvideService } = supplier.properties;
-    return new SupplierView(id, name, cedula, email, phone, service, canProvideService);
+    const { id, name, cedula, email, phone, service, canProvideService, vehicleType } =
+      supplier.properties;
+    return new SupplierView(
+      id,
+      name,
+      cedula,
+      email,
+      phone,
+      service,
+      canProvideService,
+      vehicleType
+    );
   }
 }
 
+// ✅ Agregar export por defecto Y named export
 export default SupplierView;

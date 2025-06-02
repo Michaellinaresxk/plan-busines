@@ -52,8 +52,25 @@
             <v-col cols="12" md="6">
               <v-select v-model="formData.service" :items="serviceOptions" label="Servicio que Ofrece"
                 placeholder="Selecciona un servicio" prepend-inner-icon="mdi-tools" variant="outlined"
-                :rules="[rules.required]" :disabled="loading"
-                @update:model-value="clearFieldError('service')"></v-select>
+                :rules="[rules.required]" :disabled="loading" @update:model-value="handleServiceChange"></v-select>
+            </v-col>
+
+            <!-- ✅ Tipo de Vehículo (solo para airport transfer) -->
+            <v-col cols="12" md="6" v-if="showVehicleTypeField">
+              <v-select v-model="formData.vehicleType" :items="vehicleTypeOptions" label="Tipo de Vehículo"
+                placeholder="Selecciona el tipo de vehículo" prepend-inner-icon="mdi-car" variant="outlined"
+                :rules="vehicleTypeRules" :disabled="loading" @update:model-value="clearFieldError('vehicleType')">
+                <template v-slot:prepend-item>
+                  <v-list-item>
+                    <v-list-item-content>
+                      <v-list-item-title class="text-caption text-medium-emphasis">
+                        Selecciona el tipo de vehículo para transporte aeropuerto
+                      </v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-divider class="mb-2"></v-divider>
+                </template>
+              </v-select>
             </v-col>
 
             <!-- Switch para Activo -->
@@ -84,7 +101,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { SUPPLIER_SERVICE_OPTIONS } from '@/types/supplier';
+import { SUPPLIER_SERVICE_OPTIONS, VEHICLE_TYPE_OPTIONS, isAirportTransferService } from '@/types/supplier';
 
 // Props & Emits
 interface Props {
@@ -106,6 +123,7 @@ interface CreateSupplierData {
   phone: string;
   service: string;
   canProvideService: boolean;
+  vehicleType?: string; // ✅ Agregar vehicleType
 }
 
 // Reactive Data
@@ -119,8 +137,11 @@ const formData = ref<CreateSupplierData>({
   email: '',
   phone: '',
   service: '',
-  canProvideService: true
+  canProvideService: true,
+  vehicleType: undefined // ✅ Inicializar vehicleType
 });
+
+// ✅ Usar función importada en lugar de duplicar lógica
 
 // Computed
 const dialogModel = computed({
@@ -134,6 +155,22 @@ const serviceOptions = computed(() =>
     value: option.value
   }))
 );
+
+// ✅ Mostrar campo vehicleType solo para airport transfer
+const showVehicleTypeField = computed(() =>
+  isAirportTransferService(formData.value.service)
+);
+
+// ✅ Opciones de tipos de vehículos
+const vehicleTypeOptions = computed(() => VEHICLE_TYPE_OPTIONS);
+
+// ✅ Reglas de validación para vehicleType
+const vehicleTypeRules = computed(() => {
+  if (showVehicleTypeField.value) {
+    return [rules.required];
+  }
+  return [];
+});
 
 // Validation Rules
 const rules = {
@@ -185,8 +222,17 @@ function formatPhone() {
   }
 }
 
+// ✅ Manejar cambio de servicio
+function handleServiceChange(newService: string) {
+  clearFieldError('service');
+
+  // Si cambia a un servicio que NO es airport transfer, limpiar vehicleType
+  if (!isAirportTransferService(newService)) {
+    formData.value.vehicleType = undefined;
+  }
+}
+
 function clearFieldError(field: string) {
-  // Clear specific field validation if needed
   console.log(`Clearing error for field: ${field}`);
 }
 
@@ -197,7 +243,8 @@ function resetForm() {
     email: '',
     phone: '',
     service: '',
-    canProvideService: true
+    canProvideService: true,
+    vehicleType: undefined // ✅ Reset vehicleType
   };
 
   if (formRef.value) {
@@ -222,8 +269,14 @@ async function handleSubmit() {
   try {
     console.log('📝 Form submitted with data:', formData.value);
 
+    // ✅ Limpiar vehicleType si no es airport transfer
+    const submitData = { ...formData.value };
+    if (!showVehicleTypeField.value) {
+      delete submitData.vehicleType;
+    }
+
     // Emit the data to parent component
-    emit('supplier-created', { ...formData.value });
+    emit('supplier-created', submitData);
 
   } catch (error) {
     console.error('❌ Error in form submission:', error);

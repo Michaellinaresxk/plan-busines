@@ -1,7 +1,7 @@
 <template>
   <BaseReservationCard :reservation="reservation" :onApprove="onApprove" :onReject="onReject"
     @view-details="$emit('view-details', reservation)">
-    <div class="reservation-details">
+    <div class="reservation-details mt-10">
       <!-- Fecha y Hora -->
       <div class="detail-item">
         <v-icon icon="mdi-calendar" size="small" color="green" class="mr-2"></v-icon>

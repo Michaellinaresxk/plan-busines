@@ -132,7 +132,83 @@ export class ReservationCaller {
 
   // Actualizar solo el estado
   async updateReservationStatus(bookingId: string, status: string): Promise<ApiReservation> {
-    return this.updateReservation(bookingId, { status });
+    console.log('🔥 ReservationCaller.updateReservationStatus called');
+    console.log('📋 Parameters:', { bookingId, status });
+    console.log('🗄️ Collection name:', this.COLLECTION_NAME);
+    console.log('🔥 Database instance:', this.db ? '✅ Available' : '❌ Not available');
+
+    try {
+      // ✅ VERIFICAR QUE LA RESERVA EXISTE PRIMERO
+      console.log('🔍 First, checking if reservation exists...');
+      const existingReservation = await this.getReservationById(bookingId);
+
+      if (!existingReservation) {
+        console.error('❌ Reservation not found:', bookingId);
+        throw new Error(`Reservation with ID ${bookingId} not found`);
+      }
+
+      console.log('✅ Reservation found:', {
+        id: existingReservation.bookingId,
+        currentStatus: existingReservation.status,
+        serviceName: existingReservation.serviceName
+      });
+
+      // ✅ PREPARAR DATOS DE ACTUALIZACIÓN
+      const updateData = {
+        status: status,
+        updatedAt: Timestamp.now()
+      };
+
+      console.log('📝 Update data:', updateData);
+
+      // ✅ CREAR REFERENCIA AL DOCUMENTO
+      const docRef = doc(this.db, this.COLLECTION_NAME, bookingId);
+      console.log('📄 Document reference created for:', bookingId);
+
+      // ✅ ACTUALIZAR DOCUMENTO EN FIREBASE
+      console.log('🚀 Updating document in Firebase...');
+      await updateDoc(docRef, updateData);
+      console.log('✅ Firebase document updated successfully');
+
+      // ✅ OBTENER LA RESERVA ACTUALIZADA
+      console.log('🔄 Fetching updated reservation...');
+      const updatedReservation = await this.getReservationById(bookingId);
+
+      if (!updatedReservation) {
+        console.error('❌ Failed to fetch updated reservation');
+        throw new Error(`Reservation ${bookingId} not found after update`);
+      }
+
+      console.log('🎉 Updated reservation retrieved:', {
+        id: updatedReservation.bookingId,
+        newStatus: updatedReservation.status,
+        serviceName: updatedReservation.serviceName
+      });
+
+      // ✅ VERIFICAR QUE EL STATUS SE ACTUALIZÓ
+      if (updatedReservation.status !== status) {
+        console.error('⚠️ Status was not updated correctly:', {
+          expected: status,
+          actual: updatedReservation.status
+        });
+        throw new Error(
+          `Status update failed - expected ${status}, got ${updatedReservation.status}`
+        );
+      }
+
+      console.log('✅ Status verification passed');
+      return updatedReservation;
+    } catch (error) {
+      console.error('❌ ERROR in ReservationCaller.updateReservationStatus:', error);
+      console.error('❌ Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any)?.code || 'No code',
+        stack: error instanceof Error ? error.stack : 'No stack'
+      });
+
+      throw error;
+    }
   }
 
   // Actualizar solo las notas

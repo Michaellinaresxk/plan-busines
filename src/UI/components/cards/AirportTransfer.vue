@@ -1,44 +1,39 @@
-<!-- src/UI/components/cards/TransportReservationCard.vue -->
+<!-- src/UI/components/cards/AirportTransfer.vue - Versión Optimizada -->
 <template>
   <BaseReservationCard :client-name="reservation.clientName" :email="reservation.email" :service="getServiceName()"
     :date="reservation.date" :time="reservation.time" :is-priority="reservation.isPriority" :reservation="reservation"
     :on-approve="onApprove" :on-reject="onReject" :show-actions="showActions" :enable-navigation="enableNavigation"
     @card-click="handleCardClick" @approve="$emit('approve')" @reject="$emit('reject')">
-    <!-- Contenido específico para transporte en el slot extra-content -->
     <template #extra-content>
       <div class="transport-details">
-        <!-- Info principal en línea horizontal -->
-        <div class="primary-info">
+        <!-- Info principal en chips compactos -->
+        <div class="info-chips">
           <!-- Vuelo -->
-          <div class="info-chip">
-            <v-icon icon="mdi-airplane" size="x-small" class="chip-icon"></v-icon>
+          <div class="info-chip flight-chip">
+            <v-icon icon="mdi-airplane" size="12" class="chip-icon" />
             <span class="chip-text">{{ reservation.flightNumber }}</span>
           </div>
 
-          <!-- Vehículo -->
-          <div class="info-chip">
-            <v-icon icon="mdi-car" size="x-small" class="chip-icon"></v-icon>
+          <!-- Vehículo + Pasajeros en un solo chip -->
+          <div class="info-chip vehicle-chip">
+            <v-icon icon="mdi-car" size="12" class="chip-icon" />
             <span class="chip-text">{{ getVehicleTypeShort(reservation.vehicleType) }}</span>
-          </div>
-
-          <!-- Pasajeros -->
-          <div class="info-chip">
-            <v-icon icon="mdi-account-group" size="x-small" class="chip-icon"></v-icon>
+            <v-divider vertical class="chip-divider" />
+            <v-icon icon="mdi-account-group" size="12" class="chip-icon" />
             <span class="chip-text">{{ getPassengersText() }}</span>
           </div>
-        </div>
 
-        <!-- Indicadores especiales -->
-        <div v-if="hasSpecialIndicators" class="special-indicators">
-          <v-chip v-if="reservation.isRoundTrip" size="x-small" color="info" variant="outlined"
-            prepend-icon="mdi-repeat">
-            Ida/Vuelta
-          </v-chip>
+          <!-- Indicadores especiales compactos -->
+          <div v-if="reservation.isRoundTrip" class="info-chip special-chip">
+            <v-icon icon="mdi-repeat" size="12" class="chip-icon special-icon" />
+            <span class="chip-text">Ida/Vuelta</span>
+          </div>
 
-          <v-chip v-if="reservation.needsCarSeat && reservation.carSeatCount" size="x-small" color="warning"
-            variant="outlined" prepend-icon="mdi-car-child-seat">
-            {{ reservation.carSeatCount }} asiento{{ reservation.carSeatCount > 1 ? 's' : '' }}
-          </v-chip>
+          <div v-if="reservation.needsCarSeat && reservation.carSeatCount" class="info-chip special-chip">
+            <v-icon icon="mdi-car-child-seat" size="12" class="chip-icon special-icon" />
+            <span class="chip-text">{{ reservation.carSeatCount }} asiento{{ reservation.carSeatCount > 1 ? 's' : ''
+              }}</span>
+          </div>
         </div>
       </div>
     </template>
@@ -87,12 +82,6 @@ const emit = defineEmits<{
   (e: 'card-click'): void;
 }>();
 
-// Computed properties
-const hasSpecialIndicators = computed(() => {
-  return props.reservation.isRoundTrip ||
-    (props.reservation.needsCarSeat && props.reservation.carSeatCount);
-});
-
 // Methods
 function getServiceName(): string {
   return 'Transporte Aeropuerto';
@@ -129,11 +118,10 @@ function handleCardClick(): void {
 .transport-details {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 0;
 }
 
-.primary-info {
+.info-chips {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -144,48 +132,115 @@ function handleCardClick(): void {
   display: flex;
   align-items: center;
   gap: 4px;
-  background-color: rgba(var(--v-theme-primary), 0.08);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 4px 8px;
-  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.info-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.flight-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-blue), 0.1), rgba(var(--v-theme-blue), 0.05));
+  border-color: rgba(var(--v-theme-blue), 0.3);
+}
+
+.flight-chip .chip-icon {
+  color: rgb(var(--v-theme-blue));
+}
+
+.vehicle-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-green), 0.1), rgba(var(--v-theme-green), 0.05));
+  border-color: rgba(var(--v-theme-green), 0.3);
+}
+
+.vehicle-chip .chip-icon {
+  color: rgb(var(--v-theme-green));
+}
+
+.special-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-orange), 0.1), rgba(var(--v-theme-orange), 0.05));
+  border-color: rgba(var(--v-theme-orange), 0.3);
+}
+
+.special-icon {
+  color: rgb(var(--v-theme-orange));
 }
 
 .chip-icon {
-  color: rgb(var(--v-theme-primary));
-  opacity: 0.8;
+  opacity: 0.9;
+  flex-shrink: 0;
 }
 
 .chip-text {
-  font-size: 0.75rem;
   font-weight: 500;
   color: rgb(var(--v-theme-on-surface));
   white-space: nowrap;
+  line-height: 1;
 }
 
-.special-indicators {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+.chip-divider {
+  height: 12px;
+  margin: 0 4px;
+  opacity: 0.3;
 }
 
-/* Dark theme adjustments */
+/* Dark theme */
 :deep(.v-theme--dark) .info-chip {
-  background-color: rgba(var(--v-theme-primary), 0.12);
-  border-color: rgba(var(--v-theme-primary), 0.3);
+  background: rgba(var(--v-theme-surface-variant), 0.8);
+  backdrop-filter: blur(10px);
+}
+
+:deep(.v-theme--dark) .flight-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-blue), 0.2), rgba(var(--v-theme-blue), 0.1));
+  border-color: rgba(var(--v-theme-blue), 0.4);
+}
+
+:deep(.v-theme--dark) .vehicle-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-green), 0.2), rgba(var(--v-theme-green), 0.1));
+  border-color: rgba(var(--v-theme-green), 0.4);
+}
+
+:deep(.v-theme--dark) .special-chip {
+  background: linear-gradient(135deg, rgba(var(--v-theme-orange), 0.2), rgba(var(--v-theme-orange), 0.1));
+  border-color: rgba(var(--v-theme-orange), 0.4);
 }
 
 /* Responsive */
-@media (max-width: 600px) {
-  .primary-info {
+@media (max-width: 768px) {
+  .info-chips {
     gap: 4px;
   }
 
   .info-chip {
     padding: 3px 6px;
+    gap: 3px;
   }
 
   .chip-text {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+  }
+
+  .chip-divider {
+    margin: 0 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .info-chips {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+
+  .info-chip {
+    justify-content: center;
   }
 }
 </style>

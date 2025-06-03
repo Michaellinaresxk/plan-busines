@@ -1,45 +1,39 @@
-<!-- src/UI/components/cards/BabysitterReservationCard.vue -->
+<!-- src/UI/components/cards/BabysitterReservationCard.vue - Versión Optimizada -->
 <template>
   <BaseReservationCard :client-name="reservation.clientName" :email="reservation.email" :service="getServiceName()"
     :date="reservation.date" :time="getTimeRange()" :is-priority="reservation.isPriority || reservation.hasSpecialNeeds"
     :reservation="reservation" :on-approve="onApprove" :on-reject="onReject" :show-actions="showActions"
     :enable-navigation="enableNavigation" @card-click="handleCardClick" @approve="$emit('approve')"
     @reject="$emit('reject')">
-    <!-- Contenido específico para niñera en el slot extra-content -->
     <template #extra-content>
       <div class="babysitter-details">
-        <!-- Info principal en línea horizontal -->
-        <div class="primary-info">
-          <!-- Niños -->
-          <div class="info-chip children-chip">
-            <v-icon icon="mdi-baby" size="x-small" class="chip-icon"></v-icon>
+        <div class="info-chips-grid">
+          <!-- Niños con duración -->
+          <div class="info-chip-modern chip-babysitter">
+            <v-icon icon="mdi-baby" size="12" class="chip-icon" />
             <span class="chip-text">{{ getChildrenText() }}</span>
+            <div class="chip-divider"></div>
+            <v-icon icon="mdi-clock-outline" size="12" class="chip-icon" />
+            <span class="chip-text">{{ getDurationText() }}</span>
           </div>
 
           <!-- Edades si están disponibles -->
-          <div v-if="hasAges" class="info-chip ages-chip">
-            <v-icon icon="mdi-cake-variant" size="x-small" class="chip-icon"></v-icon>
+          <div v-if="hasAges" class="info-chip-modern chip-neutral">
+            <v-icon icon="mdi-cake-variant" size="12" class="chip-icon" />
             <span class="chip-text">{{ getAgesText() }}</span>
           </div>
 
-          <!-- Duración aproximada -->
-          <div class="info-chip duration-chip">
-            <v-icon icon="mdi-clock-outline" size="x-small" class="chip-icon"></v-icon>
-            <span class="chip-text">{{ getDurationText() }}</span>
+          <!-- Necesidades especiales -->
+          <div v-if="reservation.hasSpecialNeeds" class="info-chip-modern chip-special">
+            <v-icon icon="mdi-alert-circle" size="12" class="chip-icon" />
+            <span class="chip-text">Necesidades especiales</span>
           </div>
-        </div>
 
-        <!-- Indicadores especiales -->
-        <div v-if="hasSpecialIndicators" class="special-indicators">
-          <v-chip v-if="reservation.hasSpecialNeeds" size="x-small" color="warning" variant="outlined"
-            prepend-icon="mdi-alert-circle">
-            Necesidades especiales
-          </v-chip>
-
-          <v-chip v-if="reservation.specialRequests" size="x-small" color="info" variant="outlined"
-            prepend-icon="mdi-comment-text-outline">
-            Solicitudes especiales
-          </v-chip>
+          <!-- Solicitudes especiales -->
+          <div v-if="reservation.specialRequests" class="info-chip-modern chip-neutral">
+            <v-icon icon="mdi-comment-text-outline" size="12" class="chip-icon" />
+            <span class="chip-text">Con solicitudes</span>
+          </div>
         </div>
       </div>
     </template>
@@ -93,10 +87,6 @@ const hasAges = computed(() => {
     props.reservation.childrenAges.some(age => age.trim());
 });
 
-const hasSpecialIndicators = computed(() => {
-  return props.reservation.hasSpecialNeeds || props.reservation.specialRequests;
-});
-
 // Methods
 function getServiceName(): string {
   return 'Niñera';
@@ -117,13 +107,13 @@ function getAgesText(): string {
 
   const validAges = props.reservation.childrenAges!
     .filter(age => age.trim())
-    .slice(0, 3); // Máximo 3 edades para no saturar
+    .slice(0, 3);
 
-  if (validAges.length > 3) {
+  if (validAges.length > 2) {
     return `${validAges.slice(0, 2).join(', ')}...`;
   }
 
-  return validAges.join(', ');
+  return validAges.join(', ') + ' años';
 }
 
 function getDurationText(): string {
@@ -135,9 +125,8 @@ function getDurationText(): string {
 
     let diffMs = end.getTime() - start.getTime();
 
-    // Si end es menor que start, asumimos que cruza medianoche
     if (diffMs < 0) {
-      diffMs += 24 * 60 * 60 * 1000; // Añadir 24 horas
+      diffMs += 24 * 60 * 60 * 1000;
     }
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -148,10 +137,10 @@ function getDurationText(): string {
     } else if (minutes === 0) {
       return `${hours}h`;
     } else {
-      return `${hours}h ${minutes}min`;
+      return `${hours}h${minutes > 0 ? ` ${minutes}min` : ''}`;
     }
   } catch {
-    return `${startTime} - ${endTime}`;
+    return 'Duración no disponible';
   }
 }
 
@@ -163,104 +152,127 @@ function handleCardClick(): void {
 
 <style scoped>
 .babysitter-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
+  padding: 0;
 }
 
-.primary-info {
+.info-chips-grid {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.info-chip {
+/* Aplicar el sistema de diseño */
+.info-chip-modern {
   display: flex;
   align-items: center;
   gap: 4px;
-  border-radius: 12px;
+  height: 24px;
   padding: 4px 8px;
+  border-radius: 8px;
   border: 1px solid;
-}
-
-.children-chip {
-  background-color: rgba(var(--v-theme-deep-purple), 0.08);
-  border-color: rgba(var(--v-theme-deep-purple), 0.2);
-}
-
-.children-chip .chip-icon {
-  color: rgb(var(--v-theme-deep-purple));
-}
-
-.ages-chip {
-  background-color: rgba(var(--v-theme-pink), 0.08);
-  border-color: rgba(var(--v-theme-pink), 0.2);
-}
-
-.ages-chip .chip-icon {
-  color: rgb(var(--v-theme-pink));
-}
-
-.duration-chip {
-  background-color: rgba(var(--v-theme-indigo), 0.08);
-  border-color: rgba(var(--v-theme-indigo), 0.2);
-}
-
-.duration-chip .chip-icon {
-  color: rgb(var(--v-theme-indigo));
-}
-
-.chip-icon {
-  opacity: 0.8;
-}
-
-.chip-text {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  color: rgb(var(--v-theme-on-surface));
-  white-space: nowrap;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
 }
 
-.special-indicators {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+.info-chip-modern:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark theme adjustments */
-:deep(.v-theme--dark) .info-chip {
-  opacity: 0.9;
-}
-
-:deep(.v-theme--dark) .children-chip {
-  background-color: rgba(var(--v-theme-deep-purple), 0.15);
+.chip-babysitter {
+  background: linear-gradient(135deg, rgba(var(--v-theme-deep-purple), 0.1), rgba(var(--v-theme-deep-purple), 0.05));
   border-color: rgba(var(--v-theme-deep-purple), 0.3);
 }
 
-:deep(.v-theme--dark) .ages-chip {
-  background-color: rgba(var(--v-theme-pink), 0.15);
-  border-color: rgba(var(--v-theme-pink), 0.3);
+.chip-babysitter .chip-icon {
+  color: rgb(var(--v-theme-deep-purple));
 }
 
-:deep(.v-theme--dark) .duration-chip {
-  background-color: rgba(var(--v-theme-indigo), 0.15);
-  border-color: rgba(var(--v-theme-indigo), 0.3);
+.chip-neutral {
+  background: linear-gradient(135deg, rgba(var(--v-theme-surface-variant), 0.3), rgba(var(--v-theme-surface-variant), 0.1));
+  border-color: rgba(var(--v-theme-outline), 0.2);
+}
+
+.chip-neutral .chip-icon {
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+.chip-special {
+  background: linear-gradient(135deg, rgba(var(--v-theme-orange), 0.1), rgba(var(--v-theme-orange), 0.05));
+  border-color: rgba(var(--v-theme-orange), 0.3);
+}
+
+.chip-special .chip-icon {
+  color: rgb(var(--v-theme-orange));
+}
+
+.chip-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.chip-text {
+  white-space: nowrap;
+  line-height: 1;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.chip-divider {
+  width: 1px;
+  height: 12px;
+  background: currentColor;
+  opacity: 0.3;
+  margin: 0 4px;
+}
+
+/* Dark theme */
+:deep(.v-theme--dark) .info-chip-modern {
+  background: rgba(var(--v-theme-surface-variant), 0.8);
+  backdrop-filter: blur(10px);
+}
+
+:deep(.v-theme--dark) .chip-babysitter {
+  background: linear-gradient(135deg, rgba(var(--v-theme-deep-purple), 0.2), rgba(var(--v-theme-deep-purple), 0.1));
+  border-color: rgba(var(--v-theme-deep-purple), 0.4);
+}
+
+:deep(.v-theme--dark) .chip-special {
+  background: linear-gradient(135deg, rgba(var(--v-theme-orange), 0.2), rgba(var(--v-theme-orange), 0.1));
+  border-color: rgba(var(--v-theme-orange), 0.4);
 }
 
 /* Responsive */
-@media (max-width: 600px) {
-  .primary-info {
+@media (max-width: 768px) {
+  .info-chips-grid {
     gap: 4px;
   }
 
-  .info-chip {
+  .info-chip-modern {
     padding: 3px 6px;
+    gap: 3px;
   }
 
   .chip-text {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+  }
+
+  .chip-divider {
+    margin: 0 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .info-chips-grid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+
+  .info-chip-modern {
+    justify-content: center;
   }
 }
 </style>

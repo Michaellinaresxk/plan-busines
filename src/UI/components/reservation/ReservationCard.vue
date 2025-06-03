@@ -1,4 +1,3 @@
-<!-- src/UI/components/cards/BaseReservationCard.vue - Actualizado -->
 <template>
   <v-card :elevation="elevation" :border="border" :class="[
     'base-reservation-card',

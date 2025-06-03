@@ -1,4 +1,4 @@
-<!-- src/UI/components/cards/BaseReservationCard.vue - Optimizada para altura consistente -->
+<!-- src/UI/components/cards/BaseReservationCard.vue - Versión Optimizada y Moderna -->
 <template>
   <v-card :elevation="elevation" :border="border" :class="[
     'base-reservation-card',
@@ -6,70 +6,68 @@
     isPriority && 'is-priority',
     customClass
   ]" :rounded="rounded" v-bind="$attrs" @click="handleCardClick">
-    <!-- Card Header - Información principal -->
+    <!-- Header compacto con toda la info principal -->
     <v-card-item class="card-header">
-      <!-- Avatar -->
+      <!-- Avatar más pequeño -->
       <template v-slot:prepend v-if="showAvatar">
-        <v-avatar :color="avatarColor" :size="avatarSize">
+        <v-avatar :color="avatarColor" size="32" class="flex-shrink-0">
           <slot name="avatar-content">
             {{ getInitials(clientName) }}
           </slot>
         </v-avatar>
       </template>
 
-      <!-- Título con nombre del cliente -->
-      <v-card-title class="card-title">
-        <span class="client-name">{{ clientName }}</span>
-        <v-icon v-if="isPriority" icon="mdi-star" color="amber-darken-2" size="small" class="priority-icon"></v-icon>
-      </v-card-title>
+      <!-- Info principal en layout horizontal compacto -->
+      <div class="header-content">
+        <!-- Primera línea: Nombre + Servicio + Prioridad -->
+        <div class="header-main">
+          <div class="client-info">
+            <span class="client-name">{{ clientName }}</span>
+            <v-icon v-if="isPriority" icon="mdi-star" color="amber-darken-2" size="14" class="priority-star" />
+          </div>
 
-      <!-- Email -->
-      <v-card-subtitle v-if="email" class="card-email">
-        <v-icon icon="mdi-email-outline" size="x-small" class="email-icon"></v-icon>
-        <span class="email-text">{{ email }}</span>
-      </v-card-subtitle>
+          <v-chip v-if="service" size="x-small" :color="getServiceColor(service)" class="service-chip"
+            density="compact">
+            {{ service }}
+          </v-chip>
+        </div>
+
+        <!-- Segunda línea: Email + Fecha/Hora en una sola línea -->
+        <div class="header-secondary">
+          <div v-if="email" class="email-info">
+            <v-icon icon="mdi-email-outline" size="12" class="info-icon" />
+            <span class="info-text">{{ email }}</span>
+          </div>
+
+          <div class="datetime-info">
+            <div v-if="date" class="date-time-item">
+              <v-icon icon="mdi-calendar" size="12" class="info-icon" />
+              <span class="info-text">{{ formatDate(date) }}</span>
+            </div>
+
+            <div v-if="time" class="date-time-item">
+              <v-icon icon="mdi-clock-outline" size="12" class="info-icon" />
+              <span class="info-text">{{ time }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </v-card-item>
 
-    <!-- Card Content - Solo información esencial -->
-    <v-card-text class="card-content">
-      <!-- Servicio - Siempre visible si existe -->
-      <div v-if="service" class="service-section">
-        <v-chip size="small" :color="getServiceColor(service)" :class="serviceChipClass" class="service-chip">
-          {{ service }}
-        </v-chip>
-        <v-chip v-if="isPriority" color="error" size="small" variant="outlined" class="priority-chip">
-          {{ priorityLabel }}
-        </v-chip>
-      </div>
-
-      <!-- Información principal en una sola línea -->
-      <div class="main-info">
-        <!-- Fecha -->
-        <div v-if="date" class="info-item">
-          <v-icon icon="mdi-calendar" size="small" class="info-icon"></v-icon>
-          <span class="info-text">{{ formatDate(date) }}</span>
-        </div>
-
-        <!-- Hora -->
-        <div v-if="time" class="info-item">
-          <v-icon icon="mdi-clock-outline" size="small" class="info-icon"></v-icon>
-          <span class="info-text">{{ time }}</span>
-        </div>
-      </div>
-
-      <!-- Slot para contenido personalizado (opcional) -->
+    <!-- Content area para info específica del servicio -->
+    <v-card-text v-if="$slots['extra-content']" class="card-content">
       <slot name="extra-content"></slot>
     </v-card-text>
 
-    <!-- Actions - Solo si son necesarias -->
+    <!-- Actions minimalistas -->
     <v-card-actions v-if="showActions" class="card-actions">
-      <v-spacer></v-spacer>
+      <v-spacer />
 
       <v-btn v-if="onReject" color="error" size="small" variant="text" @click.stop="handleReject"
-        :disabled="isProcessing" icon="mdi-close"></v-btn>
+        :disabled="isProcessing" icon="mdi-close" density="compact" />
 
       <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click.stop="handleApprove"
-        :disabled="isProcessing" icon="mdi-check"></v-btn>
+        :disabled="isProcessing" icon="mdi-check" density="compact" />
     </v-card-actions>
   </v-card>
 </template>
@@ -80,7 +78,6 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// Props simplificadas para información esencial
 interface Props {
   clientName?: string;
   email?: string;
@@ -114,15 +111,15 @@ const props = withDefaults(defineProps<Props>(), {
   isPriority: false,
   priorityLabel: 'Prioritario',
   showAvatar: true,
-  avatarSize: 40,
+  avatarSize: 32,
   avatarColor: 'primary',
   elevation: 0,
   border: true,
   borderStyle: 'standard',
   rounded: 'lg',
   customClass: '',
-  serviceChipClass: 'text-white font-weight-medium',
-  showActions: false, // Por defecto false para mantener altura consistente
+  serviceChipClass: '',
+  showActions: false,
   enableNavigation: true,
   reservation: () => ({}),
   onApprove: undefined,
@@ -137,7 +134,7 @@ const emit = defineEmits<{
   (e: 'card-click'): void;
 }>();
 
-// Mapa de colores de servicio optimizado
+// Mapa de colores optimizado
 const serviceColors = {
   'Corte de cabello': 'indigo',
   'Manicura': 'pink',
@@ -145,7 +142,7 @@ const serviceColors = {
   'Masaje': 'purple',
   'Tinte': 'blue',
   'Tratamiento facial': 'cyan',
-  'Transporte aeropuerto': 'blue-darken-2',
+  'Transporte Aeropuerto': 'blue-darken-2',
   'Niñera': 'deep-purple',
   'Decoración': 'amber-darken-2',
   'Compras': 'green',
@@ -161,7 +158,7 @@ function getInitials(name: string): string {
     .map(part => part.charAt(0))
     .join('')
     .toUpperCase()
-    .slice(0, 2); // Máximo 2 letras
+    .slice(0, 2);
 }
 
 function getServiceColor(service: string): string {
@@ -178,7 +175,7 @@ function formatDate(date: string): string {
       month: '2-digit'
     });
   } catch {
-    return date; // Fallback al formato original
+    return date;
   }
 }
 
@@ -186,12 +183,10 @@ function formatDate(date: string): string {
 function handleCardClick(): void {
   if (props.enableNavigation) {
     const reservationId = props.reservation?.bookingId || props.reservation?.id;
-
     if (reservationId) {
       router.push(`/reservation/${reservationId}`);
     }
   }
-
   emit('card-click');
 }
 
@@ -232,130 +227,142 @@ async function handleReject(): Promise<void> {
 
 <style scoped>
 .base-reservation-card {
-  /* Altura fija para consistencia */
-  height: 160px;
+  /* Altura más compacta pero adaptable */
+  min-height: 120px;
+  max-height: 160px;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  background: rgb(var(--v-theme-surface));
 }
 
 .base-reservation-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--v-theme-on-surface), 0.12) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(var(--v-theme-on-surface), 0.08) !important;
 }
 
-/* Header Section */
+/* Header compacto */
 .card-header {
   flex-shrink: 0;
-  padding: 12px 16px 8px 16px !important;
+  padding: 12px !important;
+  min-height: auto !important;
 }
 
-.card-title {
-  font-size: 1rem !important;
-  line-height: 1.2 !important;
-  padding: 0 !important;
+.header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  /* Para permitir truncation */
+}
+
+.header-main {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+}
+
+.client-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .client-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
 
-.priority-icon {
+.priority-star {
   flex-shrink: 0;
-}
-
-.card-email {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px !important;
-  padding: 0 !important;
-  opacity: 0.8;
-}
-
-.email-icon {
-  flex-shrink: 0;
-}
-
-.email-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Content Section */
-.card-content {
-  flex: 1;
-  padding: 8px 16px 12px 16px !important;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.service-section {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 .service-chip {
   flex-shrink: 0;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+  color: white !important;
+  font-weight: 500 !important;
 }
 
-.priority-chip {
-  flex-shrink: 0;
-  font-size: 0.75rem !important;
-}
-
-.main-info {
+.header-secondary {
   display: flex;
-  gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
 }
 
-.info-item {
+.email-info {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.datetime-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+.date-time-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .info-icon {
-  opacity: 0.7;
+  opacity: 0.6;
   color: rgb(var(--v-theme-primary));
+  flex-shrink: 0;
 }
 
 .info-text {
-  font-size: 0.875rem;
   color: rgb(var(--v-theme-on-surface));
+  opacity: 0.8;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
 }
 
-/* Actions Section */
+/* Content area */
+.card-content {
+  flex: 1;
+  padding: 0 12px 8px 12px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Actions */
 .card-actions {
   flex-shrink: 0;
-  padding: 8px 12px !important;
+  padding: 6px 12px !important;
   min-height: auto !important;
 }
 
-/* Border Styles */
+/* Border styles */
 .border-left {
-  border-left: 4px solid rgba(var(--v-theme-primary), 0.7) !important;
+  border-left: 3px solid rgba(var(--v-theme-primary), 0.7) !important;
 }
 
 .border-left.is-priority {
-  border-left: 4px solid rgb(var(--v-theme-error)) !important;
+  border-left: 3px solid rgb(var(--v-theme-error)) !important;
 }
 
 /* Priority styling */
@@ -365,27 +372,70 @@ async function handleReject(): Promise<void> {
       rgba(var(--v-theme-surface), 1) 100%);
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
+.is-priority .client-name {
+  color: rgb(var(--v-theme-error));
+}
+
+/* Responsive */
+@media (max-width: 768px) {
   .base-reservation-card {
-    height: 140px;
+    min-height: 110px;
+    max-height: 140px;
   }
 
   .card-header {
-    padding: 10px 12px 6px 12px !important;
+    padding: 10px !important;
   }
 
-  .card-content {
-    padding: 6px 12px 10px 12px !important;
+  .header-secondary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
-  .main-info {
-    gap: 12px;
+  .datetime-info {
+    gap: 8px;
+  }
+
+  .client-name {
+    font-size: 0.9rem;
+  }
+
+  .info-text {
+    font-size: 0.7rem;
   }
 }
 
-/* Dark theme adjustments */
+@media (max-width: 480px) {
+  .header-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .service-chip {
+    align-self: flex-start;
+  }
+}
+
+/* Dark theme */
+:deep(.v-theme--dark) .base-reservation-card {
+  background: rgb(var(--v-theme-surface-variant));
+}
+
 :deep(.v-theme--dark) .info-icon {
-  opacity: 0.8;
+  opacity: 0.7;
+}
+
+/* Animation para loading states */
+.base-reservation-card[disabled] {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Mejoras para accesibilidad */
+.base-reservation-card:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
 }
 </style>

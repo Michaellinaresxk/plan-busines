@@ -18,6 +18,19 @@ export class SupplierCaller {
 
   constructor(private readonly db: Firestore) {}
 
+  // ✅ Utility method to clean undefined values
+  private cleanData<T extends Record<string, any>>(data: T): Partial<T> {
+    const cleaned: Partial<T> = {};
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        cleaned[key as keyof T] = value;
+      }
+    });
+
+    return cleaned;
+  }
+
   async getAllSuppliers(): Promise<ApiSupplier[]> {
     try {
       console.log('🔥 SupplierCaller: Starting getAllSuppliers...');
@@ -49,6 +62,7 @@ export class SupplierCaller {
           phone: data.phone || '',
           service: data.service || '',
           canProvideService: data.canProvideService !== false, // Default true
+          vehicleType: data.vehicleType || undefined, // ✅ Mantener undefined si no existe
           ...data
         };
 
@@ -78,8 +92,14 @@ export class SupplierCaller {
     vehicleType?: string
   ): Promise<ApiSupplier> {
     try {
-      console.log('🔥 SupplierCaller: Creating new supplier...', { name, service });
+      console.log('🔥 SupplierCaller: Creating new supplier...', {
+        name,
+        service,
+        vehicleType,
+        hasVehicleType: !!vehicleType
+      });
 
+      // ✅ Preparar datos base
       const supplierData = {
         name: name.trim(),
         cedula: cedula.trim(),
@@ -87,28 +107,46 @@ export class SupplierCaller {
         phone: phone.trim(),
         service: service.trim(),
         canProvideService,
-        vehicleType: vehicleType?.trim(),
         createdAt: new Date(),
         updatedAt: new Date()
       };
+
+      // ✅ Solo agregar vehicleType si tiene valor
+      if (vehicleType && vehicleType.trim()) {
+        (supplierData as any).vehicleType = vehicleType.trim();
+      }
+
+      console.log('🔥 Final supplier data to save:', supplierData);
 
       const supplierCollection = collection(this.db, this.COLLECTION_NAME);
       const docRef = await addDoc(supplierCollection, supplierData);
 
       console.log('✅ Supplier created with ID:', docRef.id);
 
-      return {
+      // ✅ Retornar datos consistentes
+      const resultData: ApiSupplier = {
         id: docRef.id,
         name: supplierData.name,
         cedula: supplierData.cedula,
         email: supplierData.email,
         phone: supplierData.phone,
         service: supplierData.service,
-        canProvideService: supplierData.canProvideService,
-        vehicleType: supplierData.vehicleType
+        canProvideService: supplierData.canProvideService
       };
+
+      // Solo incluir vehicleType si existe
+      if ('vehicleType' in supplierData) {
+        resultData.vehicleType = (supplierData as any).vehicleType;
+      }
+
+      return resultData;
     } catch (error) {
       console.error('❌ Error creating supplier:', error);
+      console.error('❌ Error details:', {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code
+      });
       throw error;
     }
   }
@@ -132,7 +170,7 @@ export class SupplierCaller {
         const data = doc.data();
         console.log('🔥 Supplier found:', { id: doc.id, name: data.name, service: data.service });
 
-        return {
+        const result: ApiSupplier = {
           id: doc.id,
           name: data.name || '',
           cedula: data.cedula || '',
@@ -141,7 +179,14 @@ export class SupplierCaller {
           service: data.service || '',
           canProvideService: data.canProvideService !== false
         };
-      }) as ApiSupplier[];
+
+        // Solo incluir vehicleType si existe en el documento
+        if (data.vehicleType) {
+          result.vehicleType = data.vehicleType;
+        }
+
+        return result;
+      });
 
       console.log('✅ Found suppliers for service:', { serviceId, count: results.length });
       return results;
@@ -162,7 +207,7 @@ export class SupplierCaller {
         const data = docSnap.data();
         console.log('✅ Supplier found:', { id: docSnap.id, name: data.name });
 
-        return {
+        const result: ApiSupplier = {
           id: docSnap.id,
           name: data.name || '',
           cedula: data.cedula || '',
@@ -171,6 +216,13 @@ export class SupplierCaller {
           service: data.service || '',
           canProvideService: data.canProvideService !== false
         };
+
+        // Solo incluir vehicleType si existe en el documento
+        if (data.vehicleType) {
+          result.vehicleType = data.vehicleType;
+        }
+
+        return result;
       } else {
         console.log('❌ Supplier not found with ID:', id);
         return null;
@@ -187,18 +239,13 @@ export class SupplierCaller {
 
       const docRef = doc(this.db, this.COLLECTION_NAME, id);
 
-      // Preparar datos para actualizar
-      const updateData = {
+      // ✅ Limpiar datos undefined antes de enviar a Firestore
+      const updateData = this.cleanData({
         ...data,
         updatedAt: new Date()
-      };
-
-      // Limpiar campos undefined
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
       });
+
+      console.log('🔥 Cleaned update data:', updateData);
 
       await updateDoc(docRef, updateData);
 
@@ -213,7 +260,7 @@ export class SupplierCaller {
 
       const updatedData = updatedDoc.data();
 
-      return {
+      const result: ApiSupplier = {
         id: updatedDoc.id,
         name: updatedData.name || '',
         cedula: updatedData.cedula || '',
@@ -222,6 +269,13 @@ export class SupplierCaller {
         service: updatedData.service || '',
         canProvideService: updatedData.canProvideService !== false
       };
+
+      // Solo incluir vehicleType si existe
+      if (updatedData.vehicleType) {
+        result.vehicleType = updatedData.vehicleType;
+      }
+
+      return result;
     } catch (error) {
       console.error('❌ Error updating supplier:', error);
       throw error;

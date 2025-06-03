@@ -1,4 +1,4 @@
-// src/services/WhatsappService.ts
+// src/services/WhatsappService.ts - Enhanced Version
 export interface ReservationSummary {
   bookingId: string;
   serviceName: string;
@@ -10,6 +10,12 @@ export interface ReservationSummary {
   totalPrice: number;
   location?: string;
   notes?: string;
+  // Add specific service data
+  vehicleType?: string;
+  passengerCount?: number;
+  flightNumber?: string;
+  // Add any other relevant fields from formData
+  formData?: Record<string, any>;
 }
 
 export interface SupplierInfo {
@@ -104,11 +110,12 @@ export class WhatsappService {
     reservation: ReservationSummary,
     confirmationUrl: string
   ): string {
-    const locationText = reservation.location || 'Por confirmar con el cliente';
+    const locationText = this.getLocationText(reservation);
+    const serviceDetails = this.generateServiceDetails(reservation);
     const notesText = reservation.notes ? `\n📝 *Notas:* ${reservation.notes}` : '';
 
     return `
-🔔 *SOLICITUD DE SERVICIO*
+🔔 *NUEVA SOLICITUD DE SERVICIO*
 
 Hola *${supplier.name}*,
 
@@ -119,9 +126,8 @@ Tenemos un cliente que necesita tu servicio:
 📅 *Fecha:* ${reservation.date}
 ⏰ *Hora:* ${reservation.time}
 👤 *Cliente:* ${reservation.clientName}
-📞 *Teléfono Cliente:* ${reservation.clientPhone}
 📍 *Ubicación:* ${locationText}
-💰 *Total:* $${reservation.totalPrice}${notesText}
+💰 *Total:* $${reservation.totalPrice}${serviceDetails}${notesText}
 
 ❓ *¿PUEDES REALIZAR ESTE SERVICIO?*
 
@@ -136,10 +142,72 @@ En el enlace podrás:
 
 ⏰ *Por favor responde en las próximas 24 horas*
 
-Si tienes alguna pregunta, responde a este mensaje.
-
 _Plan-Business_
     `.trim();
+  }
+
+  /**
+   * Genera detalles específicos del servicio
+   */
+  private generateServiceDetails(reservation: ReservationSummary): string {
+    let details = '';
+
+    // Airport Transfer details
+    if (reservation.flightNumber) {
+      details += `\n✈️ *Vuelo:* ${reservation.flightNumber}`;
+    }
+    if (reservation.vehicleType) {
+      const vehicleLabels: Record<string, string> = {
+        vanSmall: 'Van Pequeña (1-6 personas)',
+        vanMedium: 'Van Mediana (7-10 personas)',
+        vanLarge: 'Van Grande (11-16 personas)',
+        suv: 'SUV (1-6 personas)'
+      };
+      details += `\n🚗 *Vehículo:* ${vehicleLabels[reservation.vehicleType] || reservation.vehicleType}`;
+    }
+    if (reservation.passengerCount) {
+      details += `\n👥 *Pasajeros:* ${reservation.passengerCount}`;
+    }
+
+    // Babysitter details
+    if (reservation.formData?.childrenCount) {
+      details += `\n👶 *Niños:* ${reservation.formData.childrenCount}`;
+    }
+    if (reservation.formData?.childrenAges) {
+      details += `\n📅 *Edades:* ${reservation.formData.childrenAges.join(', ')} años`;
+    }
+
+    // Custom Decoration details
+    if (reservation.formData?.occasion) {
+      details += `\n🎉 *Ocasión:* ${reservation.formData.occasion}`;
+    }
+    if (reservation.formData?.colors?.length > 0) {
+      details += `\n🎨 *Colores:* ${reservation.formData.colors.join(', ')}`;
+    }
+
+    // Grocery Shopping details
+    if (reservation.formData?.items?.length > 0) {
+      details += `\n🛒 *Artículos:* ${reservation.formData.items.length} productos`;
+    }
+    if (reservation.formData?.hasAllergies === 'yes') {
+      details += `\n⚠️ *ATENCIÓN:* Cliente con alergias`;
+    }
+
+    return details;
+  }
+
+  /**
+   * Obtiene texto de ubicación contextual
+   */
+  private getLocationText(reservation: ReservationSummary): string {
+    // Priority order for location
+    return (
+      reservation.formData?.deliveryAddress ||
+      reservation.formData?.exactAddress ||
+      reservation.location ||
+      reservation.formData?.location ||
+      'Por confirmar con el cliente'
+    );
   }
 
   /**
@@ -184,6 +252,76 @@ _Plan-Business_
       return { success: true };
     } catch (error) {
       console.error('❌ Error sending reminder:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      };
+    }
+  }
+
+  /**
+   * Notifica al cliente sobre confirmación del proveedor
+   */
+  async notifyClientConfirmation(
+    reservation: ReservationSummary,
+    supplier: SupplierInfo,
+    isAccepted: boolean,
+    supplierMessage?: string,
+    estimatedArrival?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const clientPhone = this.formatPhoneNumber(reservation.clientPhone);
+
+      let message: string;
+
+      if (isAccepted) {
+        message = `
+🎉 *¡Tu servicio ha sido confirmado!*
+
+Hola *${reservation.clientName}*,
+
+Tenemos excelentes noticias. Tu solicitud de *${reservation.serviceName}* ha sido confirmada:
+
+👤 *Proveedor:* ${supplier.name}
+📞 *Teléfono:* ${supplier.phone}
+📅 *Fecha:* ${reservation.date}
+🕒 *Hora:* ${reservation.time}
+💰 *Total:* $${reservation.totalPrice}
+
+${supplierMessage ? `💬 *Mensaje del proveedor:*\n"${supplierMessage}"` : ''}
+
+${estimatedArrival ? `⏰ *Llegada estimada:* ${estimatedArrival}` : ''}
+
+📅 *Se ha agregado a tu calendario automáticamente*
+
+Si tienes alguna pregunta, puedes contactar directamente al proveedor o respondernos aquí.
+
+¡Gracias por confiar en nosotros! ✨
+
+_Plan-Business_
+        `.trim();
+      } else {
+        message = `
+😔 *Actualización sobre tu servicio*
+
+Hola *${reservation.clientName}*,
+
+Lamentablemente el proveedor no puede realizar tu servicio de *${reservation.serviceName}* para el ${reservation.date}.
+
+${supplierMessage ? `💬 *Motivo:*\n"${supplierMessage}"` : ''}
+
+🔄 *No te preocupes, ya estamos buscando otro proveedor disponible*
+
+Te contactaremos pronto con una nueva confirmación.
+
+_Plan-Business_
+        `.trim();
+      }
+
+      this.sendWhatsAppMessage(clientPhone, message);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error notifying client:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

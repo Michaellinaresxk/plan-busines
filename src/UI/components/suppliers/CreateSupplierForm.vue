@@ -72,12 +72,6 @@
                 </template>
               </v-select>
             </v-col>
-
-            <!-- Switch para Activo -->
-            <v-col cols="12">
-              <v-switch v-model="formData.canProvideService" label="Proveedor activo (puede ofrecer servicios)"
-                color="primary" :disabled="loading" hide-details></v-switch>
-            </v-col>
           </v-row>
         </v-form>
       </v-card-text>

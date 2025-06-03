@@ -1,311 +1,456 @@
-<!-- src/views/SupplierConfirmationView.vue - Simplified Version -->
 <template>
-  <v-app>
-    <!-- Header Section -->
-    <v-app-bar elevation="0" color="primary" class="px-4">
-      <v-avatar color="white" size="40" class="mr-3">
-        <v-icon icon="mdi-account-check" color="primary"></v-icon>
-      </v-avatar>
-
-      <v-app-bar-title class="text-white font-weight-bold">
-        Confirmación de Servicio
-      </v-app-bar-title>
-
-      <v-spacer></v-spacer>
-
-      <v-chip color="white" text-color="primary" size="small" class="font-weight-medium">
-        {{ supplierData?.name || 'Cargando...' }}
-      </v-chip>
-    </v-app-bar>
-
-    <!-- Main Content -->
-    <v-main>
-      <v-container class="pa-6" style="max-width: 800px;">
-
-        <!-- Loading State -->
-        <div v-if="initialLoading" class="d-flex justify-center align-center py-12">
-          <div class="text-center">
-            <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
-            <h3 class="text-h6">Cargando información...</h3>
-            <p class="text-body-2 text-medium-emphasis">Obteniendo detalles de la reserva</p>
+  <div class="public-confirmation-page">
+    <!-- Header público -->
+    <div class="public-header">
+      <div class="container">
+        <div class="d-flex align-center">
+          <v-avatar color="primary" size="40" class="mr-3">
+            <v-icon icon="mdi-check-circle" color="white"></v-icon>
+          </v-avatar>
+          <div>
+            <h1 class="text-h5 font-weight-bold">Plan Business</h1>
+            <p class="text-body-2 mb-0">Confirmación de Servicio</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container py-8">
+      <div class="max-width-600 mx-auto">
+
+        <!-- Loading State -->
+        <v-card v-if="initialLoading" class="pa-8 text-center">
+          <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
+          <h2 class="text-h6">Cargando información...</h2>
+          <p class="text-body-2 text-medium-emphasis">Conectando con Firebase...</p>
+        </v-card>
 
         <!-- Error State -->
         <v-card v-else-if="hasError" class="pa-8 text-center" color="error" variant="tonal">
           <v-icon icon="mdi-alert-circle" size="64" color="error" class="mb-4"></v-icon>
-          <h3 class="text-h5 mb-2">Error al cargar la solicitud</h3>
+          <h2 class="text-h5 mb-3">Error al cargar</h2>
           <p class="text-body-1 mb-4">{{ errorMessage }}</p>
-          <v-btn color="error" variant="outlined" @click="retryLoad">
-            <v-icon icon="mdi-refresh" class="mr-2"></v-icon>
-            Intentar nuevamente
-          </v-btn>
+          <v-btn color="error" variant="outlined" @click="loadConfirmationData">Reintentar</v-btn>
         </v-card>
 
-        <!-- Success State -->
-        <template v-else-if="reservationData && supplierData">
-          <!-- Reservation Details Section -->
-          <ReservationDetailsCard :reservation="reservationData" :supplier="supplierData" class="mb-6" />
+        <!-- Success State - Confirmation Form -->
+        <template v-else-if="reservationData && supplierData && !confirmationCompleted">
 
-          <!-- Response Section -->
-          <SupplierResponseCard :reservation="reservationData" :supplier="supplierData" :loading="loading"
-            @decision-selected="handleDecisionSelected" @message-updated="handleMessageUpdated"
-            @template-requested="handleTemplateRequested" @submit-response="handleSubmitResponse" />
+          <!-- Reservation Info Card -->
+          <v-card class="mb-6" rounded="xl">
+            <v-card-title class="pa-6 bg-primary text-white">
+              <h2 class="text-h5">{{ reservationData.serviceName }}</h2>
+              <p class="text-body-2 mb-0 opacity-90">
+                Reserva #{{ reservationData.bookingId.slice(0, 8) }}
+              </p>
+            </v-card-title>
+
+            <v-card-text class="pa-6">
+              <div class="reservation-summary">
+                <div class="summary-item">
+                  <strong>Cliente:</strong> {{ reservationData.clientName }}
+                </div>
+                <div class="summary-item">
+                  <strong>Fecha:</strong> {{ reservationData.date }} - {{ reservationData.time }}
+                </div>
+                <div class="summary-item">
+                  <strong>Precio:</strong> ${{ reservationData.totalPrice }}
+                </div>
+                <div v-if="reservationData.notes" class="summary-item">
+                  <strong>Notas:</strong> {{ reservationData.notes }}
+                </div>
+
+                <!-- ✅ Detalles específicos del servicio -->
+                <div v-if="reservationData.formData?.flightNumber" class="summary-item">
+                  <strong>Vuelo:</strong> {{ reservationData.formData.flightNumber }}
+                </div>
+                <div v-if="reservationData.formData?.vehicleType" class="summary-item">
+                  <strong>Vehículo:</strong> {{ getVehicleTypeLabel(reservationData.formData.vehicleType) }}
+                </div>
+                <div v-if="reservationData.formData?.passengerCount" class="summary-item">
+                  <strong>Pasajeros:</strong> {{ reservationData.formData.passengerCount }}
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- Supplier Response Form -->
+          <v-card rounded="xl">
+            <v-card-title class="pa-6">
+              <h3 class="text-h6">{{ supplierData.name }}, ¿puedes realizar este servicio?</h3>
+            </v-card-title>
+
+            <v-card-text class="pa-6">
+              <!-- Decision Buttons -->
+              <div class="decision-section mb-6">
+                <v-btn :color="formData.decision === 'accept' ? 'success' : 'default'"
+                  :variant="formData.decision === 'accept' ? 'elevated' : 'outlined'" size="large"
+                  class="decision-btn mr-4 mb-4" @click="selectDecision('accept')" :disabled="processing">
+                  <v-icon icon="mdi-check" class="mr-2"></v-icon>
+                  Sí, puedo realizarlo
+                </v-btn>
+
+                <v-btn :color="formData.decision === 'decline' ? 'error' : 'default'"
+                  :variant="formData.decision === 'decline' ? 'elevated' : 'outlined'" size="large"
+                  class="decision-btn mb-4" @click="selectDecision('decline')" :disabled="processing">
+                  <v-icon icon="mdi-close" class="mr-2"></v-icon>
+                  No puedo realizarlo
+                </v-btn>
+              </div>
+
+              <!-- Message Section -->
+              <div v-if="formData.decision" class="message-section">
+                <v-textarea v-model="formData.message" :label="getMessageLabel()" :placeholder="getMessagePlaceholder()"
+                  variant="outlined" rows="4" counter="500" maxlength="500"
+                  :rules="[rules.required, rules.minLength(10)]" :disabled="processing">
+                </v-textarea>
+
+                <!-- Additional fields for acceptance -->
+                <div v-if="formData.decision === 'accept'" class="mt-4">
+                  <v-text-field v-model="formData.estimatedArrival" label="Hora estimada de llegada (opcional)"
+                    placeholder="Ej: 2:30 PM" variant="outlined" :disabled="processing">
+                  </v-text-field>
+                </div>
+              </div>
+            </v-card-text>
+
+            <v-card-actions class="pa-6">
+              <v-spacer></v-spacer>
+              <v-btn :color="formData.decision === 'accept' ? 'success' : 'error'" size="large" variant="elevated"
+                :loading="processing" :disabled="!isFormValid" @click="handleSubmitResponse">
+                <v-icon :icon="getSubmitIcon()" class="mr-2"></v-icon>
+                {{ getSubmitText() }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
         </template>
 
-        <!-- Success Dialog -->
-        <ConfirmationSuccessDialog v-model="showSuccessDialog" :decision="formData.decision" :message="successMessage"
-          @continue="handleRedirect" />
+        <!-- ✅ RESULT STATE - Página final sin redirección -->
+        <v-card v-if="confirmationCompleted" rounded="xl">
+          <v-card-text class="pa-8 text-center">
+            <v-icon :icon="confirmationSuccess ? 'mdi-check-circle' : 'mdi-alert-circle'"
+              :color="confirmationSuccess ? 'success' : 'error'" size="80" class="mb-4">
+            </v-icon>
 
-        <!-- Error Snackbar -->
-        <v-snackbar v-model="showErrorSnackbar" color="error" location="bottom center" timeout="5000" rounded="pill">
-          <div class="d-flex align-center">
-            <v-icon icon="mdi-alert-circle" class="mr-2"></v-icon>
-            {{ errorSnackbarMessage }}
-          </div>
-          <template v-slot:actions>
-            <v-btn icon="mdi-close" variant="text" @click="showErrorSnackbar = false"></v-btn>
-          </template>
-        </v-snackbar>
+            <h2 class="text-h4 mb-4" :class="confirmationSuccess ? 'text-success' : 'text-error'">
+              {{ confirmationSuccess ? '¡Confirmación Exitosa!' : 'Error en Confirmación' }}
+            </h2>
 
-      </v-container>
-    </v-main>
-  </v-app>
+            <p class="text-body-1 mb-6">{{ confirmationMessage }}</p>
+
+            <!-- Status info -->
+            <v-alert v-if="confirmationSuccess" color="success" variant="tonal" class="mb-6">
+              <div class="text-left">
+                <div class="font-weight-bold mb-2">✅ Confirmación procesada correctamente</div>
+                <div v-if="formData.decision === 'accept'">
+                  • El cliente recibirá tu confirmación por WhatsApp<br>
+                  • La reserva cambió a estado APROBADA<br>
+                  • Podrás contactar directamente al cliente si es necesario
+                </div>
+                <div v-else>
+                  • La reserva fue marcada como RECHAZADA<br>
+                  • Se buscará otro proveedor disponible<br>
+                  • El cliente será informado sobre la situación
+                </div>
+              </div>
+            </v-alert>
+
+            <!-- Debug Info -->
+            <v-card v-if="debugInfo" class="ma-4" variant="outlined">
+              <v-card-title>Información de Confirmación</v-card-title>
+              <v-card-text>
+                <div class="text-left">
+                  <p><strong>Estado:</strong> {{ debugInfo.status }}</p>
+                  <p><strong>Nuevo estado de reserva:</strong> {{ debugInfo.newStatus }}</p>
+                  <p><strong>Reserva ID:</strong> {{ debugInfo.bookingId }}</p>
+                  <p><strong>Proveedor:</strong> {{ debugInfo.supplierName }}</p>
+                  <p><strong>Procesado:</strong> {{ debugInfo.timestamp }}</p>
+                </div>
+              </v-card-text>
+            </v-card>
+
+            <!-- Contact Info -->
+            <div class="contact-info mt-6">
+              <p class="text-body-2 text-medium-emphasis mb-3">
+                Gracias por usar Plan Business. Si tienes alguna pregunta, contáctanos:
+              </p>
+              <v-btn color="primary" variant="elevated" href="https://wa.me/18095551234" target="_blank"
+                prepend-icon="mdi-whatsapp" class="mb-2">
+                Contactar por WhatsApp
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, inject, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ReservationSupplierService } from '@/services/ReservationSupplierService.ts';
-import { reservationServiceKey } from '@/services/ReservationService';
-import { supplierServiceKey } from '@/services/SupplierService';
-import { WhatsappService } from '@/services/whatsapp/WhatsappService';
-import ReservationDetailsCard from '@/UI/components/reservation/ReservationDetailsCard.vue';
-import SupplierResponseCard from '@/UI/components/suppliers/confirmation/SupplierResponseCard.vue';
-import ConfirmationSuccessDialog from '@/UI/components/suppliers/confirmation/ConfirmationSuccessDialog.vue';
-import type { ReservationView } from '@/views/ReservationView';
-import type { SupplierView } from '@/views/SupplierView';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 
+// Route
 const route = useRoute();
-const router = useRouter();
 
-// ✅ Inject your existing services
-const reservationService = inject(reservationServiceKey);
-const supplierService = inject(supplierServiceKey);
+// ✅ API Base URL para Firebase Functions
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5001/plan-busines/us-central1';
 
-// Reactive data
+// Reactive Data
 const initialLoading = ref(true);
-const loading = ref(false);
+const processing = ref(false);
 const hasError = ref(false);
 const errorMessage = ref('');
+const confirmationCompleted = ref(false);
+const confirmationSuccess = ref(false);
+const confirmationMessage = ref('');
+const debugInfo = ref(null);
 
-// Data
-const reservationData = ref<ReservationView | null>(null);
-const supplierData = ref<SupplierView | null>(null);
+const reservationData = ref(null);
+const supplierData = ref(null);
 
-// Form data
-const formData = reactive({
-  decision: null as 'accept' | 'decline' | null,
+const formData = ref({
+  decision: null,
   message: '',
-  estimatedArrival: '',
-  additionalNotes: ''
+  estimatedArrival: ''
 });
 
-// Dialog states
-const showSuccessDialog = ref(false);
-const successMessage = ref('');
-
-// Error handling
-const showErrorSnackbar = ref(false);
-const errorSnackbarMessage = ref('');
-
-// Computed
-const bookingIdShort = computed(() => {
-  return reservationData.value?.bookingId?.slice(0, 8) || '';
-});
+// Validation
+const rules = {
+  required: (value: string) => !!value?.trim() || 'Este campo es requerido',
+  minLength: (length: number) => (value: string) =>
+    value?.length >= length || `Mínimo ${length} caracteres`
+};
 
 const isFormValid = computed(() => {
-  return formData.decision &&
-    formData.message &&
-    formData.message.trim().length >= 10;
+  return formData.value.decision &&
+    formData.value.message &&
+    formData.value.message.trim().length >= 10;
 });
 
-// ✅ Create service instances
-let reservationSupplierService: ReservationSupplierService | null = null;
-
 // Methods
-async function initializeService() {
-  if (!reservationService || !supplierService) {
-    throw new Error('Servicios requeridos no disponibles');
+function selectDecision(decision: 'accept' | 'decline') {
+  formData.value.decision = decision;
+  formData.value.message = '';
+
+  // ✅ Plantillas de mensaje automáticas
+  if (decision === 'accept') {
+    formData.value.message = `Hola ${reservationData.value?.clientName}, confirmo que puedo realizar el servicio de ${reservationData.value?.serviceName} para el ${reservationData.value?.date}. Estaré puntual y listo para brindar un excelente servicio.`;
+  } else {
+    formData.value.message = `Lamentablemente no puedo realizar el servicio de ${reservationData.value?.serviceName} para el ${reservationData.value?.date}. Disculpe las molestias.`;
   }
-
-  // ✅ Create WhatsApp service instance
-  const whatsappService = new WhatsappService({
-    confirmationBaseUrl: window.location.origin
-  });
-
-  // ✅ Create the integrated service
-  reservationSupplierService = new ReservationSupplierService(
-    reservationService,
-    supplierService,
-    whatsappService
-    // Note: Calendar service can be added later when available
-  );
 }
 
+function getMessageLabel() {
+  return formData.value.decision === 'accept'
+    ? 'Mensaje de confirmación'
+    : 'Mensaje de disculpa';
+}
+
+function getMessagePlaceholder() {
+  return formData.value.decision === 'accept'
+    ? 'Confirmo que puedo realizar el servicio...'
+    : 'Lamentablemente no puedo realizar este servicio...';
+}
+
+function getSubmitIcon() {
+  return formData.value.decision === 'accept' ? 'mdi-check' : 'mdi-close';
+}
+
+function getSubmitText() {
+  return formData.value.decision === 'accept'
+    ? 'Confirmar Disponibilidad'
+    : 'Rechazar Servicio';
+}
+
+function getVehicleTypeLabel(vehicleType: string): string {
+  const labels: Record<string, string> = {
+    'vanSmall': 'Van Pequeña (1-6 personas)',
+    'vanMedium': 'Van Mediana (7-10 personas)',
+    'vanLarge': 'Van Grande (11-16 personas)',
+    'suv': 'SUV (1-6 personas)'
+  };
+  return labels[vehicleType] || vehicleType;
+}
+
+// ✅ CARGA DE DATOS DESDE FIREBASE FUNCTIONS
 async function loadConfirmationData() {
-  initialLoading.value = true;
-  hasError.value = false;
-
   try {
-    // Get URL parameters
-    const urlBookingId = route.query.booking as string;
-    const urlSupplierId = route.query.supplier as string;
+    initialLoading.value = true;
+    hasError.value = false;
+    errorMessage.value = '';
 
-    console.log('📡 Loading confirmation data:', {
-      booking: urlBookingId,
-      supplier: urlSupplierId
-    });
+    const bookingId = route.query.booking as string;
+    const supplierId = route.query.supplier as string;
 
-    if (!urlBookingId || !urlSupplierId) {
-      throw new Error('Parámetros de URL inválidos');
+    if (!bookingId || !supplierId) {
+      throw new Error('Parámetros inválidos en la URL');
     }
 
-    // Initialize service if not ready
-    if (!reservationSupplierService) {
-      await initializeService();
+    console.log('🔍 Loading confirmation data from Firebase Functions:', { bookingId, supplierId });
+
+    // ✅ LLAMADA A FIREBASE FUNCTION
+    const response = await fetch(
+      `${API_BASE_URL}/getSupplierConfirmation?booking=${bookingId}&supplier=${supplierId}`
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    // ✅ Load data using your existing services
-    const [reservation, supplier] = await Promise.all([
-      reservationService!.getReservationById(urlBookingId),
-      supplierService!.getSupplierById(urlSupplierId)
-    ]);
+    const result = await response.json();
 
-    if (!reservation) {
-      throw new Error('Reserva no encontrada');
+    if (!result.success) {
+      throw new Error(result.error || 'Error del servidor');
     }
 
-    if (!supplier) {
-      throw new Error('Proveedor no encontrado');
+    console.log('✅ Data loaded successfully:', result.data);
+
+    reservationData.value = result.data.reservation;
+    supplierData.value = result.data.supplier;
+
+    if (!result.data.isValid) {
+      throw new Error(result.data.error || 'Datos inválidos');
     }
-
-    // ✅ Simple validation - no complex service match logic here
-    if (!supplier.canProvideService) {
-      throw new Error('El proveedor no está activo para proporcionar servicios');
-    }
-
-    reservationData.value = reservation;
-    supplierData.value = supplier;
-
-    console.log('✅ Confirmation data loaded successfully');
 
   } catch (error) {
     console.error('❌ Error loading confirmation data:', error);
     hasError.value = true;
-    errorMessage.value = error instanceof Error ? error.message : 'Error al cargar los datos';
+    errorMessage.value = error instanceof Error ? error.message : 'Error desconocido';
   } finally {
     initialLoading.value = false;
   }
 }
 
+// ✅ ENVÍO DE CONFIRMACIÓN A FIREBASE FUNCTIONS
 async function handleSubmitResponse() {
-  if (!isFormValid.value || !reservationSupplierService) return;
+  if (!isFormValid.value || !reservationData.value || !supplierData.value) return;
 
-  loading.value = true;
+  processing.value = true;
 
   try {
-    console.log('🔄 Submitting supplier response:', formData);
+    console.log('📤 Submitting supplier confirmation to Firebase Functions...');
 
-    const confirmationData = {
-      bookingId: reservationData.value!.bookingId,
-      supplierId: supplierData.value!.id,
-      decision: formData.decision!,
-      message: formData.message,
-      estimatedArrival: formData.estimatedArrival,
-      additionalNotes: formData.additionalNotes
+    const payload = {
+      bookingId: reservationData.value.bookingId,
+      supplierId: supplierData.value.id,
+      decision: formData.value.decision,
+      message: formData.value.message.trim(),
+      estimatedArrival: formData.value.estimatedArrival?.trim() || null,
+      timestamp: new Date().toISOString()
     };
 
-    // ✅ Use the integrated service to process everything
-    const result = await reservationSupplierService.processSupplierConfirmation(confirmationData);
+    console.log('📋 Payload:', payload);
 
-    if (result.success) {
-      successMessage.value = result.message;
-      showSuccessDialog.value = true;
-    } else {
-      throw new Error(result.message);
+    // ✅ LLAMADA A FIREBASE FUNCTION
+    const response = await fetch(`${API_BASE_URL}/processSupplierConfirmation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    console.log('📥 Firebase Functions response:', result);
+
+    confirmationSuccess.value = result.success;
+    confirmationMessage.value = result.message || 'Respuesta procesada';
+
+    // Set debug info
+    debugInfo.value = {
+      status: result.success ? 'Exitoso' : 'Error',
+      bookingId: payload.bookingId,
+      supplierName: supplierData.value.name,
+      timestamp: new Date().toLocaleString('es-ES'),
+      newStatus: result.data?.newStatus || 'Unknown',
+      error: result.success ? null : result.error
+    };
+
+    if (!result.success) {
+      throw new Error(result.error || 'Error del servidor');
     }
 
+    console.log('✅ Confirmation processed successfully by Firebase Functions');
+
   } catch (error) {
-    console.error('❌ Error submitting response:', error);
-    displayErrorSnackbar(
-      error instanceof Error ? error.message : 'Error al enviar la respuesta'
-    );
+    console.error('❌ Confirmation failed:', error);
+
+    confirmationSuccess.value = false;
+    confirmationMessage.value = error instanceof Error
+      ? `Error: ${error.message}`
+      : 'Error al procesar la confirmación';
+
+    debugInfo.value = {
+      status: 'Error',
+      bookingId: reservationData.value?.bookingId || 'Unknown',
+      supplierName: supplierData.value?.name || 'Unknown',
+      timestamp: new Date().toLocaleString('es-ES'),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   } finally {
-    loading.value = false;
+    processing.value = false;
+    confirmationCompleted.value = true;
   }
-}
-
-function handleDecisionSelected(decision: 'accept' | 'decline') {
-  formData.decision = decision;
-  formData.message = ''; // Reset message when decision changes
-}
-
-function handleMessageUpdated(message: string) {
-  formData.message = message;
-}
-
-function handleTemplateRequested() {
-  if (!formData.decision || !reservationData.value) return;
-
-  if (formData.decision === 'accept') {
-    formData.message = `Confirmo que puedo realizar el servicio de ${reservationData.value.serviceName} para el ${reservationData.value.date} a las ${reservationData.value.time}. Estaré disponible y llegaré puntualmente.`;
-  } else {
-    formData.message = 'Lamentablemente no puedo realizar este servicio en la fecha solicitada debido a compromisos previos. Gracias por considerarme.';
-  }
-}
-
-function handleRedirect() {
-  // ✅ Simple redirect - could go to a supplier dashboard or main page
-  router.push('/');
-}
-
-async function retryLoad() {
-  await loadConfirmationData();
-}
-
-function displayErrorSnackbar(message: string) {
-  errorSnackbarMessage.value = message;
-  showErrorSnackbar.value = true;
 }
 
 // Lifecycle
-onMounted(async () => {
-  await loadConfirmationData();
+onMounted(() => {
+  loadConfirmationData();
 });
 </script>
 
 <style scoped>
-.v-card {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+.public-confirmation-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.v-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+.public-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 0;
+  color: white;
 }
 
-.v-btn {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.v-btn:hover {
-  transform: translateY(-1px);
+.max-width-600 {
+  max-width: 600px;
+}
+
+.decision-btn {
+  min-width: 200px;
+}
+
+.summary-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.contact-info {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
 }
 
 @media (max-width: 600px) {
-  .v-container {
-    padding: 16px;
+  .decision-btn {
+    min-width: 100%;
+    margin-right: 0 !important;
   }
 }
 </style>

@@ -55,6 +55,14 @@ const router = createRouter({
       }
     },
     {
+      path: '/approved-reservation',
+      name: 'approved-reservation',
+      component: () => import('@/UI/pages/ApprovedReservationsView.vue'),
+      meta: {
+        title: 'Reservas aprobadas'
+      }
+    },
+    {
       path: '/reservation/:id',
       name: 'ReservationDetails',
       component: () => import('@/UI/pages/ReservationDetailsView.vue'),

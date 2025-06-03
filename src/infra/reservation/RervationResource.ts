@@ -35,9 +35,19 @@ export class ReservationResource implements ReservationRepository {
   }
 
   // Obtener reservas por estado
-  async getReservationsByStatus(status: ReservationStatus): Promise<Reservation[]> {
-    const apiReservations = await this.reservationCaller.getReservationsByStatus(status);
-    return apiReservations.map(this.apiToDomain);
+  async getReservationsByStatus(status: string): Promise<Reservation[]> {
+    console.log('📋 ReservationResource.getReservationsByStatus called:', status);
+
+    try {
+      const apiReservations = await this.reservationCaller.getReservationsByStatus(status);
+      const domainReservations = apiReservations.map(this.apiToDomain.bind(this));
+
+      console.log(`✅ Found ${domainReservations.length} reservations with status ${status}`);
+      return domainReservations;
+    } catch (error) {
+      console.error(`❌ Error getting reservations by status ${status}:`, error);
+      throw error;
+    }
   }
 
   // Obtener una reserva por ID
@@ -52,12 +62,46 @@ export class ReservationResource implements ReservationRepository {
   }
 
   // Actualizar estado de reserva
-  async updateReservationStatus(
-    bookingId: string,
-    status: ReservationStatus
-  ): Promise<Reservation> {
-    const apiReservation = await this.reservationCaller.updateReservationStatus(bookingId, status);
-    return this.apiToDomain(apiReservation);
+  async updateReservationStatus(bookingId: string, status: string): Promise<Reservation> {
+    console.log('🔧 ReservationResource.updateReservationStatus called:', { bookingId, status });
+
+    try {
+      // ✅ VERIFICAR QUE TENEMOS EL CALLER
+      if (!this.reservationCaller) {
+        console.error('❌ reservationCaller is null/undefined');
+        throw new Error('ReservationCaller no está disponible');
+      }
+
+      // ✅ VERIFICAR QUE EL MÉTODO EXISTE EN EL CALLER
+      if (typeof this.reservationCaller.updateReservationStatus !== 'function') {
+        console.error('❌ updateReservationStatus method does not exist on reservationCaller');
+        console.log('🔍 Available methods:', Object.getOwnPropertyNames(this.reservationCaller));
+        throw new Error('Método updateReservationStatus no existe en ReservationCaller');
+      }
+
+      console.log('✅ Calling reservationCaller.updateReservationStatus...');
+
+      const apiReservation = await this.reservationCaller.updateReservationStatus(
+        bookingId,
+        status
+      );
+
+      console.log('✅ ReservationCaller.updateReservationStatus completed:', apiReservation);
+
+      if (!apiReservation) {
+        throw new Error(`Failed to update reservation ${bookingId} - no response from caller`);
+      }
+
+      // Convertir ApiReservation a Reservation (Domain Entity)
+      const domainReservation = this.apiToDomain(apiReservation);
+
+      console.log('✅ Converted to domain reservation:', domainReservation);
+
+      return domainReservation;
+    } catch (error) {
+      console.error('❌ Error in ReservationResource.updateReservationStatus:', error);
+      throw error;
+    }
   }
 
   // Actualizar notas de reserva

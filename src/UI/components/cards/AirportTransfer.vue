@@ -1,4 +1,3 @@
-<!-- src/UI/components/cards/AirportTransfer.vue - Versión Optimizada -->
 <template>
   <BaseReservationCard :client-name="reservation.clientName" :email="reservation.email" :service="getServiceName()"
     :date="reservation.date" :time="reservation.time" :is-priority="reservation.isPriority" :reservation="reservation"

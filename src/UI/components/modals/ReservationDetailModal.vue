@@ -75,7 +75,10 @@
       <v-divider></v-divider>
 
       <v-card-actions class="pa-6">
-        <v-btn color="error" variant="outlined" class="mr-2" @click="showRejectDialog = true" :loading="rejectLoading">
+        <v-btn color="error" variant="outlined" class="mr-2" @click="closeModal">
+          Cerrar
+        </v-btn>
+        <v-btn color="grey" variant="outlined" class="mr-2" @click="showRejectDialog = true" :loading="rejectLoading">
           Rechazar
         </v-btn>
 
@@ -170,6 +173,10 @@ const emit = defineEmits<{
   (e: 'approve', id: string): void;
   (e: 'reject', id: string): void;
 }>();
+
+function closeModal() {
+  emit('close');
+}
 
 // Computed para el v-model del dialog
 const dialogModel = computed({

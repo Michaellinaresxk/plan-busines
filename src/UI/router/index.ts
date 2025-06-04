@@ -71,6 +71,15 @@ const router = createRouter({
         title: 'Detalles de Reserva'
       },
       props: true // Permite pasar el parámetro 'id' como prop
+    },
+    {
+      path: '/all-reservations',
+      name: 'all-reservations',
+      component: () => import('@/UI/pages/AllReservationsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Todas las reservas'
+      }
     }
   ]
 });

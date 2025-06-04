@@ -26,9 +26,9 @@
           :class="{ 'active-item': currentRoute === '/dashboard' }" to="/dashboard"></v-list-item>
 
         <!-- Approved -->
-        <v-list-item prepend-icon="mdi-check-circle" title="Approved" value="approved"
-          :active="currentRoute === '/approved'" color="primary" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': currentRoute === '/approved' }" to="/approved" :badge="approvedCount"
+        <v-list-item prepend-icon="mdi-check-circle" title="Approved" value="approved-reservation"
+          :active="currentRoute === '/approved-reservation'" color="primary" rounded="lg" class="list-item mb-1"
+          :class="{ 'active-item': currentRoute === '/approved-reservation' }" to="/approved-reservation" :badge="approvedCount"
           badge-color="success"></v-list-item>
 
         <!-- Pendientes -->
@@ -64,9 +64,9 @@
       </v-list-subheader>
 
       <v-list nav class="nav-list">
-        <v-list-item prepend-icon="mdi-history" title="Historial" value="history" :active="currentRoute === '/history'"
-          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/history' }"
-          to="/history"></v-list-item>
+        <v-list-item prepend-icon="mdi-history" title="Historial" value="all-reservations" :active="currentRoute === '/all-reservations'"
+          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/all-reservations' }"
+          to="/all-reservations"></v-list-item>
 
         <v-list-item prepend-icon="mdi-chart-bar" title="Estadísticas" value="stats" :active="currentRoute === '/stats'"
           color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/stats' }"

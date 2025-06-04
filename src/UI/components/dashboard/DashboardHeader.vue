@@ -13,13 +13,10 @@
 
     <v-spacer></v-spacer>
 
-
-
     <!-- Notificaciones -->
     <v-btn icon="mdi-bell" variant="text" class="ml-2">
       <v-badge color="error" :content="3" offset-x="3" offset-y="3"></v-badge>
     </v-btn>
-
 
     <!-- Avatar usuario -->
     <v-menu anchor="bottom end">
@@ -36,7 +33,14 @@
           <v-list-item prepend-icon="mdi-account-outline" title="Mi perfil" rounded="lg"></v-list-item>
           <v-list-item prepend-icon="mdi-cog-outline" title="Configuración" rounded="lg"></v-list-item>
           <v-divider class="my-1"></v-divider>
-          <v-list-item prepend-icon="mdi-logout" title="Cerrar sesión" rounded="lg" class="text-error"></v-list-item>
+          <v-list-item
+            prepend-icon="mdi-logout"
+            title="Cerrar sesión"
+            rounded="lg"
+            class="text-error"
+            :loading="isLoggingOut"
+            @click="handleLogout">
+          </v-list-item>
         </v-list>
       </v-card>
     </v-menu>
@@ -44,7 +48,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, inject } from 'vue';
+import { useRouter } from 'vue-router';
+import { userServiceKey } from '@/services/userService';
 
 // Props
 const props = defineProps<{
@@ -60,8 +66,17 @@ const emit = defineEmits<{
   (e: 'toggle-theme'): void;
 }>();
 
+// Dependencies
+const router = useRouter();
+const userService = inject(userServiceKey);
+
+if (!userService) {
+  throw new Error('UserService is not available');
+}
+
 // Estado
 const search = ref('');
+const isLoggingOut = ref(false);
 
 // Métodos
 const toggleDrawer = () => {
@@ -70,6 +85,18 @@ const toggleDrawer = () => {
 
 const toggleRail = () => {
   emit('update:rail', !props.rail);
+};
+
+const handleLogout = async () => {
+  try {
+    isLoggingOut.value = true;
+    await userService.logout();
+    router.push({ name: 'Login' });
+  } catch (error) {
+    console.error('Error during logout:', error);
+  } finally {
+    isLoggingOut.value = false;
+  }
 };
 </script>
 

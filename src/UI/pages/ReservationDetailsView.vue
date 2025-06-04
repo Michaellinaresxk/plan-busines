@@ -73,11 +73,11 @@
 
                   <v-col cols="12" md="4" class="text-center text-md-right">
                     <div class="hero-actions">
-                      <v-btn v-if="reservation.status === 'pending'" color="success" size="large" variant="elevated"
+                      <!-- <v-btn v-if="reservation.status === 'pending'" color="success" size="large" variant="elevated"
                         prepend-icon="mdi-check" class="mb-2 mb-md-3" @click="approveReservation"
                         :loading="actionLoading" block>
                         Aprobar Reserva
-                      </v-btn>
+                      </v-btn> -->
 
                       <v-btn color="white" variant="outlined" prepend-icon="mdi-whatsapp" @click="contactClient"
                         :disabled="actionLoading" block>

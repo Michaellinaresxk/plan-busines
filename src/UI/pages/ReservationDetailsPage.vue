@@ -1,6 +1,5 @@
 <template>
   <v-app>
-    <!-- Header compacto -->
     <v-app-bar elevation="0" color="transparent" class="px-4">
       <v-btn icon="mdi-arrow-left" variant="text" @click="goBack" class="mr-2"></v-btn>
 

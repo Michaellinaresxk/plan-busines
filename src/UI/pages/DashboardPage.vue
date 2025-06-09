@@ -762,17 +762,17 @@ function calculateUrgentItems(reservations: any[]) {
   urgentItems.value = urgent.slice(0, 8);
 }
 
-// Navigation methods
+/// Navigation methods
 function goToPending() {
-  router.push({ name: 'PendingReservations' });
+  router.push({ path: '/pending' });
 }
 
 function goToApproved() {
-  router.push({ name: 'ApprovedReservations' });
+  router.push({ path: '/approved-reservation' });
 }
 
 function goToSuppliers() {
-  router.push({ name: 'Suppliers' });
+  router.push({ path: '/suppliers' });
 }
 
 function goToStats() {
@@ -1468,7 +1468,8 @@ watch(mdAndUp, (newValue) => {
 
 .performance-item {
   padding: 16px;
-  background: rgba(var(--v-theme-surface-variant), 0.3);
+background: rgba(var(--v-theme-primary), 0.15);
+
   border-radius: 12px;
   transition: all 0.3s ease;
 }
@@ -1536,7 +1537,7 @@ watch(mdAndUp, (newValue) => {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: rgba(var(--v-theme-surface-variant), 0.3);
+background: rgba(var(--v-theme-primary), 0.15);
   border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   border-radius: 12px;
   cursor: pointer;

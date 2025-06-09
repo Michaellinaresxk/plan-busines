@@ -1,4 +1,3 @@
-// src/composables/usePaymentModal.ts
 import { ref, provide, inject, type Ref } from 'vue';
 
 export interface PaymentLinkData {

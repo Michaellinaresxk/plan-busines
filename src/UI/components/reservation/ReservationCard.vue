@@ -1,407 +1,300 @@
 <template>
-  <v-card :elevation="elevation" :border="border" :class="[
-    'base-reservation-card',
-    `border-${borderStyle}`,
-    isPriority && 'is-priority',
-    customClass
-  ]" :rounded="rounded" v-bind="$attrs" @click="handleCardClick">
-    <!-- Card Header Section -->
-    <slot name="header">
-      <v-card-item v-if="showDefaultHeader">
-        <template v-slot:prepend v-if="showAvatar">
-          <v-avatar :color="avatarColor" :size="avatarSize">
-            <slot name="avatar-content">
-              {{ getInitials(clientName) }}
-            </slot>
-          </v-avatar>
-        </template>
+  <v-card
+    @click="$emit('click')"
+    class="simple-card"
+    :class="{ 'urgent': reservation.isPriority }"
+    flat
+    rounded="lg"
+  >
+    <!-- Single Row Layout -->
+    <div class="card-content">
 
-        <v-card-title :class="['pb-0', titleClass]">
-          {{ clientName }}
-          <v-icon v-if="isPriority" icon="mdi-star" color="amber-darken-2" size="small" class="ml-2"></v-icon>
-        </v-card-title>
-
-        <v-card-subtitle v-if="email" class="text-truncate">
-          <v-icon icon="mdi-email-outline" size="x-small" class="mr-1"></v-icon>
-          {{ email }}
-        </v-card-subtitle>
-      </v-card-item>
-    </slot>
-
-    <!-- Card Content Section -->
-    <slot name="content">
-      <v-card-text v-if="service || $slots.default" class="pt-2">
-        <!-- Service Tag -->
-        <div v-if="service" class="d-flex flex-wrap gap-1 mb-3">
-          <v-chip size="small" :color="getServiceColor(service)" :class="serviceChipClass">
-            {{ service }}
-          </v-chip>
-
-          <v-chip v-if="isPriority" color="error" size="small" variant="outlined" class="font-weight-medium">
-            {{ priorityLabel }}
-          </v-chip>
+      <!-- Left: Service & Client -->
+      <div class="main-info">
+        <div class="service-badge" :style="{ backgroundColor: serviceColor }">
+          <v-icon :icon="serviceIcon" size="16" color="white" />
         </div>
 
-        <!-- Default content slot -->
-        <slot></slot>
-
-        <!-- Renderizar detalles generales si no hay contenido específico -->
-        <div v-if="!$slots.default && hasDetails" class="dynamic-details">
-          <div v-if="date" class="detail-item">
-            <v-icon icon="mdi-calendar" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-            <span class="text-body-2">{{ date }}</span>
-          </div>
-
-          <div v-if="time" class="detail-item">
-            <v-icon icon="mdi-clock-outline" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-            <span class="text-body-2">{{ time }}</span>
-          </div>
-
-          <div v-if="phone" class="detail-item">
-            <v-icon icon="mdi-phone" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-            <span class="text-body-2">{{ phone }}</span>
-          </div>
-
-          <!-- Detectar y mostrar propiedades específicas del tipo de reserva -->
-          <template v-if="reservation">
-            <div v-if="reservation.flightNumber" class="detail-item">
-              <v-icon icon="mdi-airplane" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">Vuelo: {{ reservation.flightNumber }}</span>
-            </div>
-
-            <div v-if="reservation.vehicleType" class="detail-item">
-              <v-icon icon="mdi-car" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">{{ getVehicleType(reservation.vehicleType) }}</span>
-            </div>
-
-            <div v-if="reservation.childrenCount" class="detail-item">
-              <v-icon icon="mdi-account-child" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">
-                {{ reservation.childrenCount }} {{ reservation.childrenCount === 1 ? 'niño' : 'niños' }}
-              </span>
-            </div>
-
-            <div v-if="reservation.hasSpecialNeeds" class="detail-item special-needs">
-              <v-icon icon="mdi-alert-circle" size="small" color="warning" class="mr-2"></v-icon>
-              <span class="text-body-2">Necesidades especiales</span>
-            </div>
-
-            <div v-if="reservation.location" class="detail-item">
-              <v-icon icon="mdi-map-marker" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">{{ reservation.location }}</span>
-            </div>
-
-            <div v-if="reservation.deliveryAddress" class="detail-item">
-              <v-icon icon="mdi-home-map-marker" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">Entrega: {{ truncateText(reservation.deliveryAddress, 40) }}</span>
-            </div>
-
-            <div v-if="reservation.hasAllergies === 'yes'" class="detail-item allergy-warning">
-              <v-icon icon="mdi-alert-circle" size="small" color="error" class="mr-2"></v-icon>
-              <span class="text-body-2">¡Alergias! (Ver detalles)</span>
-            </div>
-
-            <div v-if="reservation.colors && reservation.colors.length > 0" class="detail-item">
-              <v-icon icon="mdi-palette" size="small" :color="detailIconColor" class="mr-2"></v-icon>
-              <span class="text-body-2">{{ reservation.colors.length }} colores seleccionados</span>
-            </div>
-          </template>
-
-          <v-expand-transition>
-            <div v-if="notes">
-              <v-divider class="my-2"></v-divider>
-              <div class="d-flex">
-                <v-icon icon="mdi-message-text-outline" size="small" :color="detailIconColor"
-                  class="mr-2 mt-1"></v-icon>
-                <p class="text-body-2">{{ notes }}</p>
-              </div>
-            </div>
-          </v-expand-transition>
+        <div class="text-content">
+          <h3 class="service-title">{{ serviceName }}</h3>
+          <p class="client-name">{{ reservation.clientName }}</p>
         </div>
-      </v-card-text>
-    </slot>
+      </div>
 
-    <!-- Divider before actions -->
-    <v-divider v-if="showActions"></v-divider>
+      <!-- Center: Date & Time -->
+      <div class="datetime-info">
+        <div class="date">{{ shortDate }}</div>
+        <div v-if="time" class="time">{{ time }}</div>
+      </div>
 
-    <!-- Card Actions Section -->
-    <v-card-actions v-if="showActions" class="pa-4">
-      <slot name="actions">
-        <slot name="default-actions">
-          <!-- Botón Rechazar -->
-          <v-btn v-if="onReject" color="error" size="small" variant="text" @click.stop="handleReject"
-            :disabled="isProcessing" prepend-icon="mdi-close">
-            Rechazar
-          </v-btn>
+      <!-- Right: Status & Price -->
+      <div class="right-info">
+        <v-chip
+          v-if="reservation.status"
+          :color="statusColor"
+          size="x-small"
+          variant="flat"
+        >
+          {{ statusText }}
+        </v-chip>
 
-          <!-- Botón Aprobar -->
-          <v-btn v-if="onApprove" color="success" size="small" variant="tonal" @click.stop="handleApprove"
-            :disabled="isProcessing" prepend-icon="mdi-check">
-            Aprobar
-          </v-btn>
-        </slot>
-      </slot>
-    </v-card-actions>
+        <div v-if="reservation.price" class="price">
+          ${{ reservation.price }}
+        </div>
+
+        <v-icon
+          v-if="reservation.isPriority"
+          icon="mdi-star"
+          color="amber"
+          size="18"
+        />
+      </div>
+
+    </div>
   </v-card>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed } from 'vue'
 
-// Router para navegación
-const router = useRouter();
+interface Reservation {
+  id?: string
+  clientName: string
+  date: string
+  time?: string
+  startTime?: string
+  endTime?: string
+  serviceId?: string
+  serviceName?: string
+  service?: string
+  status?: string
+  isPriority?: boolean
+  price?: number
+  [key: string]: any
+}
 
-// Props definition with improved typing
 interface Props {
-  clientName?: string;
-  email?: string;
-  service?: string;
-  date?: string;
-  time?: string;
-  phone?: string;
-  notes?: string;
-  timeAgo?: string;
-  timeAgoPrefix?: string;
-  isPriority?: boolean;
-  priorityLabel?: string;
-  showAvatar?: boolean;
-  avatarSize?: number;
-  avatarColor?: string;
-  elevation?: number | string;
-  border?: boolean;
-  borderStyle?: 'standard' | 'left' | 'none';
-  rounded?: string;
-  customClass?: string;
-  titleClass?: string;
-  serviceChipClass?: string;
-  detailIconColor?: string;
-  showDefaultHeader?: boolean;
-  showTimeAgo?: boolean;
-  showActions?: boolean;
-  enableNavigation?: boolean;
-  // Nueva prop para recibir el objeto de reserva completo
-  reservation?: any;
-  // Callbacks para acciones
-  onApprove?: (id: string | number) => Promise<boolean>;
-  onReject?: (id: string | number) => Promise<boolean>;
+  reservation: Reservation
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  clientName: '',
-  email: '',
-  service: '',
-  date: '',
-  time: '',
-  phone: '',
-  notes: '',
-  timeAgo: '',
-  timeAgoPrefix: 'Solicitado',
-  isPriority: false,
-  priorityLabel: 'Prioritario',
-  showAvatar: true,
-  avatarSize: 48,
-  avatarColor: 'primary',
-  elevation: 0,
-  border: true,
-  borderStyle: 'standard',
-  rounded: 'lg',
-  customClass: '',
-  titleClass: 'text-truncate d-flex align-center',
-  serviceChipClass: 'text-white font-weight-medium',
-  detailIconColor: 'primary',
-  showDefaultHeader: true,
-  showTimeAgo: true,
-  showActions: true,
-  enableNavigation: true,
-  reservation: () => ({}),
-  onApprove: undefined,
-  onReject: undefined
-});
+const props = defineProps<Props>()
 
-// Estado local
-const isProcessing = ref(false);
+defineEmits<{
+  click: []
+}>()
 
-// Emit definitions for common actions
-const emit = defineEmits<{
-  (e: 'approve'): void;
-  (e: 'reject'): void;
-  (e: 'view-details'): void;
-  (e: 'card-click'): void;
-}>();
-
-// Computed properties
-const hasDetails = computed(() => {
-  return !!(props.date || props.time || props.phone || props.notes ||
-    (props.reservation && Object.keys(props.reservation).length > 0));
-});
-
-// Mapa de tipos de vehículos
-const vehicleTypes = {
-  'vanSmall': 'Van Pequeña (1-6 personas)',
-  'vanMedium': 'Van Mediana (7-10 personas)',
-  'vanLarge': 'Van Grande (11-16 personas)',
-  'suv': 'SUV (1-6 personas)'
-};
-
-// Mapa de colores de servicio
-const serviceColors = {
-  'Corte de cabello': 'indigo',
-  'Manicura': 'pink',
-  'Pedicura': 'teal',
-  'Masaje': 'purple',
-  'Tinte': 'blue',
-  'Tratamiento facial': 'cyan',
-  'Transporte aeropuerto': 'blue-darken-2',
-  'Niñera': 'deep-purple',
-  'Decoración': 'amber-darken-2',
-  'Compras': 'green',
-  'Yoga': 'teal',
-  'Chef privado': 'orange'
-};
-
-// Utility methods
-function getInitials(name: string): string {
-  if (!name) return '';
-
-  return name
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase();
+// Simple configs
+const SERVICES = {
+  'airport-transfer': { name: 'Airport Transfer', icon: 'mdi-airplane', color: '#1976d2' },
+  'babysitter': { name: 'Babysitting', icon: 'mdi-baby', color: '#7b1fa2' },
+  'custom-decoration': { name: 'Decoration', icon: 'mdi-balloon', color: '#f57c00' },
+  'grocery-shopping': { name: 'Shopping', icon: 'mdi-cart', color: '#388e3c' },
+  default: { name: 'Service', icon: 'mdi-cog', color: '#616161' }
 }
 
-function getServiceColor(service: string): string {
-  return serviceColors[service as keyof typeof serviceColors] || 'primary';
+const STATUSES = {
+  pending: { color: 'orange', text: 'Pending' },
+  approved: { color: 'green', text: 'Approved' },
+  completed: { color: 'blue', text: 'Done' },
+  cancelled: { color: 'red', text: 'Cancelled' }
 }
 
-function getVehicleType(type: string): string {
-  return vehicleTypes[type as keyof typeof vehicleTypes] || type;
-}
+// Computed
+const serviceConfig = computed(() => {
+  const id = props.reservation.serviceId
+  return SERVICES[id as keyof typeof SERVICES] || SERVICES.default
+})
 
-function truncateText(text: string, maxLength: number): string {
-  if (!text) return '';
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-}
+const serviceName = computed(() =>
+  props.reservation.serviceName ||
+  props.reservation.service ||
+  serviceConfig.value.name
+)
 
-// ✅ NUEVO: Handler principal para clics en la tarjeta
-function handleCardClick() {
-  console.log('🔍 BaseReservationCard: Card clicked!');
+const serviceIcon = computed(() => serviceConfig.value.icon)
+const serviceColor = computed(() => serviceConfig.value.color)
 
-  if (props.enableNavigation) {
-    // Navegación a la vista de detalles
-    const reservationId = props.reservation?.bookingId || props.reservation?.id;
-
-    if (reservationId) {
-      console.log('🔍 Navigating to reservation:', reservationId);
-      router.push(`/reservation/${reservationId}`);
-    } else {
-      console.warn('⚠️ No reservation ID found for navigation');
-      // Fallback: emitir evento tradicional
-      emit('view-details');
-      emit('card-click');
-    }
-  } else {
-    // Modo tradicional: solo emitir eventos
-    emit('view-details');
-    emit('card-click');
+const time = computed(() => {
+  if (props.reservation.time) return props.reservation.time
+  if (props.reservation.startTime) {
+    return props.reservation.endTime
+      ? `${props.reservation.startTime}-${props.reservation.endTime}`
+      : props.reservation.startTime
   }
-}
+  return ''
+})
 
-// Handlers para acciones (con .stop para prevenir la navegación)
-async function handleApprove() {
-  if (isProcessing.value || !props.onApprove) return;
+const shortDate = computed(() => {
+  if (!props.reservation.date) return ''
 
-  isProcessing.value = true;
   try {
-    const id = props.reservation?.id || props.reservation?.bookingId || '';
-    const result = await props.onApprove(id);
-    if (result) {
-      emit('approve');
-    }
-  } catch (error) {
-    console.error('Error al aprobar la reserva:', error);
-  } finally {
-    isProcessing.value = false;
-  }
-}
+    const date = new Date(props.reservation.date)
+    const today = new Date()
 
-async function handleReject() {
-  if (isProcessing.value || !props.onReject) return;
+    if (date.toDateString() === today.toDateString()) return 'Today'
 
-  isProcessing.value = true;
-  try {
-    const id = props.reservation?.id || props.reservation?.bookingId || '';
-    const result = await props.onReject(id);
-    if (result) {
-      emit('reject');
-    }
-  } catch (error) {
-    console.error('Error al rechazar la reserva:', error);
-  } finally {
-    isProcessing.value = false;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch {
+    return props.reservation.date
   }
-}
+})
+
+const statusConfig = computed(() => {
+  const status = props.reservation.status
+  return STATUSES[status as keyof typeof STATUSES] || { color: 'grey', text: status }
+})
+
+const statusColor = computed(() => statusConfig.value.color)
+const statusText = computed(() => statusConfig.value.text)
 </script>
 
 <style scoped>
-.base-reservation-card {
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+.simple-card {
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
   cursor: pointer;
-  /* ✅ Indicar que es clickeable */
+  background: white;
 }
 
-.base-reservation-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(var(--v-theme-on-surface), 0.08) !important;
+.simple-card:hover {
+  border-color: #1976d2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.border-left {
-  border-left: 4px solid rgba(var(--v-theme-primary), 0.7) !important;
+.simple-card.urgent {
+  border-left: 4px solid #ff9800;
 }
 
-.border-left.is-priority {
-  border-left: 4px solid rgb(var(--v-theme-error)) !important;
-}
-
-.is-priority {
-  position: relative;
-}
-
-.detail-item {
-  position: relative;
-  padding: 6px 0;
+.card-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
 }
 
-.detail-item:not(:last-child) {
-  border-bottom: 1px dashed rgba(var(--v-theme-on-surface), 0.08);
+.main-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
-.special-needs,
-.allergy-warning {
-  background-color: rgba(var(--v-theme-warning), 0.1);
-  border-radius: 6px;
-  padding: 6px 8px !important;
-  margin: 4px 0;
-}
-
-.allergy-warning {
-  background-color: rgba(var(--v-theme-error), 0.1);
-}
-
-.dynamic-details {
-  background-color: rgba(var(--v-theme-surface-variant), 0.1);
+.service-badge {
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
-  padding: 8px 12px;
-  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-/* Make sure component works well in both light and dark themes */
-:deep(.v-theme--dark) .detail-item:not(:last-child) {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+.text-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.service-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-name {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.datetime-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+}
+
+.date {
+  font-size: 12px;
+  font-weight: 600;
+  color: #34495e;
+  white-space: nowrap;
+}
+
+.time {
+  font-size: 11px;
+  color: #95a5a6;
+  white-space: nowrap;
+}
+
+.right-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #27ae60;
+  white-space: nowrap;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .card-content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .datetime-info {
+    min-width: 50px;
+  }
+
+  .service-title {
+    font-size: 13px;
+  }
+
+  .client-name {
+    font-size: 12px;
+  }
+}
+
+/* Dark theme */
+.v-theme--dark .simple-card {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+.v-theme--dark .simple-card:hover {
+  border-color: #42a5f5;
+}
+
+.v-theme--dark .service-title {
+  color: #ecf0f1;
+}
+
+.v-theme--dark .client-name {
+  color: #bdc3c7;
+}
+
+.v-theme--dark .date {
+  color: #ecf0f1;
+}
+
+.v-theme--dark .time {
+  color: #95a5a6;
 }
 </style>

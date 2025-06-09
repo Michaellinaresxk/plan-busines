@@ -1,9 +1,8 @@
 <template>
   <v-app>
     <v-layout>
-      <!-- Sidebar si lo necesitas -->
       <DashboardSidebar v-if="showSidebar" v-model:drawer="drawer" v-model:rail="rail" :mdAndUp="mdAndUp"
-        :pendingCount="filteredReservations.length" />
+        :rejectCount="filteredReservations.length" />
 
       <!-- Contenido principal -->
       <v-main>
@@ -11,15 +10,15 @@
         <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
 
         <v-container fluid class="py-6 px-4">
-          <div class="pending-reservations-container">
+          <div class="reject-reservations-container">
             <div class="header-section mb-6">
               <h1 class="text-h4 font-weight-bold mb-2 d-flex align-center">
                 <v-icon icon="mdi-calendar-clock" size="36" color="primary" class="mr-3"></v-icon>
-                Reservaciones Pendientes
+                Reservaciones Rechazadas
                 <v-chip color="primary" size="small" class="ml-2">{{ filteredReservations.length }}</v-chip>
               </h1>
               <p class="text-subtitle-1 text-medium-emphasis">
-                Gestiona y aprueba las solicitudes de reserva de servicios desde Firebase
+                Gestiona las solicitudes de reserva de servicios que no pudieron completarse.
               </p>
             </div>
 
@@ -55,9 +54,9 @@
             <!-- Lista de reservaciones usando el componente ReservationList -->
             <ReservationsList :reservations="paginatedReservations" :loading="loading"
               v-model:current-page="currentPage" :items-per-page="itemsPerPage" @refresh="refreshData"
-              @approve="handleApprove" @reject="handleReject" @view-details="openReservationDetails"
-              empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda."
-              empty-state-title="Sin reservaciones pendientes" empty-state-icon="mdi-calendar-check" />
+              @reject="handleReject" @view-details="openReservationDetails"
+              empty-state-message="No hay reservaciones rechazadas que coincidan con tus criterios de búsqueda."
+              empty-state-title="Sin reservaciones rechazadas" empty-state-icon="mdi-calendar-check" />
 
 
             <!-- Paginación manual si hay muchas reservas -->
@@ -102,7 +101,7 @@
 
       <!-- Modal de detalles de reservación -->
       <ReservationDetailModal v-if="selectedReservation" :show="showDetailModal" :reservation="selectedReservation"
-        @close="closeReservationDetails" @approve="handleApproveFromModal" @reject="handleRejectFromModal" />
+        @close="closeReservationDetails" />
 
 
       <!-- Snackbar para notificaciones -->
@@ -247,13 +246,13 @@ async function refreshData() {
   loading.value = true;
 
   try {
-    console.log('Fetching pending reservations from Firebase...');
-    const pendingReservations = await reservationService.getPendingReservations();
-    reservations.value = pendingReservations;
+    console.log('Fetching rejected reservations...');
+    const rejectedReservations = await reservationService.rejectReservation();
+    reservations.value = rejectedReservations;
 
-    console.log(`Loaded ${pendingReservations.length} pending reservations from Firebase`);
+    console.log(`Loaded ${rejectedReservations.length} rejected reservations`);
     showNotification(
-      `${pendingReservations.length} reservaciones cargadas desde Firebase`,
+      `${rejectedReservations.length} reservaciones cargadas desde Firebase`,
       'info',
       'mdi-refresh'
     );
@@ -296,22 +295,6 @@ function closeReservationDetails() {
   selectedReservation.value = null;
 }
 
-async function handleApprove(id: string, reservation) {
-  try {
-    console.log(`Approving reservation ${id}...`);
-    await reservationService.approveReservation(id);
-
-    const index = reservations.value.findIndex(r => r.bookingId === id);
-    if (index !== -1) {
-      reservations.value.splice(index, 1);
-    }
-
-    showNotification(`Reservación de ${reservation.clientName} aprobada con éxito`, 'success', 'mdi-check-circle');
-  } catch (error) {
-    console.error('Error approving reservation:', error);
-    showNotification('Error al aprobar la reservación', 'error', 'mdi-alert-circle');
-  }
-}
 
 async function handleReject(id: string, reservation) {
   try {
@@ -330,12 +313,6 @@ async function handleReject(id: string, reservation) {
   }
 }
 
-async function handleApproveFromModal(id: string) {
-  showDetailModal.value = false;
-  if (selectedReservation.value) {
-    await handleApprove(id, selectedReservation.value);
-  }
-}
 
 async function handleRejectFromModal(id: string) {
   showDetailModal.value = false;
@@ -359,7 +336,7 @@ function toggleTheme() {
 onMounted(async () => {
   // Ajustar layout basado en el tamaño de pantalla
   rail.value = mdAndUp.value;
-  console.log('PendingReservationsView mounted, loading data...');
+  console.log('RejectedReservationsView mounted, loading data...');
   await refreshData();
 });
 
@@ -384,7 +361,7 @@ watch(filteredReservations, (newReservations) => {
 </script>
 
 <style scoped>
-.pending-reservations-container {
+.reject-reservations-container {
   max-width: 1400px;
   margin: 0 auto;
 }

@@ -32,13 +32,13 @@
       </div>
 
       <!-- Propiedades Adicionales -->
-      <div v-if="additionalProperties.length > 0" class="detail-section">
+      <div v-if="additionalProperties.length > 0" class="detail-section" >
         <h4 class="section-title">
           <v-icon icon="mdi-clipboard-list" size="18" class="mr-2"></v-icon>
           Detalles Específicos
         </h4>
 
-        <div class="detail-list">
+        <div class="detail-list" >
           <div v-for="(prop, index) in additionalProperties" :key="index" class="detail-row">
             <span class="detail-label">{{ formatPropName(prop.key) }}:</span>
             <span class="detail-value">{{ formatPropValue(prop.value) }}</span>
@@ -47,7 +47,7 @@
       </div>
 
       <!-- Información Adicional -->
-      <div v-if="reservation.notes" class="detail-section full-width">
+      <div v-if="reservation.notes" class="detail-section full-width" color="success" variant="tonal">
         <h4 class="section-title">
           <v-icon icon="mdi-note-text" size="18" class="mr-2"></v-icon>
           Información Adicional
@@ -152,7 +152,7 @@ function formatPropValue(value: any): string {
 }
 
 .detail-section {
-  background-color: rgba(var(--v-theme-surface-variant), 0.3);
+  /* background-color: rgba(var(--v-theme-surface-variant), 0.3); */
   border-radius: 12px;
   padding: 20px;
   border: 1px solid rgba(var(--v-theme-primary), 0.1);

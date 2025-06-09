@@ -14,12 +14,6 @@
             </p>
           </div>
         </div>
-
-        <v-chip v-if="compatibleSuppliers.length > 0" color="primary" size="large" variant="elevated"
-          class="supplier-count-chip">
-          <v-icon icon="mdi-account-group" size="16" class="mr-1"></v-icon>
-          {{ compatibleSuppliers.length }} disponibles
-        </v-chip>
       </div>
     </v-card-title>
 

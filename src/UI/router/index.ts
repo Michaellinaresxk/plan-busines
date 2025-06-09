@@ -26,12 +26,12 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'Dashboard',
-      component: () => import('@/UI/pages/DashboardView.vue')
+      component: () => import('@/UI/pages/DashboardPage.vue')
     },
     {
       path: '/pending',
       name: 'pending',
-      component: () => import('@/UI/pages/PendingReservationsView.vue'),
+      component: () => import('@/UI/pages/PendingReservationsPage.vue'),
       meta: {
         requiresAuth: true,
         title: 'Reservaciones Pendientes'
@@ -40,7 +40,7 @@ const router = createRouter({
     {
       path: '/suppliers',
       name: 'suppliers',
-      component: () => import('@/UI/pages/SuppliersView.vue'),
+      component: () => import('@/UI/pages/SuppliersPage.vue'),
       meta: {
         requiresAuth: true,
         title: 'Lista de proveedores'
@@ -49,7 +49,7 @@ const router = createRouter({
     {
       path: '/supplier-confirmation',
       name: 'supplier-confirmation',
-      component: () => import('@/UI/pages/SupplierConfirmationView.vue'),
+      component: () => import('@/UI/pages/SupplierConfirmationPage.vue'),
       meta: {
         title: 'Confirmación de Servicio - Plan Business'
       }
@@ -57,7 +57,15 @@ const router = createRouter({
     {
       path: '/approved-reservation',
       name: 'approved-reservation',
-      component: () => import('@/UI/pages/ApprovedReservationsView.vue'),
+      component: () => import('@/UI/pages/ApprovedReservationsPage.vue'),
+      meta: {
+        title: 'Reservas aprobadas'
+      }
+    },
+    {
+      path: '/rejected-reservation',
+      name: 'rejected-reservation',
+      component: () => import('@/UI/pages/RejectedReservationsPage.vue'),
       meta: {
         title: 'Reservas aprobadas'
       }
@@ -65,7 +73,7 @@ const router = createRouter({
     {
       path: '/reservation/:id',
       name: 'ReservationDetails',
-      component: () => import('@/UI/pages/ReservationDetailsView.vue'),
+      component: () => import('@/UI/pages/ReservationDetailsPage.vue'),
       meta: {
         requiresAuth: true,
         title: 'Detalles de Reserva'
@@ -75,7 +83,7 @@ const router = createRouter({
     {
       path: '/all-reservations',
       name: 'all-reservations',
-      component: () => import('@/UI/pages/AllReservationsView.vue'),
+      component: () => import('@/UI/pages/AllReservationsPage.vue'),
       meta: {
         requiresAuth: true,
         title: 'Todas las reservas'

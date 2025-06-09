@@ -37,9 +37,9 @@
           class="list-item mb-1" :class="{ 'active-item': currentRoute === '/pending' }" to="/pending"></v-list-item>
 
         <!-- Rechazadas -->
-        <!-- <v-list-item prepend-icon="mdi-calendar-remove" title="Rechazadas" value="rejected"
-          :active="currentRoute === '/rejected'" color="primary" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': currentRoute === '/rejected' }" to="/rejected"></v-list-item> -->
+        <v-list-item prepend-icon="mdi-calendar-remove" title="Rechazadas" value="rejected"
+          :active="currentRoute === '/rejected-reservation'" color="primary" rounded="lg" class="list-item mb-1"
+          :class="{ 'active-item': currentRoute === '/rejected-reservation' }" to="/rejected-reservation"></v-list-item>
       </v-list>
 
       <!-- Sección Proveedores -->

@@ -156,9 +156,6 @@
                       <h4 class="text-subtitle-1 font-weight-bold">{{ reservation.serviceName }}</h4>
                       <p class="text-body-2 text-medium-emphasis mb-0">{{ reservation.timeAgo }}</p>
                     </div>
-                    <v-chip color="success" variant="elevated" size="small">
-                      Aprobada
-                    </v-chip>
                   </div>
 
                   <!-- Client Info -->
@@ -447,7 +444,7 @@ function handleSearch() {
 }
 
 function openReservationDetails(reservation: ReservationView) {
-  router.push(`/reservations/${reservation.bookingId}`);
+  router.push(`/reservation/${reservation.bookingId}`);
 }
 
 function sendPaymentLinks() {

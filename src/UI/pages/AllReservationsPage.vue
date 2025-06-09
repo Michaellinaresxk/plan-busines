@@ -1,4 +1,4 @@
-<template>
+ <template>
   <v-layout class="all-reservations-layout">
     <!-- Sidebar -->
     <DashboardSidebar v-model:drawer="drawer" v-model:rail="rail" :mdAndUp="mdAndUp"

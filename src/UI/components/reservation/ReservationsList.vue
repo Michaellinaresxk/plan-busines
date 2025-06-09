@@ -78,7 +78,7 @@
           </div>
 
           <!-- Tarjeta de Reserva -->
-          <BaseReservationCard
+          <ReservationCard
             :client-name="reservation.clientName"
             :email="reservation.clientEmail"
             :phone="reservation.clientPhone"
@@ -106,7 +106,7 @@
                 <ServiceDetailsRenderer :reservation="reservation" />
               </slot>
             </template>
-          </BaseReservationCard>
+          </ReservationCard>
         </div>
       </div>
 
@@ -127,7 +127,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import BaseReservationCard from '@/UI/components/cards/BaseReservationCard.vue';
+import ReservationCard from '@/UI/components/reservation/ReservationCard.vue';
 import ServiceDetailsRender from '@/UI/components/reservation/ServiceDetailsRender.vue';
 
 interface ColumnSize {

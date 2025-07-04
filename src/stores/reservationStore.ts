@@ -21,15 +21,15 @@ export const useReservationStore = defineStore('reservation', () => {
   );
 
   const approvedReservations = computed(() =>
-    reservations.value.filter(r => r.status === 'approved')
+    reservations.value.filter((r: { status: string; }) => r.status === 'approved')
   );
 
   const completedReservations = computed(() =>
-    reservations.value.filter(r => r.status === 'completed')
+    reservations.value.filter((r: { status: string; }) => r.status === 'completed')
   );
 
   const rejectedReservations = computed(() =>
-    reservations.value.filter(r => r.status === 'cancelled')
+    reservations.value.filter((r: { status: string; }) => r.status === 'cancelled')
   );
 
   const pendingCount = computed(() => pendingReservations.value.length);

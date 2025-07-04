@@ -48,9 +48,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import SupplierCard from '@/components/cards/SupplierCard.vue';
-import ContactDialog from '@/components/dialogs/ContactDialog.vue';
-import ConfirmDialog from '@/components/dialogs/ConfirmDialog.vue';
+import SupplierCard from '@/UI/components/suppliers/SupplierCard.vue';
 import { useSupplierActions, useSupplierContact } from '@/composables/useSupplierActions';
 import { useSupplierStore } from '@/stores/supplierStore';
 import type { Supplier } from '@/types/supplier';

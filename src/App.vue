@@ -3,10 +3,8 @@ import { RouterView } from 'vue-router';
 import { provide } from 'vue';
 import { userService, userServiceKey } from "@/services/userService";
 import { supplierService, supplierServiceKey } from "@/services/SupplierService";
+import { emailService, emailServiceKey } from "@/services/EmailService";
 
-provide(userServiceKey, userService);
-provide(reservationServiceKey, reservationService);
-provide(supplierServiceKey, supplierService);
 
 import {
   reservationService,
@@ -23,6 +21,8 @@ provide(reservationServiceKey, reservationService);
 provide(supplierServiceKey, supplierService);
 provide(whatsappServiceKey, whatsappService);
 provide(reservationSupplierServiceKey, reservationSupplierService);
+provide(emailServiceKey, emailService);
+
 </script>
 
 <template>

@@ -17,7 +17,7 @@
                 <v-chip color="success" size="small" class="ml-2">{{ filteredReservations.length }}</v-chip>
               </h1>
               <p class="text-subtitle-1 text-medium-emphasis">
-                Reservas confirmadas por proveedores - Listas para envío de pago
+                Reservas confirmadas por proveedores - Listas para envío de confirmación y pago
               </p>
             </div>
 
@@ -48,7 +48,18 @@
                     Actualizar
                   </v-btn>
 
-                  <!-- ✅ BOTÓN PARA ENVIAR PAGOS -->
+                  <!-- ✅ BOTÓN PARA ENVIAR CONFIRMACIONES POR EMAIL -->
+                  <v-btn
+                    color="success"
+                    prepend-icon="mdi-email-send"
+                    variant="outlined"
+                    @click="sendConfirmationEmails"
+                    :disabled="selectedReservations.length === 0"
+                    :loading="sendingEmails">
+                    Enviar Confirmaciones ({{ selectedReservations.length }})
+                  </v-btn>
+
+                  <!-- BOTÓN PARA ENVIAR PAGOS -->
                   <v-btn
                     color="primary"
                     prepend-icon="mdi-credit-card"
@@ -76,22 +87,37 @@
                     {{ selectedReservations.length }} de {{ filteredReservations.length }} seleccionadas
                   </h3>
                   <p class="text-body-2 mb-0">
-                    Selecciona las reservas para enviar links de pago masivos
+                    Selecciona las reservas para enviar confirmaciones y pagos masivos
                   </p>
                 </div>
 
-                <v-btn
-                  v-if="selectedReservations.length > 0"
-                  color="success"
-                  variant="elevated"
-                  prepend-icon="mdi-send"
-                  @click="sendPaymentLinks">
-                  Enviar Pagos
-                </v-btn>
+                <!-- ✅ BOTONES DE ACCIÓN RÁPIDA -->
+                <div class="d-flex gap-2">
+                  <v-btn
+                    v-if="selectedReservations.length > 0"
+                    color="success"
+                    variant="elevated"
+                    prepend-icon="mdi-email-check"
+                    size="small"
+                    @click="sendConfirmationEmails"
+                    :loading="sendingEmails">
+                    Confirmar
+                  </v-btn>
+
+                  <v-btn
+                    v-if="selectedReservations.length > 0"
+                    color="primary"
+                    variant="elevated"
+                    prepend-icon="mdi-send"
+                    size="small"
+                    @click="sendPaymentLinks">
+                    Enviar Pagos
+                  </v-btn>
+                </div>
               </v-card-text>
             </v-card>
 
-            <!-- ✅ Custom Reservations Grid with Selection -->
+            <!-- Loading State -->
             <div v-if="loading" class="d-flex justify-center align-center py-12">
               <div class="text-center">
                 <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
@@ -146,6 +172,17 @@
                   </v-chip>
                 </div>
 
+                <!-- ✅ Email Status Badge -->
+                <div class="email-status-badge" v-if="getReservationEmailStatus(reservation.bookingId)">
+                  <v-chip
+                    :color="getEmailStatusColor(getReservationEmailStatus(reservation.bookingId))"
+                    variant="tonal"
+                    size="small"
+                    :prepend-icon="getEmailStatusIcon(getReservationEmailStatus(reservation.bookingId))">
+                    {{ getEmailStatusText(getReservationEmailStatus(reservation.bookingId)) }}
+                  </v-chip>
+                </div>
+
                 <v-card-text class="pa-4">
                   <!-- Service Header -->
                   <div class="d-flex align-center mb-3">
@@ -179,26 +216,46 @@
                     <div class="d-flex align-center justify-space-between mb-2">
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-calendar" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                        <span class="text-body-2">{{ reservation.date }}</span>
+                        <span class="text-body-2">{{ getServiceDate(reservation) }}</span>
                       </div>
                       <div class="d-flex align-center">
                         <v-icon icon="mdi-clock" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                        <span class="text-body-2">{{ reservation.time }}</span>
+                        <span class="text-body-2">{{ getServiceTime(reservation) }}</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Price -->
+                  <!-- Price and Actions -->
                   <div class="price-section">
                     <div class="d-flex align-center justify-space-between">
                       <span class="text-h6 font-weight-bold text-success">${{ reservation.totalPrice }}</span>
-                      <v-btn
-                        icon="mdi-eye"
-                        variant="text"
-                        size="small"
-                        color="primary"
-                        @click.stop="openReservationDetails(reservation)">
-                      </v-btn>
+
+                      <!-- ✅ BOTONES DE ACCIÓN INDIVIDUAL -->
+                      <div class="d-flex gap-1">
+                        <v-btn
+                          icon="mdi-email-send-outline"
+                          variant="text"
+                          size="small"
+                          color="success"
+                          :loading="emailLoadingStates[reservation.bookingId]"
+                          @click.stop="sendSingleConfirmationEmail(reservation)"
+                          :disabled="getReservationEmailStatus(reservation.bookingId) === 'sent'">
+                          <v-tooltip activator="parent" location="top">
+                            Enviar confirmación
+                          </v-tooltip>
+                        </v-btn>
+
+                        <v-btn
+                          icon="mdi-eye"
+                          variant="text"
+                          size="small"
+                          color="primary"
+                          @click.stop="openReservationDetails(reservation)">
+                          <v-tooltip activator="parent" location="top">
+                            Ver detalles
+                          </v-tooltip>
+                        </v-btn>
+                      </div>
                     </div>
                   </div>
                 </v-card-text>
@@ -219,6 +276,65 @@
           </div>
         </v-container>
       </v-main>
+
+      <!-- ✅ EMAIL CONFIRMATION DIALOG -->
+      <v-dialog v-model="showEmailDialog" max-width="600">
+        <v-card>
+          <v-card-title class="text-h5 pt-5 pb-2 px-5">
+            <v-icon icon="mdi-email-send" color="success" class="mr-2"></v-icon>
+            Enviar Confirmaciones por Email
+          </v-card-title>
+
+          <v-card-text class="px-5 pt-2">
+            <v-alert color="success" variant="tonal" class="mb-4">
+              <div class="d-flex align-center">
+                <v-icon icon="mdi-information" class="mr-2"></v-icon>
+                <div>
+                  <strong>{{ selectedReservations.length }} confirmaciones</strong> serán enviadas por email.
+                  <br>
+                  <small>Los clientes recibirán todos los detalles de su reserva.</small>
+                </div>
+              </div>
+            </v-alert>
+
+            <div class="email-list">
+              <div v-for="reservation in selectedReservations" :key="reservation.bookingId" class="email-item">
+                <div class="d-flex align-center">
+                  <v-avatar color="success" size="32" class="mr-3">
+                    <span class="text-white text-body-2">{{ getInitials(reservation.clientName) }}</span>
+                  </v-avatar>
+                  <div class="flex-grow-1">
+                    <h4 class="text-subtitle-2">{{ reservation.clientName }}</h4>
+                    <p class="text-body-2 text-medium-emphasis mb-0">
+                      {{ reservation.clientEmail }} • {{ reservation.serviceName }}
+                    </p>
+                  </div>
+                  <v-chip
+                    :color="getEmailStatusColor(getReservationEmailStatus(reservation.bookingId) || 'pending')"
+                    size="small"
+                    variant="tonal">
+                    {{ getEmailStatusText(getReservationEmailStatus(reservation.bookingId) || 'pending') }}
+                  </v-chip>
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+
+          <v-card-actions class="px-5 pb-5">
+            <v-btn color="secondary" variant="text" @click="showEmailDialog = false">
+              Cancelar
+            </v-btn>
+            <v-spacer></v-spacer>
+            <v-btn
+              color="success"
+              @click="confirmSendEmails"
+              :loading="sendingEmails"
+              prepend-icon="mdi-email-send">
+              Enviar Confirmaciones
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <!-- Payment Links Dialog -->
       <v-dialog v-model="showPaymentDialog" max-width="600">
@@ -265,7 +381,7 @@
         </v-card>
       </v-dialog>
 
-      <!-- ✅ NEW: Payment Options Modal -->
+      <!-- ✅ Payment Options Modal -->
       <PaymentOptionsModal
         :show="paymentModalController.isVisible.value"
         :reservation="paymentModalController.currentReservation.value"
@@ -297,19 +413,21 @@ import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
-import PaymentOptionsModal from '@/UI/components/modals/PaymentOptionsModal.vue'; // ✅ Nuevo import
+import PaymentOptionsModal from '@/UI/components/modals/PaymentOptionsModal.vue';
 import { reservationServiceKey } from '@/services/ReservationService';
-import { providePaymentModal } from '@/composables/usePaymentModal'; // ✅ Nuevo import
+import { emailServiceKey } from '@/services/EmailService'; // ✅ AGREGAR IMPORT
+import { providePaymentModal } from '@/composables/usePaymentModal';
 import type { ReservationView } from '@/views/ReservationView';
 
 // Responsive helpers
 const { mdAndUp } = useDisplay();
 const router = useRouter();
 
-// Inject services
+// ✅ INJECT SERVICES - AGREGAR EMAIL SERVICE
 const reservationService = inject(reservationServiceKey);
+const emailService = inject(emailServiceKey); // ✅ NUEVO SERVICIO
 
-// ✅ Setup payment modal controller
+// Setup payment modal controller
 const paymentModalController = providePaymentModal();
 
 // Layout state
@@ -328,7 +446,13 @@ const itemsPerPage = ref(12);
 const selectedReservations = ref<ReservationView[]>([]);
 const selectAll = ref(false);
 
-// Payment dialog - ✅ Mantenemos para compatibilidad pero usaremos el nuevo modal
+// ✅ EMAIL STATE - AGREGAR
+const sendingEmails = ref(false);
+const showEmailDialog = ref(false);
+const emailLoadingStates = ref<Record<string, boolean>>({});
+const emailStatuses = ref<Record<string, string>>({});
+
+// Payment dialog
 const showPaymentDialog = ref(false);
 const sendingPayments = ref(false);
 
@@ -381,6 +505,73 @@ function getServiceIcon(serviceName: string): string {
   return serviceStyles[serviceKey as keyof typeof serviceStyles]?.icon || serviceStyles.default.icon;
 }
 
+// ✅ EMAIL STATUS UTILITIES - AGREGAR
+function getEmailStatusColor(status: string): string {
+  switch (status) {
+    case 'sent': return 'success';
+    case 'failed': return 'error';
+    case 'pending': return 'warning';
+    default: return 'grey';
+  }
+}
+
+function getEmailStatusIcon(status: string): string {
+  switch (status) {
+    case 'sent': return 'mdi-email-check';
+    case 'failed': return 'mdi-email-remove';
+    case 'pending': return 'mdi-email-clock';
+    default: return 'mdi-email';
+  }
+}
+
+function getEmailStatusText(status: string): string {
+  switch (status) {
+    case 'sent': return 'Enviado';
+    case 'failed': return 'Error';
+    case 'pending': return 'Pendiente';
+    default: return 'Sin enviar';
+  }
+}
+
+function getReservationEmailStatus(bookingId: string): string {
+  return emailStatuses.value[bookingId] || '';
+}
+
+// ✅ SERVICE DATE/TIME HELPERS - AGREGAR
+function getServiceDate(reservation: ReservationView): string {
+  // Prioridad: serviceDate > formData.date > bookingDate formateado
+  if (reservation.serviceDate) {
+    return reservation.serviceDate;
+  }
+
+  if (reservation.formData?.date) {
+    return reservation.formData.date;
+  }
+
+  return reservation.bookingDate.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function getServiceTime(reservation: ReservationView): string {
+  // Prioridad: serviceTime > formData time fields
+  if (reservation.serviceTime) {
+    return reservation.serviceTime;
+  }
+
+  const { formData } = reservation;
+  return (
+    formData?.time ||
+    formData?.startTime ||
+    formData?.hour ||
+    (formData?.startTime && formData?.endTime
+      ? `${formData.startTime} - ${formData.endTime}`
+      : 'Por confirmar')
+  );
+}
+
 // Selection methods
 function isSelected(bookingId: string): boolean {
   return selectedReservations.value.some(r => r.bookingId === bookingId);
@@ -395,7 +586,6 @@ function toggleSelection(reservation: ReservationView) {
     selectedReservations.value.push(reservation);
   }
 
-  // Update selectAll state
   selectAll.value = selectedReservations.value.length === filteredReservations.value.length;
 }
 
@@ -407,7 +597,144 @@ function toggleSelectAll() {
   }
 }
 
-// Methods
+// ✅ EMAIL METHODS - AGREGAR COMPLETOS
+async function sendConfirmationEmails(): Promise<void> {
+  if (selectedReservations.value.length === 0) {
+    showNotification('Selecciona al menos una reserva', 'warning', 'mdi-alert');
+    return;
+  }
+
+  showEmailDialog.value = true;
+}
+
+async function confirmSendEmails(): Promise<void> {
+  if (!emailService) {
+    showNotification('Servicio de email no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  sendingEmails.value = true;
+  showEmailDialog.value = false;
+
+  try {
+    console.log('📧 Sending confirmation emails to selected reservations...');
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    // Enviar emails uno por uno
+    for (const reservation of selectedReservations.value) {
+      try {
+        console.log(`📧 Sending email to ${reservation.clientName} (${reservation.clientEmail})`);
+
+        const result = await emailService.sendReservationConfirmation(reservation);
+
+        if (result.success) {
+          successCount++;
+          emailStatuses.value[reservation.bookingId] = 'sent';
+          console.log(`✅ Email sent successfully to ${reservation.clientName}`);
+        } else {
+          errorCount++;
+          errors.push(`${reservation.clientName}: ${result.error}`);
+          emailStatuses.value[reservation.bookingId] = 'failed';
+          console.error(`❌ Failed to send email to ${reservation.clientName}:`, result.error);
+        }
+      } catch (error) {
+        errorCount++;
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        errors.push(`${reservation.clientName}: ${errorMessage}`);
+        emailStatuses.value[reservation.bookingId] = 'failed';
+        console.error(`❌ Exception sending email to ${reservation.clientName}:`, error);
+      }
+    }
+
+    // Mostrar resultado
+    if (successCount > 0 && errorCount === 0) {
+      showNotification(
+        `✅ ${successCount} confirmaciones enviadas exitosamente`,
+        'success',
+        'mdi-check-circle'
+      );
+
+      selectedReservations.value = [];
+      selectAll.value = false;
+
+    } else if (successCount > 0 && errorCount > 0) {
+      showNotification(
+        `⚠️ ${successCount} enviados, ${errorCount} fallaron`,
+        'warning',
+        'mdi-alert'
+      );
+
+      selectedReservations.value = selectedReservations.value.filter(r =>
+        errors.some(error => error.includes(r.clientName))
+      );
+
+    } else {
+      showNotification(
+        `❌ Error al enviar las confirmaciones. ${errors.slice(0, 2).join(', ')}`,
+        'error',
+        'mdi-alert-circle'
+      );
+    }
+
+  } catch (error) {
+    console.error('❌ Error sending confirmation emails:', error);
+    showNotification(
+      error instanceof Error ? error.message : 'Error al enviar confirmaciones',
+      'error',
+      'mdi-alert-circle'
+    );
+  } finally {
+    sendingEmails.value = false;
+  }
+}
+
+async function sendSingleConfirmationEmail(reservation: ReservationView): Promise<void> {
+  if (!emailService) {
+    showNotification('Servicio de email no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  emailLoadingStates.value[reservation.bookingId] = true;
+
+  try {
+    console.log(`📧 Sending single confirmation email to ${reservation.clientName}`);
+
+    const result = await emailService.sendReservationConfirmation(reservation);
+
+    if (result.success) {
+      emailStatuses.value[reservation.bookingId] = 'sent';
+
+      showNotification(
+        `✅ Confirmación enviada a ${reservation.clientName}`,
+        'success',
+        'mdi-check-circle'
+      );
+    } else {
+      emailStatuses.value[reservation.bookingId] = 'failed';
+
+      showNotification(
+        `❌ Error al enviar a ${reservation.clientName}: ${result.error}`,
+        'error',
+        'mdi-alert-circle'
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error sending single confirmation email:', error);
+    emailStatuses.value[reservation.bookingId] = 'failed';
+    showNotification(
+      error instanceof Error ? error.message : 'Error al enviar confirmación',
+      'error',
+      'mdi-alert-circle'
+    );
+  } finally {
+    emailLoadingStates.value[reservation.bookingId] = false;
+  }
+}
+
+// Methods originales
 async function refreshData() {
   loading.value = true;
 
@@ -438,7 +765,6 @@ async function refreshData() {
 
 function handleSearch() {
   currentPage.value = 1;
-  // Reset selection when searching
   selectedReservations.value = [];
   selectAll.value = false;
 }
@@ -456,66 +782,82 @@ function sendPaymentLinks() {
   showPaymentDialog.value = true;
 }
 
-// ✅ NUEVA IMPLEMENTACIÓN CON MODAL MEJORADO
+// ✅ MÉTODO MEJORADO PARA PAYMENT LINKS CON EMAIL
 async function confirmSendPayments() {
   sendingPayments.value = true;
-  showPaymentDialog.value = false; // Cerrar el dialog básico
+  showPaymentDialog.value = false;
 
   try {
-    console.log('💳 Sending payment links to selected reservations...');
+    console.log('💳 Starting integrated email + payment process...');
 
-    if (!reservationService) {
-      throw new Error('ReservationService not available');
+    if (!emailService) {
+      throw new Error('EmailService not available');
     }
 
-    // ✅ Usar el nuevo servicio con modal integrado
-    const result = await reservationService.sendPaymentLinks(selectedReservations.value);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
 
-    if (result.success) {
+    // ✅ PROCESO INTEGRADO: Email de confirmación + Payment Link
+    for (const reservation of selectedReservations.value) {
+      try {
+        console.log(`📧💳 Processing ${reservation.clientName}...`);
+
+        // 1. Enviar email de confirmación
+        const emailResult = await emailService.sendReservationConfirmation(reservation);
+
+        if (emailResult.success) {
+          console.log(`✅ Email confirmation sent to ${reservation.clientName}`);
+          emailStatuses.value[reservation.bookingId] = 'sent';
+
+          // 2. Aquí puedes agregar lógica adicional para payment links
+          // Por ejemplo, generar y enviar por WhatsApp, SMS, etc.
+
+          successCount++;
+        } else {
+          errorCount++;
+          emailStatuses.value[reservation.bookingId] = 'failed';
+          errors.push(`${reservation.clientName}: ${emailResult.error}`);
+        }
+
+      } catch (error) {
+        errorCount++;
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        errors.push(`${reservation.clientName}: ${errorMessage}`);
+        emailStatuses.value[reservation.bookingId] = 'failed';
+      }
+    }
+
+    // Mostrar resultado final
+    if (successCount > 0 && errorCount === 0) {
       showNotification(
-        `Links de pago enviados a ${result.sent} clientes exitosamente`,
+        `✅ ${successCount} confirmaciones y links enviados exitosamente`,
         'success',
         'mdi-check-circle'
       );
 
-      // Remover las reservas exitosas de la lista
-      const successfulIds = result.processedReservations.map(r => r.bookingId);
-      reservations.value = reservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
-      );
-
-      // Limpiar selección
       selectedReservations.value = [];
       selectAll.value = false;
 
-    } else {
-      // Mostrar errores si los hubo
-      const errorMessage = result.errors.length > 0
-        ? `Errores: ${result.errors.slice(0, 2).join(', ')}${result.errors.length > 2 ? '...' : ''}`
-        : 'Algunos links no pudieron enviarse';
-
+    } else if (successCount > 0 && errorCount > 0) {
       showNotification(
-        `${result.sent} enviados, ${result.failed} fallaron. ${errorMessage}`,
+        `⚠️ ${successCount} procesados, ${errorCount} fallaron`,
         'warning',
         'mdi-alert'
       );
 
-      // Remover solo las exitosas
-      const successfulIds = result.processedReservations.map(r => r.bookingId);
-      reservations.value = reservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
-      );
-
-      // Actualizar selección removiendo las exitosas
-      selectedReservations.value = selectedReservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
+    } else {
+      showNotification(
+        `❌ Error al procesar las reservas`,
+        'error',
+        'mdi-alert-circle'
       );
     }
 
   } catch (error) {
-    console.error('❌ Error sending payment links:', error);
+    console.error('❌ Error in confirmSendPayments:', error);
     showNotification(
-      error instanceof Error ? error.message : 'Error al enviar links de pago',
+      error instanceof Error ? error.message : 'Error al procesar reservas',
       'error',
       'mdi-alert-circle'
     );
@@ -524,17 +866,14 @@ async function confirmSendPayments() {
   }
 }
 
-// ✅ MANEJAR EVENTO DEL MODAL DE PAGO
 function handlePaymentSent(reservation: any) {
   console.log('✅ Payment link sent for:', reservation.clientName);
 
-  // Remover esta reserva de la lista
   const index = reservations.value.findIndex(r => r.bookingId === reservation.bookingId);
   if (index >= 0) {
     reservations.value.splice(index, 1);
   }
 
-  // Remover de selección si estaba seleccionada
   const selectedIndex = selectedReservations.value.findIndex(r => r.bookingId === reservation.bookingId);
   if (selectedIndex >= 0) {
     selectedReservations.value.splice(selectedIndex, 1);
@@ -571,6 +910,13 @@ function toggleTheme() {
 onMounted(async () => {
   rail.value = mdAndUp.value;
   console.log('📋 ApprovedReservationsView mounted, loading data...');
+
+  // ✅ VERIFICAR SERVICIOS
+  if (!emailService) {
+    console.warn('⚠️ EmailService not available - email functionality will be limited');
+    showNotification('Funcionalidad de email limitada', 'warning', 'mdi-alert');
+  }
+
   await refreshData();
 });
 
@@ -591,7 +937,6 @@ watch(filteredReservations, (newReservations) => {
     currentPage.value = maxPage;
   }
 
-  // Reset selection if filtered
   selectedReservations.value = [];
   selectAll.value = false;
 });
@@ -648,6 +993,14 @@ watch(filteredReservations, (newReservations) => {
   z-index: 2;
 }
 
+/* ✅ NUEVO: Email Status Badge */
+.email-status-badge {
+  position: absolute;
+  top: 50px;
+  right: 8px;
+  z-index: 2;
+}
+
 .client-section {
   background: rgba(var(--v-theme-surface-variant), 0.3);
   border-radius: 8px;
@@ -664,17 +1017,20 @@ watch(filteredReservations, (newReservations) => {
   padding-top: 8px;
 }
 
-.payment-list {
+.payment-list,
+.email-list {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.payment-item {
+.payment-item,
+.email-item {
   padding: 12px 0;
   border-bottom: 1px solid rgba(var(--v-theme-outline), 0.1);
 }
 
-.payment-item:last-child {
+.payment-item:last-child,
+.email-item:last-child {
   border-bottom: none;
 }
 
@@ -693,11 +1049,17 @@ watch(filteredReservations, (newReservations) => {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .email-status-badge {
+    position: static;
+    margin-bottom: 8px;
+  }
 }
 
 @media (max-width: 600px) {
   .selection-overlay,
-  .ready-badge {
+  .ready-badge,
+  .email-status-badge {
     position: static;
     margin-bottom: 8px;
   }

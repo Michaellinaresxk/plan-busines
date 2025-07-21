@@ -291,15 +291,17 @@
   </v-app>
 </template>
 
+// ApprovedReservationsPage.vue - Versión sin dependencias circulares
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, inject } from 'vue';
+import { ref, computed, onMounted, watch, inject, nextTick } from 'vue';
 import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
-import PaymentOptionsModal from '@/UI/components/modals/PaymentOptionsModal.vue'; // ✅ Nuevo import
+import PaymentOptionsModal from '@/UI/components/modals/PaymentOptionsModal.vue';
 import { reservationServiceKey } from '@/services/ReservationService';
-import { providePaymentModal } from '@/composables/usePaymentModal'; // ✅ Nuevo import
+import { emailServiceKey } from '@/services/EmailService';
+import { providePaymentModal } from '@/composables/usePaymentModal';
 import type { ReservationView } from '@/views/ReservationView';
 
 // Responsive helpers
@@ -308,8 +310,9 @@ const router = useRouter();
 
 // Inject services
 const reservationService = inject(reservationServiceKey);
+const emailService = inject(emailServiceKey);
 
-// ✅ Setup payment modal controller
+// Setup payment modal controller
 const paymentModalController = providePaymentModal();
 
 // Layout state
@@ -324,11 +327,14 @@ const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(12);
 
-// Selection state
+// Selection state - ✅ Simplificado para evitar recursión
 const selectedReservations = ref<ReservationView[]>([]);
-const selectAll = ref(false);
+const selectAllState = ref(false);
 
-// Payment dialog - ✅ Mantenemos para compatibilidad pero usaremos el nuevo modal
+// Dialog states
+const sendingEmails = ref(false);
+const showEmailDialog = ref(false);
+const emailLoadingStates = ref<Record<string, boolean>>({});
 const showPaymentDialog = ref(false);
 const sendingPayments = ref(false);
 
@@ -338,31 +344,296 @@ const snackbarText = ref('');
 const snackbarColor = ref<'success' | 'error' | 'info' | 'warning'>('success');
 const snackbarIcon = ref('mdi-check-circle');
 
-// Computed
+// ✅ Computed properties sin dependencias circulares
 const filteredReservations = computed(() => {
-  let result = [...reservations.value];
+  const reservationsList = reservations.value || [];
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(r =>
-      r.clientName?.toLowerCase().includes(query) ||
-      r.clientEmail?.toLowerCase().includes(query) ||
-      r.serviceName?.toLowerCase().includes(query)
-    );
+  if (!searchQuery.value?.trim()) {
+    return [...reservationsList];
   }
 
-  return result;
+  const query = searchQuery.value.toLowerCase().trim();
+  return reservationsList.filter(r => {
+    const clientName = r.clientName?.toLowerCase() || '';
+    const clientEmail = r.clientEmail?.toLowerCase() || '';
+    const serviceName = r.serviceName?.toLowerCase() || '';
+
+    return clientName.includes(query) ||
+           clientEmail.includes(query) ||
+           serviceName.includes(query);
+  });
 });
 
-const totalPages = computed(() => Math.ceil(filteredReservations.value.length / itemsPerPage.value));
+const totalPages = computed(() => {
+  const filtered = filteredReservations.value;
+  if (!filtered.length) return 1;
+  return Math.ceil(filtered.length / itemsPerPage.value);
+});
 
 const paginatedReservations = computed(() => {
+  const filtered = filteredReservations.value;
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
-  return filteredReservations.value.slice(start, end);
+  return filtered.slice(start, end);
 });
 
-// Service utilities
+// ✅ Computed para el estado de selectAll sin recursión
+const isAllSelected = computed(() => {
+  const filtered = filteredReservations.value;
+  const selected = selectedReservations.value;
+
+  if (!filtered.length) return false;
+  if (!selected.length) return false;
+
+  return selected.length === filtered.length;
+});
+
+// ✅ Watchers seguros sin recursión
+let isUpdatingSelection = false;
+
+watch(filteredReservations, (newReservations) => {
+  if (isUpdatingSelection) return;
+
+  nextTick(() => {
+    // Ajustar página si es necesario
+    const maxPages = Math.ceil(newReservations.length / itemsPerPage.value);
+    if (currentPage.value > maxPages && maxPages > 0) {
+      currentPage.value = maxPages;
+    }
+
+    // Limpiar selección al filtrar
+    if (searchQuery.value && selectedReservations.value.length > 0) {
+      isUpdatingSelection = true;
+      selectedReservations.value = [];
+      selectAllState.value = false;
+      nextTick(() => {
+        isUpdatingSelection = false;
+      });
+    }
+  });
+}, { flush: 'post' });
+
+// Sincronizar selectAll state
+watch([selectedReservations, filteredReservations], ([selected, filtered]) => {
+  if (isUpdatingSelection) return;
+
+  const shouldBeSelected = selected.length === filtered.length && filtered.length > 0;
+  if (selectAllState.value !== shouldBeSelected) {
+    selectAllState.value = shouldBeSelected;
+  }
+}, { flush: 'post' });
+
+// ✅ Métodos de selección seguros
+function isSelected(bookingId: string): boolean {
+  return selectedReservations.value.some(r => r.bookingId === bookingId);
+}
+
+function toggleSelection(reservation: ReservationView): void {
+  if (isUpdatingSelection) return;
+
+  isUpdatingSelection = true;
+  const currentSelected = [...selectedReservations.value];
+  const index = currentSelected.findIndex(r => r.bookingId === reservation.bookingId);
+
+  if (index >= 0) {
+    currentSelected.splice(index, 1);
+  } else {
+    currentSelected.push(reservation);
+  }
+
+  selectedReservations.value = currentSelected;
+
+  nextTick(() => {
+    isUpdatingSelection = false;
+  });
+}
+
+function toggleSelectAll(): void {
+  if (isUpdatingSelection) return;
+
+  isUpdatingSelection = true;
+  const newState = !selectAllState.value;
+  selectAllState.value = newState;
+
+  if (newState) {
+    selectedReservations.value = [...filteredReservations.value];
+  } else {
+    selectedReservations.value = [];
+  }
+
+  nextTick(() => {
+    isUpdatingSelection = false;
+  });
+}
+
+// ✅ Métodos de carga de datos
+async function refreshData(): Promise<void> {
+  if (loading.value) return;
+
+  loading.value = true;
+
+  try {
+    console.log('🔄 Fetching approved reservations...');
+
+    if (!reservationService) {
+      throw new Error('ReservationService not available');
+    }
+
+    const approvedReservations = await reservationService.getApprovedReservations();
+
+    // Actualizar de forma segura
+    reservations.value = approvedReservations || [];
+
+    console.log(`✅ Loaded ${approvedReservations.length} approved reservations`);
+    showNotification(
+      `${approvedReservations.length} reservas aprobadas cargadas`,
+      'success',
+      'mdi-check-circle'
+    );
+  } catch (error) {
+    console.error('❌ Error fetching approved reservations:', error);
+    showNotification('Error al cargar las reservas aprobadas', 'error', 'mdi-alert-circle');
+    reservations.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ✅ Métodos de email seguros
+async function sendConfirmationEmails(): Promise<void> {
+  const selected = selectedReservations.value;
+  if (!selected.length) {
+    showNotification('Selecciona al menos una reserva', 'warning', 'mdi-alert');
+    return;
+  }
+
+  showEmailDialog.value = true;
+}
+
+async function confirmSendEmails(): Promise<void> {
+  if (!emailService || sendingEmails.value) {
+    showNotification('Servicio de email no disponible', 'error', 'mdi-alert-circle');
+    return;
+  }
+
+  sendingEmails.value = true;
+  showEmailDialog.value = false;
+
+  try {
+    console.log('📧 Sending confirmation emails...');
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    // Crear copia de las reservas seleccionadas para evitar cambios durante el procesamiento
+    const reservationsToProcess = [...selectedReservations.value];
+
+    for (const reservation of reservationsToProcess) {
+      try {
+        const result = await emailService.sendReservationConfirmation(reservation);
+
+        if (result.success) {
+          successCount++;
+          // Actualizar estado del email
+          updateReservationEmailStatus(reservation.bookingId, 'sent');
+        } else {
+          errorCount++;
+          errors.push(`${reservation.clientName}: ${result.error}`);
+          updateReservationEmailStatus(reservation.bookingId, 'failed');
+        }
+      } catch (error) {
+        errorCount++;
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        errors.push(`${reservation.clientName}: ${errorMessage}`);
+        updateReservationEmailStatus(reservation.bookingId, 'failed');
+      }
+    }
+
+    // Mostrar resultado
+    if (successCount > 0 && errorCount === 0) {
+      showNotification(
+        `✅ ${successCount} confirmaciones enviadas exitosamente`,
+        'success',
+        'mdi-check-circle'
+      );
+      clearSelection();
+    } else if (successCount > 0) {
+      showNotification(
+        `⚠️ ${successCount} enviados, ${errorCount} fallaron`,
+        'warning',
+        'mdi-alert'
+      );
+    } else {
+      showNotification(
+        `❌ Error al enviar confirmaciones`,
+        'error',
+        'mdi-alert-circle'
+      );
+    }
+
+  } catch (error) {
+    console.error('❌ Error in confirmSendEmails:', error);
+    showNotification(
+      'Error al procesar las confirmaciones',
+      'error',
+      'mdi-alert-circle'
+    );
+  } finally {
+    sendingEmails.value = false;
+  }
+}
+
+// ✅ Helper methods
+function updateReservationEmailStatus(bookingId: string, status: string): void {
+  const index = reservations.value.findIndex(r => r.bookingId === bookingId);
+  if (index >= 0) {
+    const updated = { ...reservations.value[index] } as any;
+    updated.emailStatus = status;
+    reservations.value[index] = updated;
+  }
+}
+
+function clearSelection(): void {
+  isUpdatingSelection = true;
+  selectedReservations.value = [];
+  selectAllState.value = false;
+  nextTick(() => {
+    isUpdatingSelection = false;
+  });
+}
+
+function handleSearch(): void {
+  currentPage.value = 1;
+  // No limpiar selección aquí, se maneja en el watcher
+}
+
+function showNotification(message: string, color: 'success' | 'error' | 'info' | 'warning', icon: string): void {
+  snackbarText.value = message;
+  snackbarColor.value = color;
+  snackbarIcon.value = icon;
+  showSnackbar.value = true;
+}
+
+// Otros métodos existentes...
+function openReservationDetails(reservation: ReservationView): void {
+  router.push(`/reservation/${reservation.bookingId}`);
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(part => part.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function toggleTheme(): void {
+  console.log('Toggle theme');
+}
+
+// Service utilities (mantener los existentes)
 const serviceStyles = {
   'airport-transfer': { color: '#2196F3', icon: 'mdi-airplane' },
   'babysitter': { color: '#9C27B0', icon: 'mdi-baby' },
@@ -381,200 +652,19 @@ function getServiceIcon(serviceName: string): string {
   return serviceStyles[serviceKey as keyof typeof serviceStyles]?.icon || serviceStyles.default.icon;
 }
 
-// Selection methods
-function isSelected(bookingId: string): boolean {
-  return selectedReservations.value.some(r => r.bookingId === bookingId);
-}
-
-function toggleSelection(reservation: ReservationView) {
-  const index = selectedReservations.value.findIndex(r => r.bookingId === reservation.bookingId);
-
-  if (index >= 0) {
-    selectedReservations.value.splice(index, 1);
-  } else {
-    selectedReservations.value.push(reservation);
-  }
-
-  // Update selectAll state
-  selectAll.value = selectedReservations.value.length === filteredReservations.value.length;
-}
-
-function toggleSelectAll() {
-  if (selectAll.value) {
-    selectedReservations.value = [...filteredReservations.value];
-  } else {
-    selectedReservations.value = [];
-  }
-}
-
-// Methods
-async function refreshData() {
-  loading.value = true;
-
-  try {
-    console.log('🔄 Fetching approved reservations from Firebase...');
-
-    if (!reservationService) {
-      throw new Error('ReservationService not available');
-    }
-
-    const approvedReservations = await reservationService.getApprovedReservations();
-    reservations.value = approvedReservations;
-
-    console.log(`✅ Loaded ${approvedReservations.length} approved reservations`);
-    showNotification(
-      `${approvedReservations.length} reservas aprobadas cargadas`,
-      'success',
-      'mdi-check-circle'
-    );
-  } catch (error) {
-    console.error('❌ Error fetching approved reservations:', error);
-    showNotification('Error al cargar las reservas aprobadas', 'error', 'mdi-alert-circle');
-    reservations.value = [];
-  } finally {
-    loading.value = false;
-  }
-}
-
-function handleSearch() {
-  currentPage.value = 1;
-  // Reset selection when searching
-  selectedReservations.value = [];
-  selectAll.value = false;
-}
-
-function openReservationDetails(reservation: ReservationView) {
-  router.push(`/reservation/${reservation.bookingId}`);
-}
-
-function sendPaymentLinks() {
-  if (selectedReservations.value.length === 0) {
-    showNotification('Selecciona al menos una reserva', 'warning', 'mdi-alert');
-    return;
-  }
-
-  showPaymentDialog.value = true;
-}
-
-// ✅ NUEVA IMPLEMENTACIÓN CON MODAL MEJORADO
-async function confirmSendPayments() {
-  sendingPayments.value = true;
-  showPaymentDialog.value = false; // Cerrar el dialog básico
-
-  try {
-    console.log('💳 Sending payment links to selected reservations...');
-
-    if (!reservationService) {
-      throw new Error('ReservationService not available');
-    }
-
-    // ✅ Usar el nuevo servicio con modal integrado
-    const result = await reservationService.sendPaymentLinks(selectedReservations.value);
-
-    if (result.success) {
-      showNotification(
-        `Links de pago enviados a ${result.sent} clientes exitosamente`,
-        'success',
-        'mdi-check-circle'
-      );
-
-      // Remover las reservas exitosas de la lista
-      const successfulIds = result.processedReservations.map(r => r.bookingId);
-      reservations.value = reservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
-      );
-
-      // Limpiar selección
-      selectedReservations.value = [];
-      selectAll.value = false;
-
-    } else {
-      // Mostrar errores si los hubo
-      const errorMessage = result.errors.length > 0
-        ? `Errores: ${result.errors.slice(0, 2).join(', ')}${result.errors.length > 2 ? '...' : ''}`
-        : 'Algunos links no pudieron enviarse';
-
-      showNotification(
-        `${result.sent} enviados, ${result.failed} fallaron. ${errorMessage}`,
-        'warning',
-        'mdi-alert'
-      );
-
-      // Remover solo las exitosas
-      const successfulIds = result.processedReservations.map(r => r.bookingId);
-      reservations.value = reservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
-      );
-
-      // Actualizar selección removiendo las exitosas
-      selectedReservations.value = selectedReservations.value.filter(r =>
-        !successfulIds.includes(r.bookingId)
-      );
-    }
-
-  } catch (error) {
-    console.error('❌ Error sending payment links:', error);
-    showNotification(
-      error instanceof Error ? error.message : 'Error al enviar links de pago',
-      'error',
-      'mdi-alert-circle'
-    );
-  } finally {
-    sendingPayments.value = false;
-  }
-}
-
-// ✅ MANEJAR EVENTO DEL MODAL DE PAGO
-function handlePaymentSent(reservation: any) {
-  console.log('✅ Payment link sent for:', reservation.clientName);
-
-  // Remover esta reserva de la lista
-  const index = reservations.value.findIndex(r => r.bookingId === reservation.bookingId);
-  if (index >= 0) {
-    reservations.value.splice(index, 1);
-  }
-
-  // Remover de selección si estaba seleccionada
-  const selectedIndex = selectedReservations.value.findIndex(r => r.bookingId === reservation.bookingId);
-  if (selectedIndex >= 0) {
-    selectedReservations.value.splice(selectedIndex, 1);
-  }
-
-  showNotification(
-    `Link de pago enviado a ${reservation.clientName}`,
-    'success',
-    'mdi-check-circle'
-  );
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function showNotification(message: string, color: 'success' | 'error' | 'info' | 'warning', icon: string) {
-  snackbarText.value = message;
-  snackbarColor.value = color;
-  snackbarIcon.value = icon;
-  showSnackbar.value = true;
-}
-
-function toggleTheme() {
-  console.log('Toggle theme');
-}
-
 // Lifecycle
 onMounted(async () => {
   rail.value = mdAndUp.value;
   console.log('📋 ApprovedReservationsView mounted, loading data...');
+
+  if (!emailService) {
+    console.warn('⚠️ EmailService not available');
+  }
+
   await refreshData();
 });
 
-// Watchers
+// Layout watchers
 watch(mdAndUp, (newValue) => {
   if (!newValue) {
     rail.value = false;
@@ -583,17 +673,6 @@ watch(mdAndUp, (newValue) => {
     drawer.value = true;
     rail.value = true;
   }
-});
-
-watch(filteredReservations, (newReservations) => {
-  const maxPage = Math.ceil(newReservations.length / itemsPerPage.value);
-  if (currentPage.value > maxPage && maxPage > 0) {
-    currentPage.value = maxPage;
-  }
-
-  // Reset selection if filtered
-  selectedReservations.value = [];
-  selectAll.value = false;
 });
 </script>
 

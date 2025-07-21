@@ -29,5 +29,4 @@ export class SupplierView {
   }
 }
 
-// ✅ Agregar export por defecto Y named export
 export default SupplierView;

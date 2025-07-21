@@ -1,11 +1,20 @@
 import type ReservationRepository from '@/domain/reservation/ReservationRepository';
-import { ReservationStatus } from '@/types/reservation';
-import { Reservation } from '@/domain/reservation/Reservation';
+import { ReservationStatus } from '@/types/reservation';;
 import { ReservationCaller } from './ReservationCaller';
 import type { ApiReservation } from './ApiReservation';
+import type Reservation from '@/domain/reservation/Reservation';
 
 export class ReservationResource implements ReservationRepository {
   constructor(private readonly reservationCaller: ReservationCaller) {}
+  createReservation(serviceId: string, serviceName: string, totalPrice: number, clientName: string, clientEmail: string, clientPhone: string, formData: Record<string, any>, notes?: string): Promise<Reservation> {
+    throw new Error('Method not implemented.');
+  }
+  deleteReservation(bookingId: string): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+  cancelReservation(bookingId: string): Promise<Reservation> {
+    throw new Error('Method not implemented.');
+  }
 
   // Convertir ApiReservation a Reservation (Domain Entity)
   private apiToDomain(apiReservation: ApiReservation): Reservation {

@@ -1,11 +1,13 @@
-// src/primary/email/useCase/SendReservationConfirmationUseCase.ts - FIXED VERSION
+// src/primary/email/useCase/SendReservationConfirmationUseCase.ts - ACTUALIZADO PARA EMAILJS
 import type EmailRepository from '@/domain/email/EmailRepository';
 import type { UseCase } from '@/primary/UseCase';
 import type { EmailResult, ReservationEmailData } from '@/types/email';
 import { ReservationView } from '@/views/ReservationView';
 
 export class SendReservationConfirmationUseCase implements UseCase {
-  constructor(private readonly emailRepository: EmailRepository) {}
+  constructor(private readonly emailRepository: EmailRepository) {
+    console.log('📧 SendReservationConfirmationUseCase initialized with EmailJS');
+  }
 
   async execute(
     reservation: ReservationView,
@@ -25,7 +27,7 @@ export class SendReservationConfirmationUseCase implements UseCase {
       // ✅ Validación básica
       this.validateReservationData(reservation);
 
-      // ✅ Crear datos del email con información completa
+      // ✅ Crear datos del email para EmailJS
       const emailData: ReservationEmailData = {
         reservationId: reservation.bookingId,
         clientName: reservation.clientName,
@@ -40,18 +42,28 @@ export class SendReservationConfirmationUseCase implements UseCase {
         additionalDetails: this.extractAdditionalDetails(reservation)
       };
 
-      console.log('📧 Email data prepared:', emailData);
+      console.log('📧 Email data prepared for EmailJS:', {
+        reservationId: emailData.reservationId,
+        clientEmail: emailData.clientEmail,
+        serviceName: emailData.serviceName,
+        serviceDate: emailData.serviceDate,
+        serviceTime: emailData.serviceTime,
+        totalPrice: emailData.totalPrice,
+        hasSupplierInfo: !!(emailData.supplierName || emailData.supplierPhone),
+        hasAdditionalDetails: !!emailData.additionalDetails
+      });
 
-      // ✅ Enviar email
+      // ✅ Enviar email usando EmailJS
       const result = await this.emailRepository.sendReservationConfirmation(emailData);
 
       if (result.success) {
-        console.log('✅ Reservation confirmation email sent successfully:', {
+        console.log('✅ Reservation confirmation email sent successfully via EmailJS:', {
           reservationId: reservation.bookingId,
-          messageId: result.messageId
+          messageId: result.messageId,
+          clientEmail: reservation.clientEmail
         });
       } else {
-        console.error('❌ Failed to send reservation confirmation email:', {
+        console.error('❌ Failed to send reservation confirmation email via EmailJS:', {
           reservationId: reservation.bookingId,
           error: result.error
         });
@@ -71,20 +83,23 @@ export class SendReservationConfirmationUseCase implements UseCase {
    * ✅ Validación simple de datos requeridos
    */
   private validateReservationData(reservation: ReservationView): void {
-    if (!reservation.bookingId) {
-      throw new Error('Missing required field: bookingId');
+    const requiredFields = [
+      { field: 'bookingId', value: reservation.bookingId },
+      { field: 'clientName', value: reservation.clientName },
+      { field: 'clientEmail', value: reservation.clientEmail },
+      { field: 'serviceName', value: reservation.serviceName },
+      { field: 'totalPrice', value: reservation.totalPrice }
+    ];
+
+    for (const { field, value } of requiredFields) {
+      if (!value) {
+        throw new Error(`Missing required field: ${field}`);
+      }
     }
-    if (!reservation.clientName) {
-      throw new Error('Missing required field: clientName');
-    }
-    if (!reservation.clientEmail) {
-      throw new Error('Missing required field: clientEmail');
-    }
-    if (!reservation.serviceName) {
-      throw new Error('Missing required field: serviceName');
-    }
-    if (!reservation.totalPrice || reservation.totalPrice <= 0) {
-      throw new Error('Invalid totalPrice');
+
+    // Validar precio
+    if (typeof reservation.totalPrice !== 'number' || reservation.totalPrice <= 0) {
+      throw new Error(`Invalid totalPrice: ${reservation.totalPrice}`);
     }
 
     // Validar email
@@ -92,10 +107,12 @@ export class SendReservationConfirmationUseCase implements UseCase {
     if (!emailRegex.test(reservation.clientEmail)) {
       throw new Error(`Invalid email format: ${reservation.clientEmail}`);
     }
+
+    console.log('✅ Reservation data validation passed');
   }
 
   /**
-   * 📅 Extraer fecha del servicio
+   * 📅 Extraer fecha del servicio con fallbacks
    */
   private extractServiceDate(reservation: ReservationView): string {
     // Prioridad: serviceDate > formData.date > bookingDate formateado
@@ -116,7 +133,7 @@ export class SendReservationConfirmationUseCase implements UseCase {
   }
 
   /**
-   * 🕐 Extraer hora del servicio
+   * 🕐 Extraer hora del servicio con fallbacks
    */
   private extractServiceTime(reservation: ReservationView): string {
     // Prioridad: serviceTime > varios campos de formData
@@ -138,7 +155,7 @@ export class SendReservationConfirmationUseCase implements UseCase {
   }
 
   /**
-   * 📍 Extraer ubicación
+   * 📍 Extraer ubicación con fallbacks
    */
   private extractLocation(reservation: ReservationView): string {
     const { formData } = reservation;
@@ -148,17 +165,18 @@ export class SendReservationConfirmationUseCase implements UseCase {
       formData.location ||
       formData.exactAddress ||
       formData.deliveryAddress ||
+      formData.pickupAddress ||
       'Por confirmar con el cliente'
     );
   }
 
   /**
-   * ℹ️ Extraer detalles adicionales específicos del servicio
+   * ℹ️ Extraer detalles adicionales para el template de EmailJS
    */
   private extractAdditionalDetails(reservation: ReservationView): Record<string, any> {
     const details: Record<string, any> = {};
 
-    // ✅ Incluir formData completo para el template del email
+    // ✅ Incluir formData completo para el template HTML personalizado
     details.formData = reservation.formData || {};
 
     // ✅ Agregar información básica
@@ -166,51 +184,143 @@ export class SendReservationConfirmationUseCase implements UseCase {
     details.status = reservation.status;
     details.notes = reservation.notes;
 
-    // ✅ Detalles específicos por tipo de servicio
+    // ✅ Detalles específicos por tipo de servicio para el HTML template
     switch (reservation.serviceId) {
       case 'airport-transfer':
-        if (reservation.formData) {
-          details.flightNumber = reservation.formData.flightNumber;
-          details.vehicleType = reservation.formData.vehicleType;
-          details.passengerCount = reservation.formData.passengerCount;
-          details.needsCarSeat = reservation.formData.needsCarSeat;
-          details.carSeatCount = reservation.formData.carSeatCount;
-          details.isRoundTrip = reservation.formData.isRoundTrip;
-        }
+        this.extractAirportTransferDetails(details, reservation.formData);
         break;
 
       case 'babysitter':
-        if (reservation.formData) {
-          details.childrenCount = reservation.formData.childrenCount;
-          details.childrenAges = reservation.formData.childrenAges;
-          details.startTime = reservation.formData.startTime;
-          details.endTime = reservation.formData.endTime;
-          details.specialNeedsDetails = reservation.formData.specialNeedsDetails;
-        }
+        this.extractBabysitterDetails(details, reservation.formData);
         break;
 
       case 'custom-decoration':
-        if (reservation.formData) {
-          details.occasion = reservation.formData.occasion;
-          details.colors = reservation.formData.colors;
-          details.referenceImage = reservation.formData.referenceImage;
-          details.exactAddress = reservation.formData.exactAddress;
-        }
+        this.extractDecorationDetails(details, reservation.formData);
         break;
 
       case 'grocery-shopping':
-        if (reservation.formData) {
-          details.deliveryAddress = reservation.formData.deliveryAddress;
-          details.items = reservation.formData.items;
-          details.hasAllergies = reservation.formData.hasAllergies;
-          details.allergyDetails = reservation.formData.allergyDetails;
-          details.foodRestrictions = reservation.formData.foodRestrictions;
-        }
+        this.extractGroceryDetails(details, reservation.formData);
         break;
+
+      default:
+        console.log('📋 Generic service - using basic formData only');
     }
 
-    console.log('📋 Extracted additional details:', details);
+    console.log('📋 Extracted additional details for EmailJS:', {
+      serviceId: reservation.serviceId,
+      hasFormData: !!details.formData,
+      formDataKeys: Object.keys(details.formData || {}),
+      serviceSpecificFields: Object.keys(details).filter(
+        key => !['formData', 'bookingDate', 'status', 'notes'].includes(key)
+      )
+    });
 
     return details;
+  }
+
+  /**
+   * ✈️ Detalles específicos de transporte aeropuerto
+   */
+  private extractAirportTransferDetails(
+    details: Record<string, any>,
+    formData?: Record<string, any>
+  ): void {
+    if (!formData) return;
+
+    const airportFields = [
+      'flightNumber',
+      'vehicleType',
+      'passengerCount',
+      'needsCarSeat',
+      'carSeatCount',
+      'isRoundTrip',
+      'pickupAddress',
+      'dropoffAddress',
+      'flightTime'
+    ];
+
+    airportFields.forEach(field => {
+      if (formData[field] !== undefined) {
+        details[field] = formData[field];
+      }
+    });
+  }
+
+  /**
+   * 👶 Detalles específicos de niñera
+   */
+  private extractBabysitterDetails(
+    details: Record<string, any>,
+    formData?: Record<string, any>
+  ): void {
+    if (!formData) return;
+
+    const babysitterFields = [
+      'childrenCount',
+      'childrenAges',
+      'startTime',
+      'endTime',
+      'specialNeedsDetails',
+      'hasSpecialNeeds',
+      'parentInstructions'
+    ];
+
+    babysitterFields.forEach(field => {
+      if (formData[field] !== undefined) {
+        details[field] = formData[field];
+      }
+    });
+  }
+
+  /**
+   * 🎨 Detalles específicos de decoración
+   */
+  private extractDecorationDetails(
+    details: Record<string, any>,
+    formData?: Record<string, any>
+  ): void {
+    if (!formData) return;
+
+    const decorationFields = [
+      'occasion',
+      'colors',
+      'referenceImage',
+      'exactAddress',
+      'decorationType',
+      'budget',
+      'specialRequirements'
+    ];
+
+    decorationFields.forEach(field => {
+      if (formData[field] !== undefined) {
+        details[field] = formData[field];
+      }
+    });
+  }
+
+  /**
+   * 🛒 Detalles específicos de compras
+   */
+  private extractGroceryDetails(
+    details: Record<string, any>,
+    formData?: Record<string, any>
+  ): void {
+    if (!formData) return;
+
+    const groceryFields = [
+      'deliveryAddress',
+      'items',
+      'hasAllergies',
+      'allergyDetails',
+      'foodRestrictions',
+      'preferredBrands',
+      'budget'
+    ];
+
+    groceryFields.forEach(field => {
+      if (formData[field] !== undefined) {
+        details[field] = formData[field];
+      }
+    });
   }
 }

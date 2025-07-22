@@ -29,3 +29,18 @@ export type SupplierProperties = {
   canProvideService: boolean;
   vehicleType?: string;
 };
+
+
+export interface EmailProperties {
+  id: string;
+  to: string;
+  subject: string;
+  templateType: string;
+  status: string;
+  sentAt: Date;
+  reservationId?: string;
+  messageId?: string;
+  error?: string;
+  deliveredAt?: Date;
+  openedAt?: Date;
+}

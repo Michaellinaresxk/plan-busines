@@ -1,46 +1,47 @@
+// src/infra/email/EmailResource.ts - FIXED VERSION
 import type EmailRepository from '@/domain/email/EmailRepository';
-import Email from '@/domain/email/Email';
+import type Email from '@/domain/email/Email';
 import { EmailCaller } from './EmailCaller';
-import { EmailTemplateType, type EmailResult, type ReservationEmailData } from '@/types/email';
+import { type EmailResult, type ReservationEmailData } from '@/types/email';
 
 export class EmailResource implements EmailRepository {
   constructor(private readonly emailCaller: EmailCaller) {}
 
   /**
-   * 📧 Enviar confirmación de reserva
+   * 📧 Enviar confirmación de reserva - VERSIÓN SIMPLIFICADA
    */
   async sendReservationConfirmation(data: ReservationEmailData): Promise<EmailResult> {
     console.log('📧 EmailResource.sendReservationConfirmation called:', data.reservationId);
 
     try {
-      // Validar datos requeridos
+      // ✅ Validar datos requeridos
       this.validateReservationData(data);
 
-      // Crear entidad Email
-      const email = Email.create(
-        data.clientEmail,
-        `Confirmación de Reserva - ${data.serviceName}`,
-        EmailTemplateType.RESERVATION_CONFIRMATION,
-        data.reservationId
-      );
+      console.log('✅ Validation passed, calling EmailCaller...');
 
-      // Llamar al EmailCaller
+      // ✅ Llamar directamente al EmailCaller (sin crear entidad Email por ahora)
       const result = await this.emailCaller.sendReservationConfirmationEmail(data);
 
-      // Actualizar estado del email
-      if (result.success && result.messageId) {
-        const sentEmail = email.markAsSent(result.messageId);
-        // Aquí podrías guardar el email en la base de datos si fuera necesario
-        console.log('✅ Email entity updated:', sentEmail.properties);
+      console.log('✅ EmailCaller result:', result);
+
+      // ✅ Log del resultado
+      if (result.success) {
+        console.log('✅ Email sent successfully:', {
+          reservationId: data.reservationId,
+          clientEmail: data.clientEmail,
+          messageId: result.messageId
+        });
       } else {
-        const failedEmail = email.markAsFailed(result.error || 'Unknown error');
-        console.log('❌ Email entity marked as failed:', failedEmail.properties);
+        console.error('❌ Email failed:', {
+          reservationId: data.reservationId,
+          clientEmail: data.clientEmail,
+          error: result.error
+        });
       }
 
-      console.log('✅ Reservation confirmation email processed:', result);
       return result;
     } catch (error) {
-      console.error('❌ Error in sendReservationConfirmation:', error);
+      console.error('❌ Error in EmailResource.sendReservationConfirmation:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -49,36 +50,44 @@ export class EmailResource implements EmailRepository {
   }
 
   /**
-   * 🔍 Obtener email por ID (para futuras implementaciones)
+   * 🔍 Obtener email por ID (implementación futura)
    */
   async getEmailById(id: string): Promise<Email | null> {
-    // Implementación futura: buscar en base de datos
     console.log('🔍 Getting email by ID:', id);
+    // TODO: Implementar cuando sea necesario
     return null;
   }
 
   /**
-   * 💾 Guardar email (para futuras implementaciones)
+   * 💾 Guardar email (implementación futura)
    */
   async saveEmail(email: Email): Promise<Email> {
-    // Implementación futura: guardar en base de datos
-    console.log('💾 Saving email:', email.properties);
+    console.log('💾 Saving email:', email);
+    // TODO: Implementar cuando sea necesario
     return email;
   }
 
   /**
-   * 🔄 Actualizar estado del email (para futuras implementaciones)
+   * 🔄 Actualizar estado del email (implementación futura)
    */
   async updateEmailStatus(id: string, status: string, messageId?: string): Promise<Email> {
-    // Implementación futura: actualizar en base de datos
     console.log('🔄 Updating email status:', { id, status, messageId });
-    throw new Error('Not implemented');
+    // TODO: Implementar cuando sea necesario
+    throw new Error('Not implemented yet');
   }
 
   /**
    * ✅ Validar datos de reserva
    */
   private validateReservationData(data: ReservationEmailData): void {
+    console.log('🔍 Validating reservation data:', {
+      reservationId: data.reservationId,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      serviceName: data.serviceName,
+      totalPrice: data.totalPrice
+    });
+
     const requiredFields = [
       'reservationId',
       'clientName',
@@ -105,5 +114,7 @@ export class EmailResource implements EmailRepository {
     if (typeof data.totalPrice !== 'number' || data.totalPrice < 0) {
       throw new Error(`Invalid price: ${data.totalPrice}`);
     }
+
+    console.log('✅ Validation completed successfully');
   }
 }

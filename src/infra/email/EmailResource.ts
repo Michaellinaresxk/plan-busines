@@ -1,41 +1,52 @@
-// src/infra/email/EmailResource.ts - FIXED VERSION
+// src/infra/email/EmailResource.ts - ACTUALIZADO SOLO PARA EMAILJS
 import type EmailRepository from '@/domain/email/EmailRepository';
 import type Email from '@/domain/email/Email';
-import { EmailCaller } from './EmailCaller';
+import { EmailJSCaller } from './EmailCaller';
 import { type EmailResult, type ReservationEmailData } from '@/types/email';
 
 export class EmailResource implements EmailRepository {
-  constructor(private readonly emailCaller: EmailCaller) {}
+  private readonly emailCaller: EmailJSCaller;
+
+  constructor() {
+    console.log('📧 EmailResource: Initializing with EmailJS only');
+    this.emailCaller = new EmailJSCaller();
+  }
 
   /**
-   * 📧 Enviar confirmación de reserva - VERSIÓN SIMPLIFICADA
+   * 📧 Enviar confirmación de reserva usando EmailJS
    */
   async sendReservationConfirmation(data: ReservationEmailData): Promise<EmailResult> {
-    console.log('📧 EmailResource.sendReservationConfirmation called:', data.reservationId);
+    console.log('📧 EmailResource.sendReservationConfirmation called:', {
+      reservationId: data.reservationId,
+      clientEmail: data.clientEmail,
+      serviceName: data.serviceName
+    });
 
     try {
       // ✅ Validar datos requeridos
       this.validateReservationData(data);
 
-      console.log('✅ Validation passed, calling EmailCaller...');
+      console.log('✅ Validation passed, calling EmailJS...');
 
-      // ✅ Llamar directamente al EmailCaller (sin crear entidad Email por ahora)
+      // ✅ Llamar directamente a EmailJS
       const result = await this.emailCaller.sendReservationConfirmationEmail(data);
 
-      console.log('✅ EmailCaller result:', result);
+      console.log('📧 EmailJS result:', result);
 
       // ✅ Log del resultado
       if (result.success) {
-        console.log('✅ Email sent successfully:', {
+        console.log('✅ Email sent successfully via EmailJS:', {
           reservationId: data.reservationId,
           clientEmail: data.clientEmail,
-          messageId: result.messageId
+          messageId: result.messageId,
+          service: 'EmailJS'
         });
       } else {
-        console.error('❌ Email failed:', {
+        console.error('❌ Email failed via EmailJS:', {
           reservationId: data.reservationId,
           clientEmail: data.clientEmail,
-          error: result.error
+          error: result.error,
+          service: 'EmailJS'
         });
       }
 
@@ -50,30 +61,95 @@ export class EmailResource implements EmailRepository {
   }
 
   /**
-   * 🔍 Obtener email por ID (implementación futura)
+   * 🔍 Obtener información del servicio de email
    */
+  getServiceInfo(): Record<string, any> {
+    return {
+      serviceName: 'EmailResource with EmailJS',
+      caller: this.emailCaller.getServiceInfo(),
+      environment: {
+        isDevelopment: import.meta.env.DEV,
+        emailjsConfig: {
+          hasServiceId: !!import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          hasTemplateId: !!import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          hasPublicKey: !!import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        }
+      }
+    };
+  }
+
+  /**
+   * ✅ Validar configuración completa
+   */
+  async validateConfiguration(): Promise<boolean> {
+    try {
+      console.log('🔍 Validating EmailJS configuration...');
+
+      // ✅ Verificar EmailJS Caller
+      const callerValid = await this.emailCaller.validateConfiguration();
+
+      // ✅ Verificar variables de entorno específicas de EmailJS
+      const hasEmailJSConfig = !!(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID &&
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY &&
+        import.meta.env.VITE_FROM_EMAIL
+      );
+
+      const isValid = callerValid && hasEmailJSConfig;
+
+      console.log('🔍 EmailJS configuration status:', {
+        emailjsCaller: callerValid ? '✅' : '❌',
+        emailjsConfig: hasEmailJSConfig ? '✅' : '❌',
+        overall: isValid ? '✅' : '❌'
+      });
+
+      return isValid;
+    } catch (error) {
+      console.error('❌ Error validating EmailJS configuration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * ✅ Test de conectividad
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      console.log('🧪 Testing EmailJS connection...');
+
+      const configValid = await this.validateConfiguration();
+      if (!configValid) {
+        console.error('❌ EmailJS configuration invalid');
+        return false;
+      }
+
+      const connectionTest = await this.emailCaller.testConnection();
+
+      console.log('🧪 EmailJS connection test result:', connectionTest);
+      return connectionTest;
+    } catch (error) {
+      console.error('❌ EmailJS connection test failed:', error);
+      return false;
+    }
+  }
+
+  // ✅ Métodos requeridos por la interface (implementación simple)
   async getEmailById(id: string): Promise<Email | null> {
-    console.log('🔍 Getting email by ID:', id);
-    // TODO: Implementar cuando sea necesario
+    console.log('🔍 Getting email by ID (not implemented in EmailJS):', id);
+    // EmailJS no guarda emails - solo los envía
     return null;
   }
 
-  /**
-   * 💾 Guardar email (implementación futura)
-   */
   async saveEmail(email: Email): Promise<Email> {
-    console.log('💾 Saving email:', email);
-    // TODO: Implementar cuando sea necesario
+    console.log('💾 Saving email (not needed with EmailJS):', email.id);
+    // EmailJS no necesita guardar emails
     return email;
   }
 
-  /**
-   * 🔄 Actualizar estado del email (implementación futura)
-   */
   async updateEmailStatus(id: string, status: string, messageId?: string): Promise<Email> {
-    console.log('🔄 Updating email status:', { id, status, messageId });
-    // TODO: Implementar cuando sea necesario
-    throw new Error('Not implemented yet');
+    console.log('🔄 Updating email status (not needed with EmailJS):', { id, status, messageId });
+    // EmailJS no maneja estados de email después del envío
+    throw new Error('Email status tracking not implemented with EmailJS');
   }
 
   /**

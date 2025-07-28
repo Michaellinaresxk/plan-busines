@@ -1,17 +1,8 @@
-// src/primary/supplier/useCase/FindCompatibleSuppliersUseCase.ts
+// src/primary/supplier/useCase/FindCompatibleSuppliersUseCase.ts - VERSIÓN FINAL CORREGIDA
 import { SupplierResource } from '@/infra/supplier/SupplierResource';
 import type { UseCase } from '@/primary/UseCase';
 import { SupplierView } from '@/views/SupplierView';
-
-// ✅ Función local para verificar airport transfer
-function isAirportTransferService(service: string): boolean {
-  const airportServices = ['airport-transfer', 'airport-transfers', 'transporte-aeropuerto'];
-  const normalizedService = service.toLowerCase();
-  return airportServices.some(
-    airportService =>
-      normalizedService.includes(airportService) || airportService.includes(normalizedService)
-  );
-}
+import { isAirportTransferService } from '@/types/supplier';
 
 export interface SupplierSearchCriteria {
   serviceId: string;
@@ -23,8 +14,6 @@ export class FindCompatibleSuppliersUseCase implements UseCase {
 
   async execute(criteria: SupplierSearchCriteria): Promise<SupplierView[]> {
     try {
-      console.log('🔍 FindCompatibleSuppliersUseCase: Searching with criteria:', criteria);
-
       // Validar entrada
       if (!criteria.serviceId) {
         throw new Error('Service ID is required');
@@ -34,45 +23,31 @@ export class FindCompatibleSuppliersUseCase implements UseCase {
       const allSuppliers = await this.supplierResource.getAllSuppliers();
 
       if (!allSuppliers || allSuppliers.length === 0) {
-        console.log('📭 No suppliers found in database');
         return [];
       }
 
-      console.log(`📊 Total suppliers in database: ${allSuppliers.length}`);
-
-      // Filtrar por servicio
+      // PASO 1: Filtrar por servicio
       let compatibleSuppliers = allSuppliers.filter(supplier =>
         this.isServiceMatch(supplier.service, criteria.serviceId)
       );
 
-      console.log(
-        `🔧 Suppliers matching service "${criteria.serviceId}": ${compatibleSuppliers.length}`
-      );
-
-      // ✅ LÓGICA PRINCIPAL: Si es airport transfer Y se especifica vehicleType, filtrar por vehículo
-      if (isAirportTransferService(criteria.serviceId) && criteria.vehicleType) {
-        compatibleSuppliers = compatibleSuppliers.filter(supplier =>
-          this.isVehicleTypeMatch(supplier, criteria.vehicleType!)
-        );
-
-        console.log(
-          `🚗 Suppliers matching vehicleType "${criteria.vehicleType}": ${compatibleSuppliers.length}`
-        );
+      // PASO 2: ✅ LÓGICA CORREGIDA para airport transfer + vehicleType
+      if (isAirportTransferService(criteria.serviceId)) {
+        if (criteria.vehicleType) {
+          // ✅ Filtrar por vehicleType usando nueva lógica mejorada
+          compatibleSuppliers = compatibleSuppliers.filter(supplier =>
+            this.isVehicleTypeMatch(supplier, criteria.vehicleType!)
+          );
+        }
+        // Si NO se especifica vehicleType, mostrar todos los de airport transfer
       }
 
-      // Solo proveedores activos
+      // PASO 3: Solo proveedores activos
       const activeSuppliers = compatibleSuppliers.filter(supplier => supplier.canProvideService);
-      console.log(`✅ Active suppliers: ${activeSuppliers.length}`);
 
       // Convertir a SupplierView
-      const supplierViews = activeSuppliers.map(supplier => SupplierView.fromDomain(supplier));
-
-      // Log de resultados
-      this.logResults(criteria, supplierViews);
-
-      return supplierViews;
+      return activeSuppliers.map(supplier => SupplierView.fromDomain(supplier));
     } catch (error) {
-      console.error('❌ FindCompatibleSuppliersUseCase: Error:', error);
       throw new Error(
         `Failed to find compatible suppliers: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -80,17 +55,23 @@ export class FindCompatibleSuppliersUseCase implements UseCase {
   }
 
   /**
-   * Verificar si el servicio del proveedor coincide con el solicitado
+   * ✅ Verificar si el servicio del proveedor coincide con el solicitado
    */
   private isServiceMatch(supplierService: string, requestedService: string): boolean {
+    if (!supplierService || !requestedService) return false;
+
     // Coincidencia exacta
-    if (supplierService === requestedService) {
-      return true;
-    }
+    if (supplierService === requestedService) return true;
 
     // Normalizar y comparar
-    const normalizedSupplier = supplierService.toLowerCase().replace(/[-_\s]/g, '');
-    const normalizedRequested = requestedService.toLowerCase().replace(/[-_\s]/g, '');
+    const normalizeService = (service: string) =>
+      service
+        .toLowerCase()
+        .trim()
+        .replace(/[-_\s]+/g, '');
+
+    const normalizedSupplier = normalizeService(supplierService);
+    const normalizedRequested = normalizeService(requestedService);
 
     return (
       normalizedSupplier === normalizedRequested ||
@@ -100,40 +81,16 @@ export class FindCompatibleSuppliersUseCase implements UseCase {
   }
 
   /**
-   * ✅ Verificar si el vehicleType del proveedor coincide (solo para airport transfer)
+   * ✅ FUNCIÓN CORREGIDA: Verificar si el vehicleType coincide usando nueva lógica
    */
   private isVehicleTypeMatch(supplier: any, requestedVehicleType: string): boolean {
-    // Si el proveedor no tiene vehicleType pero necesita uno, no es compatible
-    if (!supplier.vehicleType) {
-      console.log(`⚠️ Supplier "${supplier.name}" has no vehicleType for airport transfer service`);
-      return false;
+    // ✅ CAMBIO CRÍTICO: Si el proveedor no tiene vehicleType, puede servir cualquier tipo
+    // Esto permite que proveedores sin vehicleType específico aparezcan para todas las búsquedas
+    if (!supplier.vehicleType || supplier.vehicleType.trim() === '') {
+      return true; // ← ESTE ES EL CAMBIO CLAVE
     }
 
-    // Coincidencia exacta
-    return supplier.vehicleType === requestedVehicleType;
-  }
-
-  /**
-   * Log de resultados
-   */
-  private logResults(criteria: SupplierSearchCriteria, results: SupplierView[]): void {
-    console.log('\n📋 SUPPLIER SEARCH RESULTS:');
-    console.log('═══════════════════════════════');
-    console.log(`🔍 Service: ${criteria.serviceId}`);
-
-    if (criteria.vehicleType) {
-      console.log(`🚗 Vehicle Type: ${criteria.vehicleType}`);
-    }
-
-    console.log(`✅ Compatible Suppliers: ${results.length}`);
-
-    if (results.length > 0) {
-      results.forEach((supplier, index) => {
-        const vehicleInfo = supplier.vehicleType ? ` [${supplier.vehicleType}]` : '';
-        console.log(`  ${index + 1}. ${supplier.name}${vehicleInfo}`);
-      });
-    }
-
-    console.log('═══════════════════════════════\n');
+    // ✅ Usar la nueva función de compatibilidad
+    return areVehicleTypesCompatible(supplier.vehicleType, requestedVehicleType);
   }
 }

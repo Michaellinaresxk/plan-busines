@@ -55,16 +55,16 @@
                 :rules="[rules.required]" :disabled="loading" @update:model-value="handleServiceChange"></v-select>
             </v-col>
 
-            <!-- ✅ Tipo de Vehículo (solo para airport transfer) -->
+            <!-- ✅ Tipo de Vehículo (solo para airport transfer) - OPCIONAL -->
             <v-col cols="12" md="6" v-if="showVehicleTypeField">
               <v-select v-model="formData.vehicleType" :items="vehicleTypeOptions" label="Tipo de Vehículo"
-                placeholder="Selecciona el tipo de vehículo" prepend-inner-icon="mdi-car" variant="outlined"
-                :rules="vehicleTypeRules" :disabled="loading" @update:model-value="markAsChanged('vehicleType')">
+                placeholder="Selecciona el tipo de vehículo (opcional)" prepend-inner-icon="mdi-car" variant="outlined"
+                :rules="[]" :disabled="loading" @update:model-value="markAsChanged('vehicleType')">
                 <template v-slot:prepend-item>
                   <v-list-item>
                     <v-list-item-content>
                       <v-list-item-title class="text-caption text-medium-emphasis">
-                        Selecciona el tipo de vehículo para transporte aeropuerto
+                        Tipo de vehículo para transporte aeropuerto (opcional)
                       </v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
@@ -127,7 +127,7 @@ interface SupplierData {
   phone: string;
   service: string;
   canProvideService: boolean;
-  vehicleType?: string; // ✅ Agregar vehicleType
+  vehicleType?: string; // ✅ Mantener como opcional
 }
 
 interface UpdateSupplierData {
@@ -137,7 +137,7 @@ interface UpdateSupplierData {
   phone?: string;
   service?: string;
   canProvideService?: boolean;
-  vehicleType?: string; // ✅ Agregar vehicleType
+  vehicleType?: string; // ✅ Mantener como opcional
 }
 
 // Reactive Data
@@ -155,10 +155,8 @@ const formData = ref<SupplierData>({
   phone: '',
   service: '',
   canProvideService: true,
-  vehicleType: undefined // ✅ Inicializar vehicleType
+  vehicleType: undefined // ✅ Inicializar como opcional
 });
-
-// ✅ Usar función importada en lugar de duplicar lógica
 
 // Computed
 const dialogModel = computed({
@@ -180,14 +178,6 @@ const showVehicleTypeField = computed(() =>
 
 // ✅ Opciones de tipos de vehículos
 const vehicleTypeOptions = computed(() => VEHICLE_TYPE_OPTIONS);
-
-// ✅ Reglas de validación para vehicleType
-const vehicleTypeRules = computed(() => {
-  if (showVehicleTypeField.value) {
-    return [rules.required];
-  }
-  return [];
-});
 
 const hasChanges = computed(() => changedFields.value.size > 0);
 
@@ -272,7 +262,7 @@ function formatPhone() {
   markAsChanged('phone');
 }
 
-// ✅ Manejar cambio de servicio
+// ✅ Manejar cambio de servicio - MANTENER LÓGICA ORIGINAL
 function handleServiceChange(newService: string) {
   markAsChanged('service');
 
@@ -342,7 +332,8 @@ async function handleSubmit() {
       }
     });
 
-    // ✅ Si el servicio cambió y no es airport transfer, asegurar que vehicleType se quite
+    // ✅ MANTENER lógica original - sin validaciones estrictas
+    // Si el servicio cambió y no es airport transfer, asegurar que vehicleType se quite
     if (changedFields.value.has('service') && !showVehicleTypeField.value) {
       updateData.vehicleType = undefined;
     }

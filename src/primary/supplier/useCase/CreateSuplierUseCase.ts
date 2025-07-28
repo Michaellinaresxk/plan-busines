@@ -13,7 +13,7 @@ export class CreateSupplierUseCase implements UseCase {
     phone: string,
     service: string,
     canProvideService: boolean = true,
-    vehicleType?: string // ✅ Agregar parámetro vehicleType
+    vehicleType?: string // ✅ Mantener como opcional
   ): Promise<SupplierView> {
     try {
       console.log('🔄 CreateSupplierUseCase: Creating supplier...', {
@@ -23,13 +23,8 @@ export class CreateSupplierUseCase implements UseCase {
         isAirportTransfer: this.isAirportTransferService(service)
       });
 
-      // ✅ Validar que vehicleType esté presente para airport transfer
-      if (this.isAirportTransferService(service) && !vehicleType) {
-        throw new Error('Vehicle type is required for airport transfer services');
-      }
-
-      // ✅ Limpiar vehicleType si no es airport transfer
-      const finalVehicleType = this.isAirportTransferService(service) ? vehicleType : undefined;
+      // ✅ REMOVER validaciones estrictas que rompían la funcionalidad
+      // NO validar vehicleType como requerido - mantener comportamiento original
 
       const supplier = await this.supplierResource.createSupplier(
         name,
@@ -38,7 +33,7 @@ export class CreateSupplierUseCase implements UseCase {
         phone,
         service,
         canProvideService,
-        finalVehicleType // ✅ Pasar vehicleType al resource
+        vehicleType // ✅ Pasar vehicleType tal como viene, sin validaciones extras
       );
 
       const supplierView = SupplierView.fromDomain(supplier);
@@ -55,7 +50,7 @@ export class CreateSupplierUseCase implements UseCase {
     }
   }
 
-  // ✅ Helper method para verificar airport transfer
+  // ✅ Mantener helper method simple
   private isAirportTransferService(service: string): boolean {
     const airportServices = ['airport-transfer', 'airport-transfers', 'transporte-aeropuerto'];
     const normalizedService = service.toLowerCase();

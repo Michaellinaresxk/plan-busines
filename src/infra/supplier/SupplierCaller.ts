@@ -9,22 +9,26 @@ import {
   deleteDoc,
   type Firestore,
   query,
-  where
+  where,
+  deleteField
 } from 'firebase/firestore';
 import type { ApiSupplier } from './ApiSupplier';
 
 export class SupplierCaller {
-  private readonly COLLECTION_NAME = 'supliers';
+  private readonly COLLECTION_NAME = 'supliers'; // ✅ MANTENER nombre original
 
   constructor(private readonly db: Firestore) {}
 
-  // ✅ Utility method to clean undefined values
+  // ✅ Utility method to clean undefined values - SOLO para update
   private cleanData<T extends Record<string, any>>(data: T): Partial<T> {
     const cleaned: Partial<T> = {};
 
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         cleaned[key as keyof T] = value;
+      } else if (value === undefined && key === 'vehicleType') {
+        // ✅ Solo eliminar vehicleType si es undefined explícitamente
+        (cleaned as any)[key] = deleteField();
       }
     });
 
@@ -53,7 +57,7 @@ export class SupplierCaller {
         const data = doc.data();
         console.log('🔥 Document data:', { id: doc.id, ...data });
 
-        // Limpiar campos con espacios extra
+        // ✅ MANTENER lógica original de limpieza
         const cleanData = {
           id: doc.id,
           name: data.name || data['name '] || '', // Manejar "name " con espacio
@@ -99,7 +103,7 @@ export class SupplierCaller {
         hasVehicleType: !!vehicleType
       });
 
-      // ✅ Preparar datos base
+      // ✅ MANTENER lógica original - SIN validaciones extras
       const supplierData = {
         name: name.trim(),
         cedula: cedula.trim(),
@@ -111,7 +115,7 @@ export class SupplierCaller {
         updatedAt: new Date()
       };
 
-      // ✅ Solo agregar vehicleType si tiene valor
+      // ✅ MANTENER lógica original para vehicleType
       if (vehicleType && vehicleType.trim()) {
         (supplierData as any).vehicleType = vehicleType.trim();
       }
@@ -123,7 +127,7 @@ export class SupplierCaller {
 
       console.log('✅ Supplier created with ID:', docRef.id);
 
-      // ✅ Retornar datos consistentes
+      // ✅ MANTENER estructura original de retorno
       const resultData: ApiSupplier = {
         id: docRef.id,
         name: supplierData.name,
@@ -239,7 +243,7 @@ export class SupplierCaller {
 
       const docRef = doc(this.db, this.COLLECTION_NAME, id);
 
-      // ✅ Limpiar datos undefined antes de enviar a Firestore
+      // ✅ SOLO limpiar datos undefined antes de enviar a Firestore
       const updateData = this.cleanData({
         ...data,
         updatedAt: new Date()
@@ -247,6 +251,7 @@ export class SupplierCaller {
 
       console.log('🔥 Cleaned update data:', updateData);
 
+      // ✅ USAR updateDoc correctamente (NO addDoc)
       await updateDoc(docRef, updateData);
 
       console.log('✅ Supplier updated successfully');

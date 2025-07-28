@@ -55,16 +55,16 @@
                 :rules="[rules.required]" :disabled="loading" @update:model-value="handleServiceChange"></v-select>
             </v-col>
 
-            <!-- ✅ Tipo de Vehículo (solo para airport transfer) -->
+            <!-- ✅ Tipo de Vehículo (solo para airport transfer) - OPCIONAL -->
             <v-col cols="12" md="6" v-if="showVehicleTypeField">
               <v-select v-model="formData.vehicleType" :items="vehicleTypeOptions" label="Tipo de Vehículo"
-                placeholder="Selecciona el tipo de vehículo" prepend-inner-icon="mdi-car" variant="outlined"
-                :rules="vehicleTypeRules" :disabled="loading" @update:model-value="clearFieldError('vehicleType')">
+                placeholder="Selecciona el tipo de vehículo (opcional)" prepend-inner-icon="mdi-car" variant="outlined"
+                :rules="[]" :disabled="loading" @update:model-value="clearFieldError('vehicleType')">
                 <template v-slot:prepend-item>
                   <v-list-item>
                     <v-list-item-content>
                       <v-list-item-title class="text-caption text-medium-emphasis">
-                        Selecciona el tipo de vehículo para transporte aeropuerto
+                        Tipo de vehículo para transporte aeropuerto (opcional)
                       </v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
@@ -117,7 +117,7 @@ interface CreateSupplierData {
   phone: string;
   service: string;
   canProvideService: boolean;
-  vehicleType?: string; // ✅ Agregar vehicleType
+  vehicleType?: string; // ✅ Mantener como opcional
 }
 
 // Reactive Data
@@ -132,10 +132,8 @@ const formData = ref<CreateSupplierData>({
   phone: '',
   service: '',
   canProvideService: true,
-  vehicleType: undefined // ✅ Inicializar vehicleType
+  vehicleType: undefined // ✅ Inicializar como opcional
 });
-
-// ✅ Usar función importada en lugar de duplicar lógica
 
 // Computed
 const dialogModel = computed({
@@ -157,14 +155,6 @@ const showVehicleTypeField = computed(() =>
 
 // ✅ Opciones de tipos de vehículos
 const vehicleTypeOptions = computed(() => VEHICLE_TYPE_OPTIONS);
-
-// ✅ Reglas de validación para vehicleType
-const vehicleTypeRules = computed(() => {
-  if (showVehicleTypeField.value) {
-    return [rules.required];
-  }
-  return [];
-});
 
 // Validation Rules
 const rules = {
@@ -263,8 +253,12 @@ async function handleSubmit() {
   try {
     console.log('📝 Form submitted with data:', formData.value);
 
-    // ✅ Limpiar vehicleType si no es airport transfer
+    // ✅ REMOVER validación estricta de vehicleType - mantener comportamiento original
+    // Simplemente preparar datos sin validaciones extras
+
     const submitData = { ...formData.value };
+
+    // Limpiar vehicleType si no es airport transfer
     if (!showVehicleTypeField.value) {
       delete submitData.vehicleType;
     }

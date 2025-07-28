@@ -15,18 +15,20 @@ export class UpdateSupplierUseCase implements UseCase {
       phone?: string;
       service?: string;
       canProvideService?: boolean;
+      vehicleType?: string; // ✅ Mantener vehicleType opcional
     }
   ): Promise<SupplierView> {
     try {
       console.log('🔄 UpdateSupplierUseCase: Executing update...', { id, data });
 
-      // Validar que al menos un campo esté presente
+      // ✅ MANTENER validaciones mínimas originales
       const hasData = Object.values(data).some(value => value !== undefined);
       if (!hasData) {
         throw new Error('No data provided for update');
       }
 
-      // Llamar al resource para actualizar
+      // ✅ REMOVER validaciones estrictas de vehicleType que rompían funcionalidad
+      // Llamar al resource para actualizar tal como está
       const updatedSupplier = await this.supplierResource.updateSupplier(id, data);
 
       // Convertir a SupplierView

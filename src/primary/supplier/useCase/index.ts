@@ -38,7 +38,7 @@ export class SupplierService {
     phone: string,
     service: string,
     canProvideService: boolean = true,
-    vehicleType?: string // ✅ Agregar parámetro vehicleType
+    vehicleType?: string // ✅ Mantener como opcional sin validaciones extras
   ) {
     return await this.createSupplierUseCase.execute(
       name,
@@ -47,7 +47,7 @@ export class SupplierService {
       phone,
       service,
       canProvideService,
-      vehicleType // ✅ Pasar vehicleType al use case
+      vehicleType // ✅ Pasar tal como viene
     );
   }
 
@@ -60,7 +60,7 @@ export class SupplierService {
       phone?: string;
       service?: string;
       canProvideService?: boolean;
-      vehicleType?: string; // ✅ Agregar vehicleType a los datos de actualización
+      vehicleType?: string; // ✅ Mantener como opcional
     }
   ) {
     return await this.updateSupplierUseCase.execute(id, data);

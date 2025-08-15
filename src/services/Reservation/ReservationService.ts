@@ -1,4 +1,4 @@
-// src/services/ReservationService.ts
+
 import { ReservationService as BaseReservationService } from '@/primary/reservation/useCases/index';
 import type { ReservationView } from '@/views/ReservationView';
 import { supplierService } from '../SupplierService';

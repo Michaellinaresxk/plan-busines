@@ -12,7 +12,8 @@ export class Reservation {
     public readonly clientName: string,
     public readonly clientEmail: string,
     public readonly clientPhone: string,
-    public readonly formData: Record<string, any>, // Propiedades dinámicas por servicio
+    public readonly formData: Record<string, any>,
+    public readonly hostInfo: string,
     public readonly notes?: string,
     public readonly timeAgo?: string
   ) {}
@@ -29,6 +30,7 @@ export class Reservation {
       clientEmail,
       clientPhone,
       formData,
+      hostInfo,
       notes
     } = properties;
 
@@ -46,6 +48,7 @@ export class Reservation {
       clientEmail,
       clientPhone,
       formData || {},
+      hostInfo,
       notes,
       timeAgo
     );
@@ -63,6 +66,7 @@ export class Reservation {
       clientEmail: this.clientEmail,
       clientPhone: this.clientPhone,
       formData: this.formData,
+      hostInfo: this.hostInfo,
       notes: this.notes
     });
   }

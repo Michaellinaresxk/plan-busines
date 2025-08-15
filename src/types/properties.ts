@@ -17,6 +17,7 @@ export interface ReservationProperties {
   clientEmail: string;
   clientPhone: string;
   formData: Record<string, any>;
+  hostInfo: string;
   notes?: string;
 }
 export type SupplierProperties = {
@@ -30,7 +31,6 @@ export type SupplierProperties = {
   vehicleType?: string;
 };
 
-
 export interface EmailProperties {
   id: string;
   to: string;
@@ -43,4 +43,27 @@ export interface EmailProperties {
   error?: string;
   deliveredAt?: Date;
   openedAt?: Date;
+}
+
+export interface PaymentProperties {
+  id: string;
+  reservationId: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  provider: PaymentProvider;
+  paymentUrl: string;
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  customerEmail: string;
+  customerName: string;
+  description: string;
+  metadata: Record<string, any>;
+  providerPaymentId?: string;
+  completedAt?: Date;
+  failureReason?: string;
+  refundedAt?: Date;
+  refundAmount?: number;
+  webhookData?: Record<string, any>;
 }

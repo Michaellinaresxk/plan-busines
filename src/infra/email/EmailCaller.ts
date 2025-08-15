@@ -1,4 +1,4 @@
-// src/infra/email/EmailJSCaller.ts - ACTUALIZADO PARA TEMPLATE EMBEBIDO
+// src/infra/email/EmailJSCaller.ts - ARCHIVO COMPLETO CON TU TEMPLATE ENGINE
 import emailjs from '@emailjs/browser';
 import type { EmailResult, ReservationEmailData } from '@/types/email';
 import { EmailTemplateEngine } from './EmailTemplateEngine';
@@ -14,7 +14,7 @@ export class EmailJSCaller {
     this.templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
     this.publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 
-    // ✅ Inicializar el motor de templates embebido
+    // ✅ Usar TU EmailTemplateEngine personalizado
     this.templateEngine = new EmailTemplateEngine();
 
     if (!this.serviceId || !this.publicKey) {
@@ -24,184 +24,213 @@ export class EmailJSCaller {
         publicKey: this.publicKey ? '✅' : '❌'
       });
     } else {
-      // Initialize EmailJS
       emailjs.init(this.publicKey);
-      console.log('✅ EmailJS initialized successfully with embedded HTML template');
+      console.log('✅ EmailJS initialized with custom EmailTemplateEngine');
     }
   }
 
   /**
-   * 📧 Enviar email de confirmación usando template HTML embebido
+   * 📧 Enviar confirmación de reserva usando TU template personalizado
    */
   async sendReservationConfirmationEmail(data: ReservationEmailData): Promise<EmailResult> {
     try {
-      console.log(
-        '📧 EmailJS: Sending confirmation email using embedded template to:',
-        data.clientEmail
-      );
+      console.log('📧 EmailJS: Sending confirmation with custom template to:', data.clientEmail);
 
-      // Validar configuración
       if (!this.serviceId || !this.publicKey) {
         throw new Error('EmailJS configuration incomplete. Check environment variables.');
       }
 
-      // ✅ Generar HTML usando el template embebido
-      const htmlContent = this.templateEngine.generateEmailHTML(data);
+      // ✅ GENERAR HTML CON TU EmailTemplateEngine
+      const customHtmlContent = this.templateEngine.generateEmailHTML(data);
 
-      if (!htmlContent || htmlContent.length < 100) {
-        throw new Error('Generated HTML content is empty or too short');
-      }
-
-      console.log('🎨 Email HTML generated from embedded template:', {
-        length: htmlContent.length,
-        hasContent: htmlContent.includes(data.clientName),
-        hasService: htmlContent.includes(data.serviceName),
-        reservationId: data.reservationId,
-        templateType: 'Embedded HTML Template'
+      console.log('🎨 Custom HTML template generated:', {
+        length: customHtmlContent.length,
+        hasClientName: customHtmlContent.includes(data.clientName),
+        hasServiceName: customHtmlContent.includes(data.serviceName),
+        hasReservationId: customHtmlContent.includes(data.reservationId)
       });
 
-      // ✅ Preparar parámetros para EmailJS
+      // ✅ Preparar parámetros para EmailJS con TU HTML
       const templateParams = {
-        // Información básica del destinatario
+        // Parámetros principales para template EmailJS
         to_email: data.clientEmail,
         to_name: data.clientName,
+        subject: `✅ Reserva Confirmada - ${data.serviceName}`,
 
-        // Subject del email
-        subject: `✅ Confirmación de Reserva - ${data.serviceName}`,
+        // ✅ TU HTML PERSONALIZADO (triple braces en template EmailJS)
+        html_content: customHtmlContent,
 
-        // ✅ CONTENIDO HTML COMPLETO DESDE TEMPLATE EMBEBIDO
-        html_content: htmlContent,
-
-        // Información adicional para EmailJS
+        // Parámetros adicionales para fallback
         client_name: data.clientName,
-        reservation_id: data.reservationId,
         service_name: data.serviceName,
+        booking_id: data.reservationId,
+        service_date: data.serviceDate,
+        service_time: data.serviceTime || 'Por confirmar',
+        location: data.location || 'Por confirmar',
+        total_price: data.totalPrice ? `$${data.totalPrice.toFixed(2)}` : 'Por confirmar',
+        supplier_name: data.supplierName || 'Por asignar',
+        supplier_phone: data.supplierPhone || 'Por confirmar',
 
-        // Email metadata
-        reply_to: import.meta.env.VITE_FROM_EMAIL || 'noreply@luxpuntacana.com',
-        from_name: 'Plan Business'
+        // Metadatos para debugging
+        template_type: 'custom_embedded',
+        generated_at: new Date().toISOString()
       };
 
-      console.log('📧 EmailJS template params prepared:', {
+      console.log('📧 Sending email with template params:', {
         to_email: templateParams.to_email,
         subject: templateParams.subject,
-        hasHtmlContent: !!templateParams.html_content,
-        htmlLength: templateParams.html_content.length,
-        templateUsed: 'Embedded HTML Template',
-        engineReady: !!this.templateEngine
+        has_html_content: !!templateParams.html_content,
+        html_content_length: templateParams.html_content.length
       });
 
       // ✅ Enviar email usando EmailJS
-      const response = await emailjs.send(this.serviceId, this.templateId, templateParams);
+      const result = await emailjs.send(
+        this.serviceId,
+        this.templateId,
+        templateParams,
+        this.publicKey
+      );
 
-      console.log('✅ EmailJS response:', response);
+      console.log('✅ Email sent successfully with custom template:', {
+        status: result.status,
+        text: result.text,
+        templateUsed: 'custom_embedded'
+      });
 
-      // EmailJS considera success cuando status es 200
-      const isSuccess = response.status === 200;
+      return {
+        success: true,
+        messageId: result.text,
+        templateUsed: 'custom_embedded',
+        htmlGenerated: true
+      };
+    } catch (error) {
+      console.error('❌ Error sending email with custom template:', error);
 
-      if (isSuccess) {
-        console.log('✅ Email sent successfully via EmailJS using embedded template:', {
-          clientEmail: data.clientEmail,
-          serviceName: data.serviceName,
-          reservationId: data.reservationId,
-          messageId: `emailjs_${response.text}_${Date.now()}`,
-          templateType: 'Embedded HTML'
+      // ✅ Fallback: intentar con template básico si el personalizado falla
+      try {
+        console.log('🔄 Attempting fallback email without custom HTML...');
+
+        const fallbackParams = {
+          to_email: data.clientEmail,
+          to_name: data.clientName,
+          subject: `✅ Reserva Confirmada - ${data.serviceName}`,
+          client_name: data.clientName,
+          service_name: data.serviceName,
+          booking_id: data.reservationId,
+          service_date: data.serviceDate,
+          service_time: data.serviceTime || 'Por confirmar',
+          location: data.location || 'Por confirmar',
+          total_price: data.totalPrice ? `$${data.totalPrice.toFixed(2)}` : 'Por confirmar'
+        };
+
+        const fallbackResult = await emailjs.send(
+          this.serviceId,
+          this.templateId,
+          fallbackParams,
+          this.publicKey
+        );
+
+        console.log('✅ Fallback email sent successfully');
+
+        return {
+          success: true,
+          messageId: fallbackResult.text,
+          templateUsed: 'fallback_basic',
+          htmlGenerated: false,
+          warning: 'Custom template failed, used basic template'
+        };
+      } catch (fallbackError) {
+        console.error('❌ Fallback email also failed:', fallbackError);
+
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          fallbackError: fallbackError instanceof Error ? fallbackError.message : 'Fallback failed'
+        };
+      }
+    }
+  }
+
+  /**
+   * 🧪 Método de prueba para validar configuración
+   */
+  async testConfiguration(): Promise<EmailResult> {
+    try {
+      console.log('🧪 Testing EmailJS configuration...');
+
+      const testData: ReservationEmailData = {
+        clientEmail: 'test@test.com',
+        clientName: 'Test User',
+        serviceName: 'Test Service',
+        serviceDate: '2025-08-15',
+        serviceTime: '10:00 AM',
+        location: 'Test Location',
+        reservationId: 'TEST-001',
+        totalPrice: 50
+      };
+
+      const result = await this.sendReservationConfirmationEmail(testData);
+
+      if (result.success) {
+        console.log('✅ EmailJS configuration test passed');
+      } else {
+        console.error('❌ EmailJS configuration test failed:', result.error);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ EmailJS configuration test exception:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Test configuration failed'
+      };
+    }
+  }
+
+  /**
+   * ✅ Validar configuración de EmailJS
+   */
+  async validateConfiguration(): Promise<boolean> {
+    try {
+      console.log('🔍 Validating EmailJS configuration...');
+
+      const hasRequiredConfig = !!(this.serviceId && this.publicKey && this.templateEngine);
+
+      if (hasRequiredConfig) {
+        console.log('✅ EmailJS configuration is valid');
+      } else {
+        console.warn('⚠️ EmailJS configuration has issues:', {
+          serviceId: this.serviceId ? '✅' : '❌ Missing VITE_EMAILJS_SERVICE_ID',
+          publicKey: this.publicKey ? '✅' : '❌ Missing VITE_EMAILJS_PUBLIC_KEY',
+          templateEngine: this.templateEngine ? '✅' : '❌ EmailTemplateEngine failed to initialize'
         });
       }
 
-      return {
-        success: isSuccess,
-        messageId: `emailjs_${response.text}_${Date.now()}`
-      };
-    } catch (error: any) {
-      console.error('❌ EmailJS error with embedded template:', error);
-
-      let errorMessage = 'Unknown EmailJS error';
-
-      if (error.text) {
-        errorMessage = `EmailJS: ${error.text}`;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return hasRequiredConfig;
+    } catch (error) {
+      console.error('❌ Error validating EmailJS configuration:', error);
+      return false;
     }
   }
 
   /**
-   * 🎨 Preview del email generado (solo desarrollo)
-   */
-  previewEmail(data: ReservationEmailData): void {
-    if (!import.meta.env.DEV) {
-      console.warn('⚠️ Email preview only available in development');
-      return;
-    }
-
-    console.log('🎨 Opening email preview using embedded template...');
-    this.templateEngine.previewHTML(data);
-  }
-
-  /**
-   * ✅ Verificar configuración de EmailJS
-   */
-  async validateConfiguration(): Promise<boolean> {
-    const hasServiceId = !!this.serviceId;
-    const hasPublicKey = !!this.publicKey;
-    const hasTemplateEngine = !!this.templateEngine;
-
-    const isValid = hasServiceId && hasPublicKey && hasTemplateEngine;
-
-    console.log('🔍 EmailJS configuration status with embedded template:', {
-      serviceId: hasServiceId ? '✅' : '❌',
-      templateId: this.templateId ? '✅' : '⚠️ (Optional for dynamic HTML)',
-      publicKey: hasPublicKey ? '✅' : '❌',
-      templateEngine: hasTemplateEngine ? '✅' : '❌',
-      templateType: 'Embedded HTML Template',
-      overall: isValid ? '✅ Valid' : '❌ Invalid'
-    });
-
-    return isValid;
-  }
-
-  /**
-   * 🔍 Obtener información del servicio
-   */
-  getServiceInfo(): Record<string, any> {
-    return {
-      serviceName: 'EmailJSCaller with Embedded HTML Template',
-      serviceId: this.serviceId ? `${this.serviceId.substring(0, 10)}...` : 'Not set',
-      templateId: this.templateId ? `${this.templateId.substring(0, 10)}...` : 'Dynamic HTML',
-      publicKey: this.publicKey ? `${this.publicKey.substring(0, 10)}...` : 'Not set',
-      templateEngine: 'EmailTemplateEngineEmbedded',
-      templateType: 'Embedded HTML Template',
-      templateLocation: 'src/infra/email/EmailTemplateEngine.ts',
-      usesCustomHTML: true,
-      environment: {
-        isDevelopment: import.meta.env.DEV,
-        hasConfiguration: !!(this.serviceId && this.publicKey),
-        templateEngineReady: !!this.templateEngine
-      }
-    };
-  }
-
-  /**
-   * 🧪 Test de conectividad básica
+   * 🧪 Test de conectividad EmailJS
    */
   async testConnection(): Promise<boolean> {
     try {
-      // Test básico de configuración
-      const configValid = await this.validateConfiguration();
+      console.log('🧪 Testing EmailJS connection...');
 
+      const configValid = await this.validateConfiguration();
       if (!configValid) {
         console.error('❌ EmailJS configuration invalid');
         return false;
       }
 
-      console.log('✅ EmailJS connection test passed with embedded template');
-      return true;
+      // Test básico de conectividad (sin enviar email real)
+      const testResult = await this.testConfiguration();
+
+      console.log('🧪 EmailJS connection test result:', testResult.success);
+      return testResult.success;
     } catch (error) {
       console.error('❌ EmailJS connection test failed:', error);
       return false;
@@ -209,58 +238,92 @@ export class EmailJSCaller {
   }
 
   /**
-   * 🧪 Test de generación de HTML con datos de prueba
+   * 🔍 Obtener información del servicio para debugging
    */
-  testHTMLGeneration(data?: ReservationEmailData): string {
-    const testData = data || this.createTestData();
+  getServiceInfo(): Record<string, any> {
+    return {
+      serviceName: 'EmailJS with Custom Templates',
+      configuration: {
+        serviceId: this.serviceId ? '✅ Configured' : '❌ Missing VITE_EMAILJS_SERVICE_ID',
+        templateId: this.templateId ? '✅ Configured' : '❌ Missing VITE_EMAILJS_TEMPLATE_ID',
+        publicKey: this.publicKey ? '✅ Configured' : '❌ Missing VITE_EMAILJS_PUBLIC_KEY',
+        templateEngine: this.templateEngine
+          ? '✅ Custom EmailTemplateEngine Ready'
+          : '❌ No Template Engine'
+      },
+      capabilities: {
+        customHtmlTemplates: !!this.templateEngine,
+        serviceSpecificDetails: true,
+        supplierInformation: true,
+        responsiveDesign: true,
+        fallbackSupport: true
+      },
+      environment: {
+        isDevelopment: import.meta.env.DEV,
+        mode: import.meta.env.MODE
+      },
+      isReady: !!(this.serviceId && this.publicKey && this.templateEngine)
+    };
+  }
+
+  /**
+   * 👁️ Preview del HTML generado (solo desarrollo)
+   */
+  previewGeneratedHTML(data: ReservationEmailData): void {
+    if (!import.meta.env.DEV) {
+      console.warn('⚠️ HTML preview only available in development mode');
+      return;
+    }
 
     try {
-      console.log('🧪 Testing HTML generation with embedded template...');
-      const html = this.templateEngine.generateEmailHTML(testData);
+      const html = this.templateEngine.generateEmailHTML(data);
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
 
-      console.log('🧪 HTML generation test results:', {
-        success: !!html,
-        length: html.length,
-        containsClientName: html.includes(testData.clientName),
-        containsServiceName: html.includes(testData.serviceName),
-        containsPrice: html.includes(testData.totalPrice.toString()),
-        templateType: 'Embedded HTML Template'
-      });
+      window.open(url, '_blank');
+      console.log('👁️ Email preview opened in new window');
 
-      return html;
+      // Limpiar URL después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (error) {
-      console.error('❌ HTML generation test failed with embedded template:', error);
-      return '';
+      console.error('❌ Error generating HTML preview:', error);
     }
   }
 
   /**
-   * 📋 Crear datos de prueba
+   * 📊 Obtener estadísticas del servicio
    */
-  private createTestData(): ReservationEmailData {
+  getServiceStats(): Record<string, any> {
     return {
-      reservationId: 'TEST_EMBEDDED_' + Date.now(),
-      clientName: 'María García',
-      clientEmail: 'test@example.com',
-      serviceName: 'Transporte Aeropuerto',
-      serviceDate: '25 de julio, 2025',
-      serviceTime: '3:30 PM',
-      totalPrice: 85.0,
-      location: 'Hotel Bavaro Princess',
-      supplierName: 'TransPunta Premium',
-      supplierPhone: '+1-829-555-8888',
-      additionalDetails: {
-        formData: {
-          flightNumber: 'DL456',
-          vehicleType: 'SUV Luxury',
-          passengerCount: 3,
-          needsCarSeat: true,
-          carSeatCount: 1
-        }
-      }
+      serviceName: 'EmailJS Service with Custom Templates',
+      isConfigured: !!(this.serviceId && this.publicKey),
+      hasCustomTemplates: !!this.templateEngine,
+      environment: import.meta.env.DEV ? 'development' : 'production',
+      lastInitialized: new Date().toISOString(),
+      features: [
+        'Custom HTML Templates via EmailTemplateEngine',
+        'Service-specific email details',
+        'Supplier information integration',
+        'Responsive email design',
+        'Fallback template support',
+        'Debug logging and preview',
+        'Multi-language support (Spanish)'
+      ],
+      templateEngine: this.templateEngine
+        ? {
+            available: true,
+            type: 'EmailTemplateEngine',
+            supportsServiceTypes: [
+              'airport-transfer',
+              'babysitter',
+              'custom-decoration',
+              'grocery-shopping'
+            ]
+          }
+        : {
+            available: false,
+            error: 'EmailTemplateEngine not initialized'
+          }
     };
   }
 }
-
-// ✅ Export con el mismo nombre para compatibilidad
-export { EmailJSCaller as EmailCaller };

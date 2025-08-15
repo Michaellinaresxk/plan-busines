@@ -14,6 +14,7 @@ export default interface ReservationRepository {
     clientEmail: string,
     clientPhone: string,
     formData: Record<string, any>,
+    hostInfo: string,
     notes?: string
   ): Promise<Reservation>;
   updateReservationStatus(bookingId: string, status: ReservationStatus): Promise<Reservation>;

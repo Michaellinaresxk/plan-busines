@@ -20,6 +20,7 @@ export class ReservationResource implements ReservationRepository {
       clientEmail: apiReservation.clientEmail,
       clientPhone: apiReservation.clientPhone,
       formData: apiReservation.formData,
+      hostInfo: apiReservation.hostInfo,
       notes: apiReservation.notes
     });
   }

@@ -145,10 +145,10 @@
 
                 <!-- Status Badge -->
                 <div class="status-badge">
-                  <v-chip 
-                    :color="getEmailStatusColor(getReservationEmailStatus(reservation.bookingId))" 
-                    variant="elevated" 
-                    size="small" 
+                  <v-chip
+                    :color="getEmailStatusColor(getReservationEmailStatus(reservation.bookingId))"
+                    variant="elevated"
+                    size="small"
                     :prepend-icon="getEmailStatusIcon(getReservationEmailStatus(reservation.bookingId))">
                     {{ getEmailStatusText(getReservationEmailStatus(reservation.bookingId)) }}
                   </v-chip>
@@ -369,8 +369,8 @@
       <v-card v-if="isDevelopment" class="debug-panel" color="grey-lighten-4" variant="outlined">
         <v-card-text class="pa-2">
           <div class="text-caption">
-            <strong>DEBUG:</strong> 
-            Selected: {{ selectedReservations.length }} | 
+            <strong>DEBUG:</strong>
+            Selected: {{ selectedReservations.length }} |
             EmailService: {{ emailService ? '✅' : '❌' }} |
             Sending: {{ sendingEmails }}
           </div>
@@ -508,10 +508,10 @@ function getReservationEmailStatus(bookingId: string): string {
 // ✅ SERVICE DATE/TIME HELPERS
 function getServiceDate(reservation: ReservationView): string {
   if (!reservation) return 'N/A';
-  
+
   if (reservation.serviceDate) return reservation.serviceDate;
   if (reservation.formData?.date) return reservation.formData.date;
-  
+
   return reservation.bookingDate.toLocaleDateString('es-ES', {
     year: 'numeric',
     month: 'short',
@@ -521,9 +521,9 @@ function getServiceDate(reservation: ReservationView): string {
 
 function getServiceTime(reservation: ReservationView): string {
   if (!reservation) return 'N/A';
-  
+
   if (reservation.serviceTime) return reservation.serviceTime;
-  
+
   const { formData } = reservation;
   return (
     formData?.time ||
@@ -538,9 +538,9 @@ function getServiceTime(reservation: ReservationView): string {
 // ✅ SERVICE SPECIFIC INFO
 function getServiceSpecificInfo(reservation: ReservationView): string {
   if (!reservation.formData) return '';
-  
+
   const { formData, serviceId } = reservation;
-  
+
   switch (serviceId) {
     case 'airport-transfer':
       return `Vuelo: ${formData.flightNumber || 'N/A'} • Vehículo: ${formData.vehicleType || 'N/A'}`;

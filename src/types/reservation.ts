@@ -28,7 +28,7 @@ export interface BaseReservation {
 // Tipos específicos para cada servicio
 export interface AirportTransferReservation extends BaseReservation {
   flightNumber: string;
-  vehicleType: 'vanSmall' | 'vanMedium' | 'vanLarge' | 'suv';
+  vehicleType: 'suv' | 'van';
   passengerCount: number;
   kidsCount?: number;
   needsCarSeat?: boolean;

@@ -10,7 +10,11 @@ import {
   where,
   orderBy,
   Timestamp,
-  type Firestore
+  type Firestore,
+  CollectionReference,
+  type DocumentData,
+  Query,
+  QuerySnapshot
 } from 'firebase/firestore';
 import type {
   ApiReservation,
@@ -21,7 +25,15 @@ import type {
 export class ReservationCaller {
   private readonly COLLECTION_NAME = 'bookings';
 
-  constructor(private readonly db: Firestore) {}
+  constructor(
+    private readonly db: Firestore,
+    public readonly collection: (
+      firestore: Firestore,
+      path: string,
+      ...pathSegments: string[]
+    ) => CollectionReference<DocumentData>,
+    public readonly getDocs: (query: Query<DocumentData>) => Promise<QuerySnapshot<DocumentData>>
+  ) {}
 
   // Obtener todas las reservas (con ordenamiento simple)
   async getAllReservations(): Promise<ApiReservation[]> {
@@ -223,32 +235,56 @@ export class ReservationCaller {
 
   // Crear nueva reserva
   async createReservation(data: CreateReservationData): Promise<ApiReservation> {
-    try {
-      const reservationsRef = collection(this.db, this.COLLECTION_NAME);
+    console.log('📝 Creating reservation with host info:', {
+      ...data,
+      hasHostInfo: !!data.clientHostInfo,
+      hostInfoType: this.detectHostContactType(data.clientHostInfo)
+    });
 
-      // Agregar timestamps
-      const reservationData = {
-        ...data,
+    try {
+      const docData = {
+        serviceId: data.serviceId,
+        serviceName: data.serviceName,
         bookingDate: Timestamp.now(),
-        status: 'pending', // Estado inicial
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
+        status: 'pending',
+        totalPrice: data.totalPrice,
+        clientName: data.clientName,
+        clientEmail: data.clientEmail,
+        clientPhone: data.clientPhone,
+        hostInfo: data.hostInfo, // ✅ NEW: Store host info
+        formData: data.formData,
+        notes: data.notes || ''
       };
 
-      const docRef = await addDoc(reservationsRef, reservationData);
+      const docRef = await addDoc(this.collection(this.db, 'reservations'), docData);
 
-      // Obtener la reserva creada
-      const createdReservation = await this.getReservationById(docRef.id);
+      console.log('✅ Reservation created with host info:', {
+        id: docRef.id,
+        clientName: data.clientName,
+        hasHostInfo: !!data.hostInfo
+      });
 
-      if (!createdReservation) {
-        throw new Error('Failed to create reservation');
-      }
-
-      return createdReservation;
+      return {
+        bookingId: docRef.id,
+        ...docData
+      };
     } catch (error) {
-      console.error('Error creating reservation:', error);
+      console.error('❌ Error creating reservation:', error);
       throw error;
     }
+  }
+
+  // ✅ NEW: Helper method to detect host contact type
+  private detectHostContactType(hostInfo: string): 'email' | 'phone' | 'unknown' {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phonePattern = /^[\+]?[\d\s\-\(\)]+$/;
+
+    if (emailPattern.test(hostInfo)) {
+      return 'email';
+    } else if (phonePattern.test(hostInfo)) {
+      return 'phone';
+    }
+    return 'unknown';
   }
 
   // Eliminar reserva

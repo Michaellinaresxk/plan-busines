@@ -12,6 +12,7 @@ export type ApiReservation = {
   clientEmail: string;
   clientPhone: string;
   formData: Record<string, any>; // Objeto dinámico con propiedades específicas
+  hostInfo: string;
   notes?: string;
 };
 
@@ -24,6 +25,7 @@ export type CreateReservationData = {
   clientEmail: string;
   clientPhone: string;
   formData: Record<string, any>;
+  hostInfo: string;
   notes?: string;
 };
 
@@ -33,4 +35,5 @@ export type UpdateReservationData = {
   totalPrice?: number;
   notes?: string;
   formData?: Record<string, any>;
+  hostInfo: string;
 };

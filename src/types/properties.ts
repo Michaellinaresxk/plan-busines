@@ -67,3 +67,28 @@ export interface PaymentProperties {
   refundAmount?: number;
   webhookData?: Record<string, any>;
 }
+
+export interface ServiceProperties {
+  id: string;
+  title: string;
+  category: string;
+  basePrice: number;
+  currency: string;
+  description?: string;
+  isActive: boolean;
+  variants?: ServiceVariant[];
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ServiceVariant {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  isAvailable: boolean;
+  maxCapacity?: number;
+  features?: string[];
+  imageUrl?: string;
+}

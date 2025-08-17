@@ -88,6 +88,14 @@ const router = createRouter({
         requiresAuth: true,
         title: 'Todas las reservas'
       }
+    },
+    {
+      path: '/inventory',
+      name: 'Inventory',
+      component: () => import('@/UI/pages/InventoryPage.vue'),
+      meta: {
+        title: 'Inventario de Servicios'
+      }
     }
   ]
 });

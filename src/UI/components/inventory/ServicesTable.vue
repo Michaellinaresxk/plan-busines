@@ -14,9 +14,10 @@
       </v-text-field>
       <v-btn
         color="primary"
-        prepend-icon="mdi-plus"
+        :prepend-icon="$vuetify.display.smAndUp ? 'mdi-plus' : undefined"
+        :icon="$vuetify.display.xs ? 'mdi-plus' : undefined"
         @click="$emit('create-service')">
-        Nuevo
+        <span v-if="$vuetify.display.smAndUp">Nuevo</span>
       </v-btn>
       <v-btn
         variant="outlined"
@@ -26,8 +27,8 @@
       </v-btn>
     </div>
 
-    <!-- Tabla Real Responsive -->
-    <div class="table-wrapper">
+    <!-- Desktop: Tabla Normal -->
+    <div v-if="$vuetify.display.mdAndUp" class="table-wrapper">
       <v-data-table
         :headers="tableHeaders"
         :items="filteredServices"
@@ -51,7 +52,7 @@
           </div>
         </template>
 
-        <!-- Variantes Column - CON COMUNICACIÓN MEJORADA -->
+        <!-- Variantes Column -->
         <template #item.variants="{ item }">
           <div class="variants-cell">
             <ServiceVariantSelector
@@ -60,7 +61,7 @@
           </div>
         </template>
 
-        <!-- Precio Base Column - CON MARGEN ACTUALIZADO -->
+        <!-- Precio Base Column -->
         <template #item.priceBase="{ item }">
           <div class="price-base-cell">
             <div class="price-row provider">
@@ -71,15 +72,10 @@
               <span class="price-icon">💳</span>
               <span class="price-text">Cliente: <strong>${{ formatPrice(getClientPrice(item)) }}</strong></span>
             </div>
-            <!-- FILA DE MARGEN ACTUALIZADA -->
-            <div class="price-row margin">
-              <span class="price-icon">📈</span>
-              <span class="price-text">Margen: <strong>{{ getProfitMargin(item) }}%</strong></span>
-            </div>
           </div>
         </template>
 
-        <!-- Taxes Column - ACTUALIZADA -->
+        <!-- Taxes Column -->
         <template #item.taxes="{ item }">
           <div class="taxes-cell">
             <div class="percentage-value">{{ getTaxPercentage(item) }}%</div>
@@ -87,11 +83,11 @@
           </div>
         </template>
 
-        <!-- Ganancia Column - ACTUALIZADA -->
+        <!-- Ganancia Column -->
         <template #item.profit="{ item }">
           <div class="profit-cell">
             <div class="percentage-value profit-color">{{ getProfitPercentage(item) }}%</div>
-            <div class="amount-value profit-color">${{ formatPrice(getServiceProfit(item)) }}</div>
+            <div class="amount-value profit-color">${{ formatPrice(getServiceProfit(item)) }} US</div>
           </div>
         </template>
 
@@ -100,12 +96,7 @@
           <div class="actions-cell">
             <v-menu>
               <template v-slot:activator="{ props }">
-                <v-btn
-                  icon="mdi-dots-vertical"
-                  variant="text"
-                  size="small"
-                  v-bind="props">
-                </v-btn>
+                <v-btn icon="mdi-dots-vertical" variant="text" size="small" v-bind="props"></v-btn>
               </template>
               <v-list density="compact">
                 <v-list-item @click="editService(item)">
@@ -146,11 +137,7 @@
             <v-icon icon="mdi-package-variant-closed" size="64" color="grey-lighten-2" class="mb-4"></v-icon>
             <h3 class="mb-2">No hay servicios</h3>
             <p class="mb-4">{{ searchQuery ? 'No se encontraron resultados' : 'Crea tu primer servicio' }}</p>
-            <v-btn
-              v-if="!searchQuery"
-              color="primary"
-              prepend-icon="mdi-plus"
-              @click="$emit('create-service')">
+            <v-btn v-if="!searchQuery" color="primary" prepend-icon="mdi-plus" @click="$emit('create-service')">
               Crear Servicio
             </v-btn>
           </div>
@@ -158,8 +145,172 @@
       </v-data-table>
     </div>
 
-    <!-- 🚀 DEBUG PANEL (opcional - puedes remover en producción) -->
-    <v-card v-if="Object.keys(selectedVariants).length > 0" class="mt-4" variant="outlined">
+    <!-- Mobile: Cards -->
+    <div v-else class="mobile-view">
+      <v-progress-circular
+        v-if="loading"
+        indeterminate
+        color="primary"
+        size="32"
+        class="mx-auto my-8">
+      </v-progress-circular>
+
+      <div v-else-if="filteredServices.length === 0" class="empty-state">
+        <v-icon icon="mdi-package-variant-closed" size="64" color="grey-lighten-2" class="mb-4"></v-icon>
+        <h3 class="mb-2">No hay servicios</h3>
+        <p class="mb-4">{{ searchQuery ? 'No se encontraron resultados' : 'Crea tu primer servicio' }}</p>
+        <v-btn v-if="!searchQuery" color="primary" prepend-icon="mdi-plus" @click="$emit('create-service')">
+          Crear Servicio
+        </v-btn>
+      </div>
+
+      <!-- Lista de Cards para Mobile -->
+      <div v-else class="mobile-cards">
+        <v-card
+          v-for="service in filteredServices"
+          :key="service.id"
+          class="mobile-service-card"
+          elevation="2">
+
+          <!-- ========== LÍNEA 1: SERVICIO + VARIANTES ========== -->
+          <div class="mobile-section mobile-section-1">
+            <!-- Información del Servicio -->
+            <div class="service-info-container">
+              <v-avatar
+                :color="getServiceColor(service)"
+                size="40"
+                class="service-avatar-mobile">
+                <v-icon
+                  :icon="getServiceIcon(service)"
+                  color="white"
+                  size="20">
+                </v-icon>
+              </v-avatar>
+              <div class="service-text-info">
+                <h4 class="service-title-mobile">{{ service.title }}</h4>
+                <p class="service-category-mobile">{{ getServiceCategory(service) }}</p>
+              </div>
+            </div>
+
+            <!-- Selector de Variantes -->
+            <div class="variants-container">
+              <ServiceVariantSelector
+                :service="service"
+                is-mobile
+                @variant-changed="handleVariantChange" />
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <v-divider class="section-divider"></v-divider>
+
+          <!-- ========== LÍNEA 2: PROVEEDOR + CLIENTE + ACCIONES ========== -->
+          <div class="mobile-section mobile-section-2">
+            <!-- Contenedor de Precios Principales -->
+            <div class="main-prices-container">
+              <!-- Precio Proveedor -->
+              <div class="price-item-mobile">
+                <div class="price-label-container">
+                  <span class="price-emoji">💸</span>
+                  <span class="price-label-text">Proveedor</span>
+                </div>
+                <div class="price-value-mobile provider-color">
+                  ${{ formatPrice(getProviderPrice(service)) }}
+                </div>
+              </div>
+
+              <!-- Precio Cliente -->
+              <div class="price-item-mobile">
+                <div class="price-label-container">
+                  <span class="price-emoji">💳</span>
+                  <span class="price-label-text">Cliente</span>
+                </div>
+                <div class="price-value-mobile client-color">
+                  ${{ formatPrice(getClientPrice(service)) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="actions-container">
+              <v-menu location="bottom end">
+                <template v-slot:activator="{ props }">
+                  <v-btn
+                    icon="mdi-dots-vertical"
+                    variant="text"
+                    size="small"
+                    v-bind="props"
+                    class="actions-btn">
+                  </v-btn>
+                </template>
+                <v-list density="compact" min-width="120">
+                  <v-list-item @click="editService(service)">
+                    <template v-slot:prepend>
+                      <v-icon icon="mdi-pencil" size="16"></v-icon>
+                    </template>
+                    <v-list-item-title>Editar</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item @click="duplicateService(service)">
+                    <template v-slot:prepend>
+                      <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                    </template>
+                    <v-list-item-title>Duplicar</v-list-item-title>
+                  </v-list-item>
+                  <v-divider></v-divider>
+                  <v-list-item @click="deleteService(service)" class="text-error">
+                    <template v-slot:prepend>
+                      <v-icon icon="mdi-delete" size="16" color="error"></v-icon>
+                    </template>
+                    <v-list-item-title>Eliminar</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </div>
+          </div>
+
+          <!-- ========== LÍNEA 3: TAXES + GANANCIAS ========== -->
+          <div class="mobile-section mobile-section-3">
+            <div class="secondary-prices-container">
+              <!-- Taxes -->
+              <div class="price-item-mobile">
+                <div class="price-label-container">
+                  <span class="price-emoji">📊</span>
+                  <span class="price-label-text">Taxes</span>
+                </div>
+                <div class="price-details-mobile">
+                  <div class="price-percentage taxes-color">
+                    {{ getTaxPercentage(service) }}%
+                  </div>
+                  <div class="price-amount-mobile">
+                    ${{ formatPrice(getServiceTaxes(service)) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ganancias -->
+              <div class="price-item-mobile">
+                <div class="price-label-container">
+                  <span class="price-emoji">📈</span>
+                  <span class="price-label-text">Ganancia</span>
+                </div>
+                <div class="price-details-mobile">
+                  <div class="price-percentage profit-color">
+                    {{ getProfitPercentage(service) }}%
+                  </div>
+                  <div class="price-amount-mobile">
+                    ${{ formatPrice(getServiceProfit(service)) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </v-card>
+      </div>
+    </div>
+
+    <!-- Debug Panel (opcional) -->
+    <v-card v-if="isDev && Object.keys(selectedVariants).length > 0" class="mt-4" variant="outlined">
       <v-card-title>
         <v-icon icon="mdi-bug" class="mr-2"></v-icon>
         Debug: Variantes Seleccionadas
@@ -197,53 +348,21 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const searchQuery = ref('');
-
-// 🚀 ESTADO REACTIVO PARA VARIANTES SELECCIONADAS
 const selectedVariants = ref<Record<string, any>>({});
+const isDev = process.env.NODE_ENV === 'development';
 
-// Headers de la tabla
+// Headers de la tabla (desktop)
 const tableHeaders = [
-  {
-    title: 'Servicio',
-    key: 'service',
-    sortable: true,
-    width: '30%'
-  },
-  {
-    title: 'Variantes',
-    key: 'variants',
-    sortable: false,
-    width: '25%'
-  },
-  {
-    title: 'Precio Base',
-    key: 'priceBase',
-    sortable: false,
-    width: '25%'
-  },
-  {
-    title: 'Taxes',
-    key: 'taxes',
-    sortable: true,
-    width: '10%'
-  },
-  {
-    title: 'Ganancia',
-    key: 'profit',
-    sortable: true,
-    width: '8%'
-  },
-  {
-    title: '',
-    key: 'actions',
-    sortable: false,
-    width: '2%'
-  }
+  { title: 'Servicio', key: 'service', sortable: true, width: '30%' },
+  { title: 'Variantes', key: 'variants', sortable: false, width: '25%' },
+  { title: 'Precio Base', key: 'priceBase', sortable: false, width: '25%' },
+  { title: 'Taxes', key: 'taxes', sortable: true, width: '10%' },
+  { title: 'Ganancia', key: 'profit', sortable: true, width: '8%' },
+  { title: '', key: 'actions', sortable: false, width: '2%' }
 ];
 
 const filteredServices = computed(() => {
   if (!searchQuery.value) return props.services;
-
   const query = searchQuery.value.toLowerCase();
   return props.services.filter(service =>
     service.title.toLowerCase().includes(query) ||
@@ -251,22 +370,19 @@ const filteredServices = computed(() => {
   );
 });
 
-// 🚀 HELPER FUNCTION MEJORADA - Obtener datos de servicio con variante
+// Helper function mejorada - Obtener datos de servicio con variante
 function getServiceData(service: ServiceView) {
   const selectedVariant = selectedVariants.value[service.id];
   if (!selectedVariant) return service;
 
-  // Combinar datos del servicio con la variante seleccionada
   const serviceData = { ...service };
-
   if (selectedVariant.fieldKey !== 'base') {
     serviceData[selectedVariant.fieldKey] = selectedVariant.optionValue;
   }
-
   return serviceData;
 }
 
-// Helper functions - ACTUALIZADOS PARA USAR VARIANTES SELECCIONADAS
+// Helper functions - actualizados para usar variantes seleccionadas
 function getServiceColor(service: ServiceView): string {
   const config = getServiceConfig(service.category);
   return config?.color || '#6366F1';
@@ -282,7 +398,7 @@ function getServiceCategory(service: ServiceView): string {
   return config?.name || service.category;
 }
 
-// 🚀 FUNCIONES DE PRECIO ACTUALIZADAS - Usar variante seleccionada
+// Funciones de precio actualizadas - usar variante seleccionada
 function getProviderPrice(service: ServiceView): number {
   const selectedVariant = selectedVariants.value[service.id];
 
@@ -290,7 +406,6 @@ function getProviderPrice(service: ServiceView): number {
     return selectedVariant.calculation.subtotal;
   }
 
-  // Fallback: cálculo tradicional
   const config = getServiceConfig(service.category);
   if (!config) return service.basePrice;
 
@@ -310,7 +425,6 @@ function getServiceProfit(service: ServiceView): number {
     return selectedVariant.calculation.profit;
   }
 
-  // Fallback: cálculo tradicional
   const config = getServiceConfig(service.category);
   if (!config) return 0;
 
@@ -330,7 +444,6 @@ function getServiceTaxes(service: ServiceView): number {
     return selectedVariant.calculation.taxes;
   }
 
-  // Fallback: cálculo tradicional
   const config = getServiceConfig(service.category);
   if (!config) return 0;
 
@@ -351,7 +464,6 @@ function getClientPrice(service: ServiceView): number {
     return selectedVariant.calculation.clientPays;
   }
 
-  // Fallback: cálculo tradicional
   try {
     const serviceData = getServiceData(service);
     const calculation = calculateServicePrice(service.category, serviceData);
@@ -359,36 +471,6 @@ function getClientPrice(service: ServiceView): number {
   } catch {
     const subtotal = getProviderPrice(service) + getServiceProfit(service);
     return subtotal + getServiceTaxes(service);
-  }
-}
-
-// 🚀 FUNCIÓN ACTUALIZADA: Margen de Ganancia
-function getProfitMargin(service: ServiceView): string {
-  const selectedVariant = selectedVariants.value[service.id];
-
-  if (selectedVariant?.calculation) {
-    const calc = selectedVariant.calculation;
-    if (calc.subtotal === 0) return '0';
-    const margin = (calc.profit / calc.subtotal) * 100;
-    return Math.round(margin).toString();
-  }
-
-  // Fallback: cálculo tradicional
-  try {
-    const serviceData = getServiceData(service);
-    const calculation = calculateServicePrice(service.category, serviceData);
-
-    if (calculation.subtotal === 0) return '0';
-
-    const margin = (calculation.profit / calculation.subtotal) * 100;
-    return Math.round(margin).toString();
-  } catch (error) {
-    // Fallback final: usar configuración base
-    const config = getServiceConfig(service.category);
-    if (config) {
-      return Math.round(config.baseProfit * 100).toString();
-    }
-    return '30'; // Default 30%
   }
 }
 
@@ -406,19 +488,11 @@ function formatPrice(price: number): string {
   return Math.round(price).toString();
 }
 
-// 🚀 EVENT HANDLER MEJORADO - Manejar cambios de variante
+// Event handler mejorado - manejar cambios de variante
 function handleVariantChange(serviceId: string, variantData: any) {
   console.log('🚀 ServicesTable: Variant changed for service:', serviceId, variantData);
-
-  // Actualizar el estado reactivo
   selectedVariants.value[serviceId] = variantData;
-
   console.log('📊 Updated selected variants:', selectedVariants.value);
-
-  // Opcional: Forzar re-render si es necesario
-  // nextTick(() => {
-  //   console.log('🔄 Prices recalculated for service:', serviceId);
-  // });
 }
 
 function editService(service: ServiceView) {
@@ -437,11 +511,17 @@ function deleteService(service: ServiceView) {
 </script>
 
 <style scoped>
+/* ========================================
+   ESTILOS GENERALES
+======================================== */
 .services-table-container {
   width: 100%;
+  padding: 16px;
 }
 
-/* Search Bar */
+/* ========================================
+   SEARCH BAR
+======================================== */
 .search-bar {
   display: flex;
   gap: 12px;
@@ -450,15 +530,19 @@ function deleteService(service: ServiceView) {
 }
 
 .search-field {
+  flex: 1;
   max-width: 400px;
 }
 
-/* Table Wrapper */
+/* ========================================
+   DESKTOP TABLE - ESTILOS EXISTENTES
+======================================== */
 .table-wrapper {
   background: white;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .responsive-table {
@@ -528,7 +612,7 @@ function deleteService(service: ServiceView) {
   min-width: 200px;
 }
 
-/* Price Base Cell - ACTUALIZADO CON MARGEN */
+/* Price Base Cell */
 .price-base-cell {
   display: flex;
   flex-direction: column;
@@ -554,16 +638,6 @@ function deleteService(service: ServiceView) {
 .price-row.client {
   color: #1976d2;
   font-weight: 500;
-}
-
-/* NUEVO: Estilo para margen de ganancia */
-.price-row.margin {
-  color: #388e3c;
-  font-size: 0.8rem;
-}
-
-.price-row.margin .price-text {
-  font-weight: 600;
 }
 
 .price-icon {
@@ -634,76 +708,298 @@ function deleteService(service: ServiceView) {
   color: #666;
 }
 
-/* Responsive Design */
+/* ========================================
+   MOBILE LAYOUT - PERFECTAMENTE ORGANIZADO
+======================================== */
+.mobile-view {
+  width: 100%;
+}
+
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-service-card {
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== SECCIONES MÓVILES ========== */
+.mobile-section {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+}
+
+.mobile-section-1 {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.mobile-section-2 {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.mobile-section-3 {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* ========== DIVIDER ========== */
+.section-divider {
+  margin: 12px 0;
+  border-color: #e5e7eb;
+}
+
+/* ========== LÍNEA 1: SERVICIO + VARIANTES ========== */
+.service-info-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.service-avatar-mobile {
+  flex-shrink: 0;
+}
+
+.service-text-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-title-mobile {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.service-category-mobile {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.variants-container {
+  flex-shrink: 0;
+  min-width: 180px;
+  max-width: 220px;
+}
+
+/* ========== LÍNEA 2: PROVEEDOR + CLIENTE + ACCIONES ========== */
+.main-prices-container {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  align-items: center;
+}
+
+.actions-container {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.actions-btn {
+  border-radius: 8px;
+}
+
+/* ========== LÍNEA 3: TAXES + GANANCIAS ========== */
+.secondary-prices-container {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  align-items: center;
+}
+
+/* ========== ELEMENTOS DE PRECIO MÓVIL ========== */
+.price-item-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.price-label-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.price-emoji {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.price-label-text {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.price-value-mobile {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.price-details-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.price-percentage {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.price-amount-mobile {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* ========== COLORES ========== */
+.provider-color {
+  color: #dc2626;
+}
+
+.client-color {
+  color: #2563eb;
+}
+
+.taxes-color {
+  color: #f59e0b;
+}
+
+.profit-color {
+  color: #16a34a;
+}
+
+/* ========================================
+   RESPONSIVE BREAKPOINTS
+======================================== */
 @media (max-width: 768px) {
   .search-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
 
   .search-field {
     max-width: none;
   }
+}
 
-  .responsive-table :deep(.v-data-table__th),
-  .responsive-table :deep(.v-data-table__td) {
-    padding: 8px 4px;
+@media (max-width: 600px) {
+  .services-table-container {
+    padding: 12px;
   }
 
-  .responsive-table :deep(.v-data-table__th) {
-    font-size: 0.8rem;
+  .mobile-cards {
+    gap: 12px;
   }
 
-  .service-main {
-    gap: 8px;
+  .mobile-service-card {
+    padding: 16px;
   }
 
-  .service-name {
-    font-size: 0.85rem;
+  .mobile-section-1 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 10px;
   }
 
-  .service-category {
-    font-size: 0.75rem;
+  .variants-container {
+    min-width: auto;
+    max-width: none;
   }
 
-  .price-row {
-    font-size: 0.75rem;
+  .main-prices-container {
+    gap: 16px;
   }
 
-  .price-icon {
-    font-size: 0.9rem;
-    width: 16px;
+  .secondary-prices-container {
+    gap: 16px;
   }
 
-  .percentage-value {
+  .service-title-mobile {
     font-size: 0.95rem;
   }
 
-  .amount-value {
+  .service-category-mobile {
+    font-size: 0.8rem;
+  }
+
+  .price-value-mobile {
+    font-size: 0.9rem;
+  }
+
+  .price-percentage {
+    font-size: 0.85rem;
+  }
+
+  .price-label-text {
+    font-size: 0.75rem;
+  }
+
+  .price-amount-mobile {
     font-size: 0.75rem;
   }
 }
 
-@media (max-width: 600px) {
-  .responsive-table :deep(.v-data-table__th) {
-    font-size: 0.75rem;
-    padding: 6px 2px;
+@media (max-width: 480px) {
+  .mobile-service-card {
+    padding: 14px;
   }
 
-  .responsive-table :deep(.v-data-table__td) {
-    padding: 12px 2px;
+  .service-info-container {
+    gap: 10px;
   }
 
-  .service-name {
-    font-size: 0.8rem;
+  .main-prices-container {
+    gap: 12px;
   }
 
-  .price-row {
-    font-size: 0.7rem;
+  .secondary-prices-container {
+    gap: 12px;
   }
 
-  .percentage-value {
+  .service-title-mobile {
+    font-size: 0.9rem;
+  }
+
+  .price-value-mobile {
     font-size: 0.85rem;
+  }
+
+  .price-percentage {
+    font-size: 0.8rem;
   }
 }
 </style>

@@ -435,7 +435,7 @@
                       <v-icon icon="mdi-chart-bar" size="20"></v-icon>
                     </div>
                     <div class="action-content">
-                      <span class="action-title">Analytics</span>
+                      <span class="action-title">Inventario</span>
                       <span class="action-count">Ver</span>
                     </div>
                   </button>
@@ -776,7 +776,7 @@ function goToSuppliers() {
 }
 
 function goToStats() {
-  showNotification('Estadísticas próximamente', 'info', 'mdi-information');
+  router.push({ path: '/inventory' });
 }
 
 function goToAllReservations() {

@@ -1,8 +1,11 @@
 <template>
-  <div class="service-variant-selector">
+  <div class="service-variant-selector" :class="{ 'is-mobile': isMobile }">
     <!-- Si no hay configuración -->
     <div v-if="!serviceConfig" class="no-variants">
-      <v-chip size="small" color="grey" variant="tonal">
+      <v-chip
+        :size="isMobile ? 'x-small' : 'small'"
+        color="grey"
+        variant="tonal">
         Sin configuración
       </v-chip>
     </div>
@@ -13,63 +16,45 @@
       <v-select
         v-model="selectedVariantKey"
         :items="variantOptions"
-        label="Seleccionar Variante"
+        :label="isMobile ? 'Variante' : 'Seleccionar Variante'"
         variant="outlined"
-        density="compact"
+        :density="isMobile ? 'compact' : 'comfortable'"
         hide-details
+        :menu-props="{ maxHeight: isMobile ? '200px' : '300px', offsetY: true }"
         class="variant-select">
         <template #selection="{ item }">
           <div class="d-flex align-center">
             <v-icon
               :icon="serviceConfig?.icon || 'mdi-tune-variant'"
               :color="serviceConfig?.color || 'primary'"
-              size="16"
+              :size="isMobile ? 14 : 16"
               class="mr-2">
             </v-icon>
-            <span class="text-caption">{{ item.title }}</span>
+            <span :class="isMobile ? 'text-caption' : 'text-body-2'">
+              {{ truncateText(item.title, isMobile ? 15 : 25) }}
+            </span>
           </div>
         </template>
-        <template #item="{ props, item }">
-          <v-list-item v-bind="props">
+        <template #item="{ props: itemProps, item }">
+          <v-list-item v-bind="itemProps">
             <template #prepend>
               <v-icon
                 :icon="serviceConfig?.icon || 'mdi-tune-variant'"
                 :color="serviceConfig?.color || 'primary'"
-                size="16">
+                :size="isMobile ? 14 : 16">
               </v-icon>
             </template>
             <template #append>
-              <v-chip size="small" :color="serviceConfig?.color || 'primary'" variant="tonal">
+              <v-chip
+                :size="isMobile ? 'x-small' : 'small'"
+                :color="serviceConfig?.color || 'primary'"
+                variant="tonal">
                 ${{ formatPrice(item.raw.calculatedPrice) }}
               </v-chip>
             </template>
           </v-list-item>
         </template>
       </v-select>
-
-      <!-- Detalles de la variante seleccionada - SIMPLIFICADO -->
-      <div v-if="selectedVariantData" class="variant-details mt-2">
-        <div class="variant-summary">
-          <div class="variant-name-display">
-            <v-icon
-              :icon="serviceConfig?.icon || 'mdi-tune-variant'"
-              :color="serviceConfig?.color || 'primary'"
-              size="14"
-              class="mr-1">
-            </v-icon>
-            <span class="text-caption font-weight-medium">{{ selectedVariantData.label }}</span>
-          </div>
-
-          <div class="variant-price-display">
-            <v-chip
-              :color="serviceConfig?.color || 'primary'"
-              size="small"
-              variant="tonal">
-              ${{ formatPrice(selectedVariantData.calculatedPrice) }}
-            </v-chip>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -81,13 +66,17 @@ import type { ServiceView } from '@/views/ServiceView';
 
 interface Props {
   service: ServiceView;
+  isMobile?: boolean;
 }
 
 interface Emits {
   'variant-changed': [serviceId: string, variantData: any];
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isMobile: false
+});
+
 const emit = defineEmits<Emits>();
 
 // Estado del selector
@@ -220,6 +209,12 @@ const variantCalculation = computed<PriceCalculation | null>(() => {
   }
 });
 
+// Función para truncar texto
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + '...';
+}
+
 // 🚀 NUEVA FUNCIÓN: Emitir cambios de variante
 function emitVariantChange() {
   if (!selectedVariantData.value || !variantCalculation.value) {
@@ -288,10 +283,25 @@ onMounted(() => {
   width: 100%;
 }
 
+.is-mobile {
+  max-width: 100%;
+}
+
+/* Selector Styles */
 .variant-select {
   max-width: 100%;
 }
 
+.is-mobile .variant-select :deep(.v-field__input) {
+  font-size: 0.875rem;
+  min-height: 36px;
+}
+
+.is-mobile .variant-select :deep(.v-field__append-inner) {
+  padding-left: 4px;
+}
+
+/* Variant Details Desktop */
 .variant-summary {
   display: flex;
   justify-content: space-between;
@@ -312,18 +322,67 @@ onMounted(() => {
   align-items: center;
 }
 
-.no-variants {
-  text-align: center;
-  padding: 16px;
+/* Mobile Variant Details */
+.mobile-variant-details {
+  margin-top: 4px;
 }
 
-@media (max-width: 768px) {
-  .price-item {
-    margin-bottom: 8px;
+.mobile-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  background: rgba(var(--v-theme-surface-variant), 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(var(--v-theme-outline), 0.1);
+}
+
+.variant-info {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.variant-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #666;
+}
+
+/* No Variants */
+.no-variants {
+  text-align: center;
+  padding: 12px;
+}
+
+.is-mobile .no-variants {
+  padding: 8px;
+}
+
+/* Responsive Optimizations */
+@media (max-width: 600px) {
+  .service-variant-selector {
+    font-size: 0.875rem;
   }
 
-  .variant-features {
-    justify-content: center;
+  .variant-select :deep(.v-field__input) {
+    min-height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .variant-summary {
+    padding: 4px 6px;
+  }
+
+  .variant-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .variant-select :deep(.v-field__input) {
+    min-height: 30px;
+    font-size: 0.75rem;
   }
 }
 </style>

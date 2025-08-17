@@ -66,7 +66,7 @@
 
       <v-list nav class="nav-list">
 
-        <v-list-item prepend-icon="mdi-chart-bar" title="Inventario" value="inventory" :active="currentRoute === '/inventory'"
+        <v-list-item prepend-icon="mdi-alarm-panel" title="Inventario" value="inventory" :active="currentRoute === '/inventory'"
           color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/inventory' }"
           to="/inventory"></v-list-item>
 
@@ -80,36 +80,7 @@
       </v-list>
     </div>
 
-    <!-- Botón de acción y perfil -->
-    <template v-slot:append>
-      <div class="actions-container pa-3" v-if="!railModel">
-        <v-btn block color="primary" variant="elevated" prepend-icon="mdi-plus" class="action-btn mb-3" elevation="1"
-          rounded="lg" @click="createNewReservation">
-          Nueva reserva
-        </v-btn>
-      </div>
 
-      <div v-if="!railModel" class="user-profile px-3 py-3 mx-3 mb-3 d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <v-avatar color="primary" variant="tonal" size="36" class="mr-2 user-avatar">
-            <span class="text-primary font-weight-bold">AM</span>
-          </v-avatar>
-          <div>
-            <p class="text-body-2 mb-0 font-weight-medium">Admin Manager</p>
-            <p class="text-caption text-medium-emphasis">admin@example.com</p>
-          </div>
-        </div>
-        <v-btn icon="mdi-logout" size="small" variant="text" color="primary" class="logout-btn"
-          @click="handleLogout"></v-btn>
-      </div>
-
-      <!-- Avatar compacto en modo rail -->
-      <div class="d-flex justify-center" v-else>
-        <v-avatar color="primary" size="36" class="mb-3 user-avatar-rail">
-          <span class="text-caption">AM</span>
-        </v-avatar>
-      </div>
-    </template>
   </v-navigation-drawer>
 </template>
 

@@ -59,11 +59,17 @@
       <!-- Sección Análisis -->
       <v-divider class="my-3" v-show="!railModel"></v-divider>
 
+
       <v-list-subheader v-show="!railModel" class="text-overline font-weight-bold text-primary px-2">
         Análisis
       </v-list-subheader>
 
       <v-list nav class="nav-list">
+
+        <v-list-item prepend-icon="mdi-chart-bar" title="Inventario" value="inventory" :active="currentRoute === '/inventory'"
+          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/inventory' }"
+          to="/inventory"></v-list-item>
+
         <v-list-item prepend-icon="mdi-history" title="Historial" value="all-reservations" :active="currentRoute === '/all-reservations'"
           color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/all-reservations' }"
           to="/all-reservations"></v-list-item>

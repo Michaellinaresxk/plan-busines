@@ -4,6 +4,7 @@ import { provide } from 'vue';
 import { userService, userServiceKey } from "@/services/userService";
 import { supplierService, supplierServiceKey } from "@/services/SupplierService";
 import { emailService, emailServiceKey } from "@/services/EmailService";
+import { serviceService, serviceServiceKey} from "@/services/ServiceService";
 
 
 import {
@@ -22,6 +23,7 @@ provide(supplierServiceKey, supplierService);
 provide(whatsappServiceKey, whatsappService);
 provide(reservationSupplierServiceKey, reservationSupplierService);
 provide(emailServiceKey, emailService);
+provide(serviceServiceKey, serviceService);
 
 </script>
 

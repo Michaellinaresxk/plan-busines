@@ -365,17 +365,6 @@
         </template>
       </v-snackbar>
 
-      <!-- ✅ DEBUG INFO (Solo en desarrollo) -->
-      <v-card v-if="isDevelopment" class="debug-panel" color="grey-lighten-4" variant="outlined">
-        <v-card-text class="pa-2">
-          <div class="text-caption">
-            <strong>DEBUG:</strong>
-            Selected: {{ selectedReservations.length }} |
-            EmailService: {{ emailService ? '✅' : '❌' }} |
-            Sending: {{ sendingEmails }}
-          </div>
-        </v-card-text>
-      </v-card>
     </v-layout>
   </v-app>
 </template>

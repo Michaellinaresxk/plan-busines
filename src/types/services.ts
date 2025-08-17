@@ -61,3 +61,14 @@ export interface ServiceData {
   availability?: Availability;
   metaData?: Record<string, any>;
 }
+
+export interface ServiceVariant {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  isAvailable: boolean;
+  maxCapacity?: number;
+  features?: string[];
+  imageUrl?: string;
+}

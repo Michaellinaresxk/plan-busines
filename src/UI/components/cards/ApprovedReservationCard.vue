@@ -1,100 +1,82 @@
 <template>
   <div
-    @click="$emit('click')"
-    class="reservation-card"
-    :class="{ 'selected': isSelected }"
+    class="approved-card"
+    :class="{ 'payment-sent': paymentStatus === 'sent' }"
   >
-    <!-- Glass Background Overlay -->
-    <div class="glass-background"></div>
 
-    <!-- Top Section: Service & Selection -->
-    <div class="top-section">
-      <div class="service-header">
-        <div class="service-icon-container">
-          <div class="service-icon" :style="{ backgroundColor: serviceColor }">
-            <v-icon :icon="serviceIcon" size="24" color="white" />
-          </div>
-          <div class="service-glow" :style="{ backgroundColor: serviceColor }"></div>
-        </div>
-
-        <div class="service-info">
-          <h3 class="service-title">{{ displayServiceName }}</h3>
-          <div class="ready-status">
-            <div class="status-pulse"></div>
-            <span>Ready</span>
-          </div>
-        </div>
+    <!-- 📋 Service Header -->
+    <div class="service-header">
+      <div class="service-badge" :style="{ backgroundColor: serviceColor }">
+        <v-icon :icon="serviceIcon" size="16" color="white" />
       </div>
-
-      <div class="selection-area">
-        <v-checkbox
-          :model-value="isSelected"
-          color="primary"
-          hide-details
-          @click.stop
-          @update:model-value="$emit('toggle-selection')"
-          class="custom-checkbox"
-        />
+      <div class="service-info">
+        <h3 class="service-name">{{ displayServiceName }}</h3>
+        <div class="booking-ref">#{{ reservation?.bookingId?.slice(-6) || 'N/A' }}</div>
       </div>
+      <!-- Payment Status -->
+      <v-chip
+        :color="getPaymentStatusColor(paymentStatus)"
+        size="x-small"
+        variant="tonal"
+      >
+        {{ getPaymentStatusText(paymentStatus) }}
+      </v-chip>
     </div>
 
-    <!-- Client Section -->
-    <div class="client-section">
-      <div class="client-avatar">
-        <div class="avatar-circle">
-          <v-icon icon="mdi-account" size="20" color="white" />
-        </div>
-      </div>
-
-      <div class="client-details">
-        <h2 class="client-name">{{ reservation?.clientName || 'Cliente' }}</h2>
-        <p class="client-email">{{ truncatedEmail }}</p>
-      </div>
-
-      <v-btn
-        icon="mdi-eye"
-        variant="flat"
-        size="small"
-        color="primary"
-        @click.stop="$emit('view-details')"
-        class="view-btn"
-      />
+    <!-- 📅 Service Date -->
+    <div class="service-date">
+      <v-icon icon="mdi-calendar" size="16" class="date-icon" />
+      <span class="date-text">{{ getServiceDate() }} - {{ getServiceTime() }}</span>
     </div>
 
-    <!-- Details Grid -->
-    <div class="details-grid">
-      <div class="detail-card date-card">
-        <div class="detail-icon">
-          <v-icon icon="mdi-calendar-outline" size="18" />
-        </div>
-        <div class="detail-content">
-          <span class="detail-label">Date</span>
-          <span class="detail-value">{{ shortDate }}</span>
-        </div>
+    <!-- 💰 Price & Actions -->
+    <div class="card-footer">
+      <div class="price-section">
+        <span class="price-amount">${{ reservation?.totalPrice || '0' }}</span>
+        <span class="price-label">Total a Pagar</span>
       </div>
 
-      <div v-if="reservation?.time" class="detail-card time-card">
-        <div class="detail-icon">
-          <v-icon icon="mdi-clock-outline" size="18" />
-        </div>
-        <div class="detail-content">
-          <span class="detail-label">Time</span>
-          <span class="detail-value">{{ reservation.time }}</span>
-        </div>
-      </div>
+      <!-- Menu de opciones -->
+      <v-menu location="bottom end" :close-on-content-click="true">
+        <template v-slot:activator="{ props }">
+          <v-btn
+            v-bind="props"
+            icon="mdi-dots-vertical"
+            variant="text"
+            size="small"
+            class="options-btn"
+          />
+        </template>
+
+        <v-list density="compact" class="options-menu">
+          <v-list-item
+            @click="$emit('view-details')"
+            prepend-icon="mdi-eye"
+            title="Ver detalles"
+            class="menu-item"
+          />
+
+          <v-list-item
+            @click="$emit('edit-reservation')"
+            prepend-icon="mdi-pencil"
+            title="Editar"
+            class="menu-item"
+          />
+
+          <v-divider />
+
+          <v-list-item
+            @click="$emit('send-payment-link')"
+            :prepend-icon="paymentStatus === 'sent' ? 'mdi-check-circle' : 'mdi-credit-card-send'"
+            :title="paymentStatus === 'sent' ? 'Enlace enviado' : 'Enviar enlace de pago'"
+            :disabled="paymentStatus === 'sent' || isSendingPayment"
+            :class="{ 'payment-item': true, 'sent': paymentStatus === 'sent' }"
+            class="menu-item"
+          />
+        </v-list>
+      </v-menu>
     </div>
 
-    <!-- Price Section -->
-    <div class="price-section">
-      <div class="price-container">
-        <span class="currency">$</span>
-        <span class="amount">{{ reservation?.totalPrice || reservation?.price || '0' }}</span>
-      </div>
-      <div class="price-label">Total Amount</div>
-    </div>
-
-    <!-- Selection Indicator -->
-    <div class="selection-border" :class="{ active: isSelected }"></div>
   </div>
 </template>
 
@@ -106,26 +88,36 @@ interface ApprovedReservation {
   serviceName: string
   clientName: string
   clientEmail: string
-  date: string
+  clientPhone?: string
+  date?: string
   time?: string
+  serviceDate?: string
+  serviceTime?: string
+  bookingDate?: Date
   totalPrice: number
+  formData?: any
+  serviceId?: string
   [key: string]: any
 }
 
 interface Props {
   reservation: ApprovedReservation
-  isSelected: boolean
+  paymentStatus?: string
+  isSendingPayment?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  paymentStatus: 'pending',
+  isSendingPayment: false
+})
 
 defineEmits<{
-  click: []
-  'toggle-selection': []
   'view-details': []
+  'send-payment-link': []
+  'edit-reservation': []
 }>()
 
-// Service configs with vibrant modern colors
+// Service configs
 const serviceStyles = {
   'airport-transfer': { color: '#3B82F6', icon: 'mdi-airplane' },
   'babysitter': { color: '#8B5CF6', icon: 'mdi-baby' },
@@ -150,11 +142,6 @@ const serviceIcon = computed(() => {
   return serviceStyles[serviceKey.value as keyof typeof serviceStyles]?.icon || serviceStyles.default.icon
 })
 
-const truncatedEmail = computed(() => {
-  const email = props.reservation?.clientEmail || props.reservation?.email || ''
-  return email.length > 25 ? `${email.slice(0, 22)}...` : email
-})
-
 const displayServiceName = computed(() => {
   return props.reservation?.serviceName ||
          props.reservation?.service_name ||
@@ -162,492 +149,400 @@ const displayServiceName = computed(() => {
          'Servicio'
 })
 
-const shortDate = computed(() => {
-  if (!props.reservation?.date) return ''
+// Methods
+function getServiceDate(): string {
+  if (!props.reservation) return 'Sin fecha'
 
+  // Try different date fields
+  if (props.reservation.serviceDate) return formatDateString(props.reservation.serviceDate)
+  if (props.reservation.formData?.date) return formatDateString(props.reservation.formData.date)
+  if (props.reservation.date) return formatDateString(props.reservation.date)
+  if (props.reservation.bookingDate) {
+    const date = new Date(props.reservation.bookingDate)
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  return 'Por confirmar'
+}
+
+function getServiceTime(): string {
+  if (!props.reservation) return 'Sin hora'
+
+  // Try different time fields
+  if (props.reservation.serviceTime) return props.reservation.serviceTime
+  if (props.reservation.time) return props.reservation.time
+  if (props.reservation.formData?.time) return props.reservation.formData.time
+  if (props.reservation.formData?.startTime) {
+    const { startTime, endTime } = props.reservation.formData
+    return endTime ? `${startTime} - ${endTime}` : startTime
+  }
+  if (props.reservation.formData?.hour) return props.reservation.formData.hour
+
+  return 'Por confirmar'
+}
+
+function formatDateString(dateString: string): string {
   try {
-    const date = new Date(props.reservation.date)
+    const date = new Date(dateString)
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    if (date.toDateString() === today.toDateString()) return 'Today'
-    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
+    if (date.toDateString() === today.toDateString()) return 'Hoy'
+    if (date.toDateString() === tomorrow.toDateString()) return 'Mañana'
 
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'short',
       month: 'short',
       day: 'numeric'
     })
   } catch {
-    return props.reservation.date
+    return dateString
   }
-})
+}
+
+function getPaymentStatusColor(status: string): string {
+  switch (status) {
+    case 'sent': return 'success'
+    case 'paid': return 'success'
+    case 'failed': return 'error'
+    case 'pending': return 'warning'
+    default: return 'grey'
+  }
+}
+
+function getPaymentStatusText(status: string): string {
+  switch (status) {
+    case 'sent': return 'Enlace Enviado'
+    case 'paid': return 'Pagado'
+    case 'failed': return 'Error'
+    case 'pending': return 'Pendiente'
+    default: return 'Desconocido'
+  }
+}
 </script>
 
 <style scoped>
-.reservation-card {
+/* 📋 MINIMAL APPROVED CARD */
+
+.approved-card {
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 24px;
-  padding: 24px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  height: 280px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 140px;
+  max-width: 320px;
 }
 
-.glass-background {
+.approved-card::before {
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.6) 100%);
-  border-radius: 24px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+  border-radius: 16px 16px 0 0;
   opacity: 0;
   transition: opacity 0.3s ease;
-  pointer-events: none;
 }
 
-.reservation-card:hover {
-  transform: translateY(-8px) scale(1.02);
+.approved-card:hover {
+  border-color: #e2e8f0;
   box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.8);
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  transform: translateY(-2px);
 }
 
-.reservation-card:hover .glass-background {
+.approved-card:hover::before {
   opacity: 1;
 }
 
-.reservation-card.selected {
-  border-color: #3B82F6;
-  background: linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%);
-  box-shadow:
-    0 25px 50px -12px rgba(59, 130, 246, 0.4),
-    0 0 0 1px #3B82F6;
+.approved-card.payment-sent {
+  border-color: #10b981;
+  background: #f0fdf4;
 }
 
-/* Top Section */
-.top-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  position: relative;
-  z-index: 2;
+.approved-card.payment-sent::before {
+  background: linear-gradient(90deg, #10b981, #059669, #10b981);
+  opacity: 1;
 }
 
+/* 📋 Service Header */
 .service-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex: 1;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.service-icon-container {
-  position: relative;
-}
-
-.service-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+.service-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  position: relative;
-  z-index: 2;
-  transition: transform 0.3s ease;
-}
-
-.service-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  opacity: 0.2;
-  filter: blur(20px);
-  z-index: 1;
-}
-
-.reservation-card:hover .service-icon {
-  transform: rotate(5deg) scale(1.1);
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .service-info {
   flex: 1;
-}
-
-.service-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px 0;
-  line-height: 1.2;
-}
-
-.ready-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.status-pulse {
-  width: 8px;
-  height: 8px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: pulse-glow 2s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-  }
-}
-
-.selection-area {
-  position: relative;
-  z-index: 3;
-}
-
-.custom-checkbox {
-  transform: scale(1.2);
-}
-
-/* Client Section */
-.client-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-radius: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  position: relative;
-  z-index: 2;
-}
-
-.client-avatar {
-  position: relative;
-}
-
-.avatar-circle {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-}
-
-.client-details {
-  flex: 1;
   min-width: 0;
 }
 
-.client-name {
-  font-size: 20px;
-  font-weight: 800;
+.service-name {
+  font-size: 16px;
+  font-weight: 700;
   color: #0f172a;
   margin: 0 0 4px 0;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.client-email {
-  font-size: 14px;
+.booking-ref {
+  font-size: 11px;
+  font-weight: 600;
   color: #64748b;
-  font-weight: 500;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.view-btn {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  transition: all 0.3s ease;
-}
-
-.view-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-/* Details Grid */
-.details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  position: relative;
-  z-index: 2;
-}
-
-.detail-card {
+/* 📅 Service Date */
+.service-date {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-}
-
-.detail-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.detail-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid #f1f5f9;
+}
+
+.date-icon {
   color: #64748b;
   flex-shrink: 0;
 }
 
-.detail-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.detail-value {
+.date-text {
   font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
+  font-weight: 600;
+  color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
-/* Price Section */
-.price-section {
-  margin-top: auto;
-  text-align: center;
-  position: relative;
-  z-index: 2;
-}
-
-.price-container {
+/* 💰 Card Footer */
+.card-footer {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.price-section {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
-  margin-bottom: 6px;
 }
 
-.currency {
-  font-size: 20px;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.amount {
-  font-size: 32px;
-  font-weight: 900;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.price-amount {
+  font-size: 18px;
+  font-weight: 800;
+  color: #059669;
   line-height: 1;
 }
 
 .price-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Selection Border */
-.selection-border {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 26px;
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6, #10B981);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-
-.selection-border.active {
-  opacity: 1;
-  animation: borderGlow 2s infinite;
-}
-
-@keyframes borderGlow {
-  0%, 100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.2);
-  }
-}
-
-/* Dark Theme */
-.v-theme--dark .reservation-card {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border-color: rgba(51, 65, 85, 0.8);
-}
-
-.v-theme--dark .glass-background {
-  background: linear-gradient(135deg,
-    rgba(30, 41, 59, 0.9) 0%,
-    rgba(15, 23, 42, 0.6) 100%);
-}
-
-.v-theme--dark .reservation-card.selected {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 100%);
-}
-
-.v-theme--dark .service-title {
-  color: #f8fafc;
-}
-
-.v-theme--dark .client-section {
-  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-  border-color: rgba(71, 85, 105, 0.3);
-}
-
-.v-theme--dark .client-name {
-  color: #f8fafc;
-}
-
-.v-theme--dark .client-email {
-  color: #94a3b8;
-}
-
-.v-theme--dark .detail-card {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(71, 85, 105, 0.2);
-}
-
-.v-theme--dark .detail-icon {
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-  color: #9ca3af;
-}
-
-.v-theme--dark .detail-value {
-  color: #e2e8f0;
-}
-
-.v-theme--dark .detail-label {
+.options-btn {
+  border-radius: 10px;
   color: #64748b;
 }
 
-.v-theme--dark .price-label {
+.options-btn:hover {
+  background: #f8fafc;
+  color: #374151;
+  transform: scale(1.05);
+}
+
+/* Options Menu */
+.options-menu {
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.menu-item {
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 40px;
+}
+
+.menu-item:hover {
+  background: #f8fafc;
+}
+
+.payment-item {
+  color: #059669;
+  font-weight: 600;
+}
+
+.payment-item.sent {
+  color: #10b981;
+  opacity: 0.7;
+}
+
+.payment-item:hover:not(.sent) {
+  background: #f0fdf4;
+}
+
+/* 🌙 Dark Theme */
+.v-theme--dark .approved-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.v-theme--dark .approved-card:hover {
+  border-color: #475569;
+  background: #1e293b;
+}
+
+.v-theme--dark .approved-card.payment-sent {
+  background: #064e3b;
+  border-color: #10b981;
+}
+
+.v-theme--dark .service-name {
+  color: #f8fafc;
+}
+
+.v-theme--dark .booking-ref {
   color: #94a3b8;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .reservation-card {
-    height: 260px;
-    padding: 20px;
+.v-theme--dark .service-date {
+  background: #334155;
+  border-color: #475569;
+}
+
+.v-theme--dark .date-icon {
+  color: #94a3b8;
+}
+
+.v-theme--dark .date-text {
+  color: #e2e8f0;
+}
+
+.v-theme--dark .price-label {
+  color: #64748b;
+}
+
+.v-theme--dark .card-footer {
+  border-top-color: #334155;
+}
+
+.v-theme--dark .options-btn {
+  color: #94a3b8;
+}
+
+.v-theme--dark .options-btn:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.v-theme--dark .options-menu {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.v-theme--dark .menu-item:hover {
+  background: #334155;
+}
+
+.v-theme--dark .payment-item:hover:not(.sent) {
+  background: #064e3b;
+}
+
+/* 📱 Responsive Design */
+@media (max-width: 359px) {
+  .approved-card {
+    padding: 16px;
     gap: 16px;
+    min-height: 120px;
+    max-width: 100%;
   }
 
-  .service-icon {
-    width: 48px;
-    height: 48px;
+  .service-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
   }
 
-  .service-glow {
-    width: 68px;
-    height: 68px;
+  .service-name {
+    font-size: 14px;
   }
 
-  .service-title {
+  .service-date {
+    padding: 10px 12px;
+  }
+
+  .date-text {
+    font-size: 13px;
+  }
+
+  .price-amount {
     font-size: 16px;
   }
+}
 
-  .client-section {
-    padding: 16px;
+@media (min-width: 360px) and (max-width: 479px) {
+  .approved-card {
+    min-height: 130px;
   }
 
-  .avatar-circle {
-    width: 40px;
-    height: 40px;
+  .service-name {
+    font-size: 15px;
   }
 
-  .client-name {
-    font-size: 18px;
-  }
-
-  .details-grid {
-    gap: 12px;
-  }
-
-  .detail-card {
-    padding: 12px;
-  }
-
-  .detail-icon {
-    width: 36px;
-    height: 36px;
-  }
-
-  .amount {
-    font-size: 28px;
+  .price-amount {
+    font-size: 17px;
   }
 }
 
-/* Animation */
-.reservation-card {
-  animation: slideInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* 🎭 Animations */
+.approved-card {
+  animation: fadeInUp 0.4s ease-out;
 }
 
-@keyframes slideInUp {
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -656,8 +551,33 @@ const shortDate = computed(() => {
 }
 
 /* Focus states */
-.reservation-card:focus-visible {
-  outline: 3px solid #3B82F6;
+.approved-card:focus-visible,
+.options-btn:focus-visible {
+  outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .approved-card,
+  .options-btn {
+    animation: none;
+    transition: none;
+  }
+
+  .approved-card:hover {
+    transform: none;
+  }
+}
+
+/* High contrast */
+@media (prefers-contrast: high) {
+  .approved-card {
+    border-width: 2px;
+  }
+
+  .service-date {
+    border: 1px solid currentColor;
+  }
 }
 </style>

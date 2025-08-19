@@ -120,127 +120,17 @@
               </v-card-text>
             </v-card>
 
-            <!-- Reservations Grid -->
+            <!-- 🎯 RESERVATIONS GRID - USANDO EL COMPONENTE -->
             <div v-else class="reservations-grid">
-              <v-card
+              <ApprovedReservationCard
                 v-for="reservation in paginatedReservations"
                 :key="reservation.bookingId"
-                class="reservation-card"
-                :class="{ 'selected': isSelected(reservation.bookingId) }"
-                rounded="lg"
-                elevation="2"
-                hover
-                @click="toggleSelection(reservation)">
-
-                <!-- Selection Checkbox -->
-                <div class="selection-overlay">
-                  <v-checkbox
-                    :model-value="isSelected(reservation.bookingId)"
-                    color="primary"
-                    hide-details
-                    @click.stop
-                    @update:model-value="toggleSelection(reservation)">
-                  </v-checkbox>
-                </div>
-
-                <!-- Status Badge -->
-                <div class="status-badge">
-                  <v-chip
-                    :color="getEmailStatusColor(getReservationEmailStatus(reservation.bookingId))"
-                    variant="elevated"
-                    size="small"
-                    :prepend-icon="getEmailStatusIcon(getReservationEmailStatus(reservation.bookingId))">
-                    {{ getEmailStatusText(getReservationEmailStatus(reservation.bookingId)) }}
-                  </v-chip>
-                </div>
-
-                <v-card-text class="pa-4">
-                  <!-- Service Header -->
-                  <div class="d-flex align-center mb-3">
-                    <v-avatar :color="getServiceColor(reservation.serviceName)" size="40" class="mr-3">
-                      <v-icon :icon="getServiceIcon(reservation.serviceName)" color="white"></v-icon>
-                    </v-avatar>
-                    <div class="flex-grow-1">
-                      <h4 class="text-subtitle-1 font-weight-bold">{{ reservation.serviceName }}</h4>
-                      <p class="text-body-2 text-medium-emphasis mb-0">
-                        ID: {{ reservation.bookingId }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <!-- Client Info -->
-                  <div class="client-section mb-3">
-                    <div class="d-flex align-center mb-2">
-                      <v-icon icon="mdi-account" size="16" color="primary" class="mr-2"></v-icon>
-                      <span class="text-subtitle-2 font-weight-medium">{{ reservation.clientName }}</span>
-                    </div>
-                    <div class="d-flex align-center mb-1">
-                      <v-icon icon="mdi-email" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                      <span class="text-body-2 text-medium-emphasis">{{ reservation.clientEmail }}</span>
-                    </div>
-                    <div class="d-flex align-center">
-                      <v-icon icon="mdi-phone" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                      <span class="text-body-2 text-medium-emphasis">{{ reservation.clientPhone }}</span>
-                    </div>
-                  </div>
-
-                  <!-- Service Details -->
-                  <div class="service-details mb-3">
-                    <div class="d-flex align-center justify-space-between mb-2">
-                      <div class="d-flex align-center">
-                        <v-icon icon="mdi-calendar" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                        <span class="text-body-2">{{ getServiceDate(reservation) }}</span>
-                      </div>
-                      <div class="d-flex align-center">
-                        <v-icon icon="mdi-clock" size="14" color="medium-emphasis" class="mr-2"></v-icon>
-                        <span class="text-body-2">{{ getServiceTime(reservation) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Price and Actions -->
-                  <div class="price-section">
-                    <div class="d-flex align-center justify-space-between">
-                      <span class="text-h6 font-weight-bold text-primary">${{ reservation.totalPrice }}</span>
-
-                      <!-- ✅ BOTONES DE ACCIÓN INDIVIDUAL -->
-                      <div class="d-flex gap-1">
-                        <v-btn
-                          icon="mdi-email-send-outline"
-                          variant="text"
-                          size="small"
-                          color="primary"
-                          :loading="emailLoadingStates[reservation.bookingId]"
-                          @click.stop="sendSingleConfirmationEmail(reservation)"
-                          :disabled="getReservationEmailStatus(reservation.bookingId) === 'sent'">
-                          <v-tooltip activator="parent" location="top">
-                            {{ getReservationEmailStatus(reservation.bookingId) === 'sent' ? 'Ya enviado' : 'Enviar confirmación' }}
-                          </v-tooltip>
-                        </v-btn>
-
-                        <v-btn
-                          icon="mdi-eye"
-                          variant="text"
-                          size="small"
-                          color="primary"
-                          @click.stop="openReservationDetails(reservation)">
-                          <v-tooltip activator="parent" location="top">
-                            Ver detalles
-                          </v-tooltip>
-                        </v-btn>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- ✅ Service Specific Details Preview -->
-                  <div v-if="getServiceSpecificInfo(reservation)" class="service-preview mt-3">
-                    <v-divider class="mb-2"></v-divider>
-                    <div class="text-caption text-medium-emphasis">
-                      {{ getServiceSpecificInfo(reservation) }}
-                    </div>
-                  </div>
-                </v-card-text>
-              </v-card>
+                :reservation="reservation"
+                :is-selected="isSelected(reservation.bookingId)"
+                @click="toggleSelection(reservation)"
+                @toggle-selection="toggleSelection(reservation)"
+                @view-details="openReservationDetails(reservation)"
+              />
             </div>
 
             <!-- Pagination -->
@@ -375,6 +265,8 @@ import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
+// 🎯 IMPORTAR EL COMPONENTE ApprovedReservationCard
+import ApprovedReservationCard from '@/UI/components/cards/ApprovedReservationCard.vue';
 import { reservationServiceKey } from '@/services/ReservationService';
 import { emailServiceKey } from '@/services/EmailService';
 import type { ReservationView } from '@/views/ReservationView';
@@ -848,67 +740,12 @@ watch(() => emailService, (newEmailService) => {
   margin-bottom: 24px;
 }
 
+/* 🎯 GRID USANDO EL COMPONENTE */
 .reservations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
-}
-
-.reservation-card {
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 2px solid transparent;
-}
-
-.reservation-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.reservation-card.selected {
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 4px 20px rgba(25, 118, 210, 0.3);
-}
-
-.selection-overlay {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 2;
-  background: white;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.status-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-}
-
-.client-section {
-  background: rgba(var(--v-theme-surface-variant), 0.3);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.service-details {
-  border-top: 1px solid rgba(var(--v-theme-outline), 0.1);
-  border-bottom: 1px solid rgba(var(--v-theme-outline), 0.1);
-  padding: 8px 0;
-}
-
-.service-preview {
-  background: rgba(var(--v-theme-primary), 0.05);
-  border-radius: 6px;
-  padding: 8px;
-}
-
-.price-section {
-  padding-top: 8px;
 }
 
 .email-list {
@@ -941,15 +778,6 @@ watch(() => emailService, (newEmailService) => {
   color: rgba(var(--v-theme-on-surface), 0.8);
 }
 
-/* ✅ DEBUG PANEL */
-.debug-panel {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1000;
-  min-width: 300px;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .header-section h1 {
@@ -965,29 +793,11 @@ watch(() => emailService, (newEmailService) => {
     flex-direction: column;
     align-items: stretch;
   }
-
-  .status-badge {
-    position: static;
-    margin-bottom: 8px;
-  }
-
-  .debug-panel {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    margin-top: 20px;
-  }
 }
 
 @media (max-width: 600px) {
-  .selection-overlay,
-  .status-badge {
-    position: static;
-    margin-bottom: 8px;
-  }
-
-  .reservation-card {
-    padding-top: 0;
+  .reservations-grid {
+    gap: 12px;
   }
 }
 
@@ -1002,12 +812,4 @@ watch(() => emailService, (newEmailService) => {
     transform: translateY(0);
   }
 }
-
-.reservation-card {
-  animation: slideInUp 0.6s ease-out;
-}
-
-.reservation-card:nth-child(2) { animation-delay: 0.1s; }
-.reservation-card:nth-child(3) { animation-delay: 0.2s; }
-.reservation-card:nth-child(4) { animation-delay: 0.3s; }
 </style>

@@ -1,111 +1,240 @@
 <template>
-  <v-app>
-    <v-layout>
-      <DashboardSidebar v-if="showSidebar" v-model:drawer="drawer" v-model:rail="rail" :mdAndUp="mdAndUp"
+  <v-app class="mobile-pending-app">
+    <v-layout class="mobile-layout">
+      <!-- Mobile-optimized Sidebar -->
+      <DashboardSidebar
+        v-if="showSidebar"
+        v-model:drawer="drawer"
+        v-model:rail="rail"
+        :mdAndUp="mdAndUp"
         :pendingCount="filteredReservations.length" />
 
-      <!-- Contenido principal -->
-      <v-main>
-        <!-- Header -->
-        <DashboardHeader :mdAndUp="mdAndUp" v-model:drawer="drawer" v-model:rail="rail" @toggle-theme="toggleTheme" />
+      <!-- Main Content -->
+      <v-main class="mobile-main">
+        <!-- Mobile-optimized Header -->
+        <DashboardHeader
+          :mdAndUp="mdAndUp"
+          v-model:drawer="drawer"
+          v-model:rail="rail"
+          @toggle-theme="toggleTheme"
+          class="mobile-header" />
 
-        <v-container fluid class="py-6 px-4">
-          <div class="pending-reservations-container">
-            <div class="header-section mb-6">
-              <h1 class="text-h4 font-weight-bold mb-2 d-flex align-center">
-                <v-icon icon="mdi-calendar-clock" size="36" color="primary" class="mr-3"></v-icon>
-                Reservaciones Pendientes
-                <v-chip color="primary" size="small" class="ml-2">{{ filteredReservations.length }}</v-chip>
-              </h1>
-              <p class="text-subtitle-1 text-medium-emphasis">
-                Gestiona y aprueba las solicitudes de reserva de servicios desde Firebase
-              </p>
-            </div>
-
-            <!-- Filtros y búsqueda -->
-            <v-card class="mb-6" elevation="0" border rounded="lg">
-              <v-card-text class="py-4">
-                <div class="d-flex flex-wrap gap-4 align-center">
-                  <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" label="Buscar reservaciones"
-                    hide-details variant="outlined" density="compact" class="search-field" style="max-width: 300px"
-                    @update:model-value="handleSearch" clearable></v-text-field>
-
-                  <v-select v-model="filters.serviceCategory" :items="serviceCategoryOptions" label="Categoría"
-                    variant="outlined" density="compact" hide-details class="filter-field" style="max-width: 200px"
-                    @update:model-value="applyFilters"></v-select>
-
-                  <v-spacer></v-spacer>
-
-                  <v-btn prepend-icon="mdi-refresh" color="secondary" variant="text" :loading="loading"
-                    @click="refreshData">
-                    Actualizar
-                  </v-btn>
-
-                  <v-btn color="primary" prepend-icon="mdi-filter-variant" @click="showFilterDialog = true">
-                    Filtros
-                    <v-chip v-if="hasActiveFilters" size="x-small" color="primary" class="ml-2">
-                      {{ activeFiltersCount }}
+        <div class="mobile-container">
+          <!-- 📱 MOBILE HERO SECTION -->
+          <div class="mobile-hero-section">
+            <v-card class="hero-card" rounded="xl" elevation="0" border>
+              <v-card-text class="hero-content pa-6">
+                <div class="hero-layout">
+                  <div class="hero-icon">
+                    <v-icon icon="mdi-calendar-clock" size="32" color="primary"></v-icon>
+                  </div>
+                  <div class="hero-text">
+                    <h1 class="hero-title">Reservaciones Pendientes</h1>
+                    <p class="hero-subtitle">Gestiona las solicitudes de reserva</p>
+                  </div>
+                  <div class="hero-badge">
+                    <v-chip color="primary" size="large" class="count-chip">
+                      {{ filteredReservations.length }}
                     </v-chip>
-                  </v-btn>
+                  </div>
                 </div>
               </v-card-text>
             </v-card>
+          </div>
 
-            <!-- Lista de reservaciones usando el componente ReservationList -->
-            <ReservationsList :reservations="paginatedReservations" :loading="loading"
-              v-model:current-page="currentPage" :items-per-page="itemsPerPage" @refresh="refreshData"
-              @approve="handleApprove" @reject="handleReject" @view-details="openReservationDetails"
-              empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda."
-              empty-state-title="Sin reservaciones pendientes" empty-state-icon="mdi-calendar-check" />
+          <!-- 📱 MOBILE SEARCH & FILTERS -->
+          <div class="mobile-search-section">
+            <!-- Quick Search -->
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              label="Buscar reservaciones"
+              hide-details
+              variant="outlined"
+              density="comfortable"
+              class="mobile-search"
+              @update:model-value="handleSearch"
+              clearable
+              rounded>
+            </v-text-field>
 
+            <!-- Filter Actions -->
+            <div class="mobile-filter-actions">
+              <v-btn
+                prepend-icon="mdi-refresh"
+                color="primary"
+                variant="tonal"
+                :loading="loading"
+                @click="refreshData"
+                class="refresh-btn">
+                Actualizar
+              </v-btn>
 
-            <!-- Paginación manual si hay muchas reservas -->
-            <div v-if="totalPages > 1" class="d-flex justify-center mt-6">
-              <v-pagination v-model="currentPage" :length="totalPages" :total-visible="7" rounded="circle"
-                color="primary" :disabled="loading"></v-pagination>
+              <v-btn
+                color="primary"
+                prepend-icon="mdi-filter-variant"
+                @click="showFilterDialog = true"
+                class="filter-btn">
+                Filtros
+                <v-chip
+                  v-if="hasActiveFilters"
+                  size="x-small"
+                  color="white"
+                  class="ml-2 filter-count">
+                  {{ activeFiltersCount }}
+                </v-chip>
+              </v-btn>
+            </div>
+
+            <!-- Quick Filters Chips -->
+            <div class="quick-filters" v-if="hasActiveFilters">
+              <v-chip
+                v-if="filters.serviceCategory !== 'all'"
+                closable
+                size="small"
+                color="primary"
+                variant="tonal"
+                @click:close="filters.serviceCategory = 'all'; applyFilters()"
+                class="filter-chip">
+                {{ serviceCategoryOptions.find(opt => opt.value === filters.serviceCategory)?.title }}
+              </v-chip>
+
+              <v-chip
+                v-if="filters.onlyPriority"
+                closable
+                size="small"
+                color="error"
+                variant="tonal"
+                @click:close="filters.onlyPriority = false; applyFilters()"
+                class="filter-chip">
+                Prioritarias
+              </v-chip>
+
+              <v-chip
+                v-if="filters.onlyNewClients"
+                closable
+                size="small"
+                color="info"
+                variant="tonal"
+                @click:close="filters.onlyNewClients = false; applyFilters()"
+                class="filter-chip">
+                Clientes Nuevos
+              </v-chip>
             </div>
           </div>
-        </v-container>
+
+          <!-- 📱 MOBILE RESERVATIONS LIST -->
+          <div class="mobile-reservations-section">
+            <ReservationsList
+              :reservations="paginatedReservations"
+              :loading="loading"
+              v-model:current-page="currentPage"
+              :items-per-page="itemsPerPage"
+              @refresh="refreshData"
+              @approve="handleApprove"
+              @reject="handleReject"
+              @view-details="openReservationDetails"
+              empty-state-message="No hay reservaciones pendientes que coincidan con tus criterios de búsqueda."
+              empty-state-title="Sin reservaciones pendientes"
+              empty-state-icon="mdi-calendar-check"
+              class="mobile-list" />
+
+            <!-- Mobile Pagination -->
+            <div v-if="totalPages > 1" class="mobile-pagination">
+              <v-pagination
+                v-model="currentPage"
+                :length="totalPages"
+                :total-visible="mdAndUp ? 7 : 5"
+                rounded="circle"
+                color="primary"
+                :disabled="loading"
+                class="pagination-component">
+              </v-pagination>
+            </div>
+          </div>
+        </div>
       </v-main>
 
-      <!-- Diálogos y modales -->
-      <v-dialog v-model="showFilterDialog" max-width="500">
-        <v-card>
-          <v-card-title class="text-h5 pt-5 pb-2 px-5">
-            <v-icon icon="mdi-filter-variant" color="primary" class="mr-2"></v-icon>
-            Filtrar Reservaciones
-          </v-card-title>
+      <!-- 📱 MOBILE FILTER BOTTOM SHEET -->
+      <v-bottom-sheet v-model="showFilterDialog" inset>
+        <v-card rounded="t-xl" class="filter-sheet">
+          <v-card-text class="pa-4">
+            <!-- Handle -->
+            <div class="sheet-handle"></div>
 
-          <v-card-text class="px-5 pt-2">
-            <v-select v-model="filters.serviceCategory" label="Categoría de Servicio" :items="serviceCategoryOptions"
-              variant="outlined" class="mb-4"></v-select>
+            <!-- Header -->
+            <div class="sheet-header">
+              <v-icon icon="mdi-filter-variant" color="primary" class="mr-3"></v-icon>
+              <h3 class="sheet-title">Filtrar Reservaciones</h3>
+            </div>
 
-            <v-select v-model="filters.dateRange" label="Rango de Fecha" :items="dateRangeOptions" variant="outlined"
-              class="mb-4"></v-select>
+            <!-- Filter Content -->
+            <div class="filter-content">
+              <v-select
+                v-model="filters.serviceCategory"
+                label="Categoría de Servicio"
+                :items="serviceCategoryOptions"
+                variant="outlined"
+                class="mb-4 filter-field">
+              </v-select>
 
-            <v-checkbox v-model="filters.onlyPriority" label="Solo reservaciones prioritarias"
-              color="error"></v-checkbox>
+              <v-select
+                v-model="filters.dateRange"
+                label="Rango de Fecha"
+                :items="dateRangeOptions"
+                variant="outlined"
+                class="mb-4 filter-field">
+              </v-select>
 
-            <v-checkbox v-model="filters.onlyNewClients" label="Solo clientes nuevos" color="info"></v-checkbox>
+              <div class="checkbox-group">
+                <v-checkbox
+                  v-model="filters.onlyPriority"
+                  label="Solo reservaciones prioritarias"
+                  color="error"
+                  class="priority-check">
+                </v-checkbox>
+
+                <v-checkbox
+                  v-model="filters.onlyNewClients"
+                  label="Solo clientes nuevos"
+                  color="info"
+                  class="newclient-check">
+                </v-checkbox>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="sheet-actions">
+              <v-btn
+                color="secondary"
+                variant="tonal"
+                @click="resetFilters"
+                block
+                class="mb-3 reset-btn">
+                <v-icon icon="mdi-refresh" class="mr-2"></v-icon>
+                Reiniciar Filtros
+              </v-btn>
+              <v-btn
+                color="primary"
+                @click="applyFilters"
+                block
+                class="apply-btn">
+                <v-icon icon="mdi-check" class="mr-2"></v-icon>
+                Aplicar Filtros
+              </v-btn>
+            </div>
           </v-card-text>
-
-          <v-card-actions class="px-5 pb-5">
-            <v-btn color="secondary" variant="text" @click="resetFilters">Reiniciar</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" @click="applyFilters">
-              Aplicar Filtros
-            </v-btn>
-          </v-card-actions>
         </v-card>
-      </v-dialog>
+      </v-bottom-sheet>
 
-      <!-- Modal de detalles de reservación -->
-      <ReservationDetailModal v-if="selectedReservation" :show="showDetailModal" :reservation="selectedReservation"
-        @close="closeReservationDetails" @approve="handleApproveFromModal" @reject="handleRejectFromModal" />
-
-
-      <!-- Snackbar para notificaciones -->
-      <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" rounded="pill" timeout="4000">
+      <!-- Mobile Snackbar -->
+      <v-snackbar
+        v-model="showSnackbar"
+        :color="snackbarColor"
+        location="bottom"
+        rounded="pill"
+        timeout="4000"
+        class="mobile-snackbar">
         <div class="d-flex align-center">
           <v-icon :icon="snackbarIcon" class="mr-2" size="small"></v-icon>
           {{ snackbarText }}
@@ -121,15 +250,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, inject } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useRouter } from 'vue-router';
 import ReservationsList from '@/UI/components/reservation/ReservationsList.vue';
-import ReservationDetailModal from '@/UI/components/modals/ReservationDetailModal.vue';
 import DashboardHeader from '@/UI/components/dashboard/DashboardHeader.vue';
 import DashboardSidebar from '@/UI/components/dashboard/DashboardSidebar.vue';
 import { ReservationService, ServiceType } from '@/services/ReservationServiceFactory';
 import { reservationServiceKey } from '@/services/ReservationService';
 
-// Responsive helpers
+// Dependencies
 const { mdAndUp } = useDisplay();
+const router = useRouter();
 
 // Inyectar el servicio de reservas
 const reservationService = inject(reservationServiceKey);
@@ -150,8 +280,6 @@ const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(9);
 const showFilterDialog = ref(false);
-const showDetailModal = ref(false);
-const selectedReservation = ref(null);
 
 // Notificaciones
 const showSnackbar = ref(false);
@@ -285,14 +413,13 @@ function handleSearch() {
   currentPage.value = 1;
 }
 
+// 🎯 Navegación a vista de detalles (como en el dashboard)
 function openReservationDetails(reservation) {
-  selectedReservation.value = reservation;
-  showDetailModal.value = true;
-}
-
-function closeReservationDetails() {
-  showDetailModal.value = false;
-  selectedReservation.value = null;
+  console.log(`Navigating to reservation details: ${reservation.bookingId}`);
+  router.push({
+    name: 'ReservationDetails',
+    params: { id: reservation.bookingId }
+  });
 }
 
 async function handleApprove(id: string, reservation) {
@@ -326,20 +453,6 @@ async function handleReject(id: string, reservation) {
   } catch (error) {
     console.error('Error rejecting reservation:', error);
     showNotification('Error al rechazar la reservación', 'error', 'mdi-alert-circle');
-  }
-}
-
-async function handleApproveFromModal(id: string) {
-  showDetailModal.value = false;
-  if (selectedReservation.value) {
-    await handleApprove(id, selectedReservation.value);
-  }
-}
-
-async function handleRejectFromModal(id: string) {
-  showDetailModal.value = false;
-  if (selectedReservation.value) {
-    await handleReject(id, selectedReservation.value);
   }
 }
 
@@ -379,44 +492,443 @@ watch(filteredReservations, (newReservations) => {
     currentPage.value = maxPage;
   }
 });
-
 </script>
 
 <style scoped>
-.pending-reservations-container {
-  max-width: 1400px;
-  margin: 0 auto;
+/* 📱 MOBILE-FIRST RESPONSIVE DESIGN */
+
+.mobile-pending-app {
+  background: rgb(var(--v-theme-background));
 }
 
-.header-section {
-  margin-bottom: 24px;
+.mobile-layout {
+  min-height: 100vh;
 }
 
-.search-field,
-.filter-field {
+.mobile-main {
+  background: linear-gradient(135deg,
+    rgba(var(--v-theme-primary), 0.02) 0%,
+    rgba(var(--v-theme-background), 1) 100%);
+}
+
+.mobile-container {
+  padding: 16px;
+  padding-bottom: 24px;
+  max-width: 100%;
+}
+
+/* 🎯 Mobile Hero Section */
+.mobile-hero-section {
+  margin-bottom: 20px;
+}
+
+.hero-card {
+  background: rgba(var(--v-theme-surface), 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.hero-content {
+  position: relative;
+}
+
+.hero-layout {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hero-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.hero-subtitle {
+  font-size: 0.9rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.hero-badge {
+  flex-shrink: 0;
+}
+
+.count-chip {
+  font-size: 1.1rem;
+  font-weight: 700;
+  height: 40px;
+  min-width: 50px;
+}
+
+/* 🔍 Mobile Search Section */
+.mobile-search-section {
+  margin-bottom: 20px;
+}
+
+.mobile-search {
+  margin-bottom: 16px;
+}
+
+.mobile-search :deep(.v-field) {
+  border-radius: 16px;
+  background: rgba(var(--v-theme-surface), 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-filter-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.refresh-btn {
+  flex: 1;
+  text-transform: none;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.filter-btn {
+  flex: 1;
+  text-transform: none;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.filter-count {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  text-transform: none;
+  border-radius: 12px;
+}
+
+/* 📋 Mobile Reservations Section */
+.mobile-reservations-section {
+  margin-bottom: 20px;
+}
+
+.mobile-list :deep(.v-card) {
+  border-radius: 16px;
+  background: rgba(var(--v-theme-surface), 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  margin-bottom: 12px;
   transition: all 0.3s ease;
 }
 
-.search-field:focus-within,
-.filter-field:focus-within {
+.mobile-list :deep(.v-card:hover) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(var(--v-theme-on-surface), 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .header-section h1 {
-    font-size: 1.5rem !important;
+.mobile-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(var(--v-theme-surface), 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+}
+
+.pagination-component :deep(.v-pagination__item) {
+  border-radius: 12px;
+  min-width: 40px;
+  height: 40px;
+}
+
+/* 📱 Bottom Sheet Styles */
+.filter-sheet {
+  background: rgba(var(--v-theme-surface), 0.95);
+  backdrop-filter: blur(20px);
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(var(--v-theme-on-surface), 0.3);
+  border-radius: 2px;
+  margin: 0 auto 20px auto;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.sheet-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  margin: 0;
+}
+
+.filter-content {
+  margin-bottom: 24px;
+}
+
+.filter-field :deep(.v-field) {
+  border-radius: 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.3);
+}
+
+.checkbox-group {
+  background: rgba(var(--v-theme-surface-variant), 0.2);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.priority-check :deep(.v-checkbox) {
+  margin-bottom: 8px;
+}
+
+.sheet-actions {
+  padding-top: 16px;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.reset-btn,
+.apply-btn {
+  text-transform: none;
+  font-weight: 600;
+  border-radius: 12px;
+  height: 48px;
+}
+
+/* 🔔 Mobile Snackbar */
+.mobile-snackbar {
+  margin-bottom: 16px;
+}
+
+.mobile-snackbar :deep(.v-snackbar__wrapper) {
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+/* 📱 RESPONSIVE BREAKPOINTS */
+
+/* Extra small phones (320px - 359px) */
+@media (max-width: 359px) {
+  .mobile-container {
+    padding: 12px;
   }
 
-  .d-flex.flex-wrap.gap-4 {
+  .hero-layout {
+    gap: 12px;
+  }
+
+  .hero-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hero-title {
+    font-size: 1.1rem;
+  }
+
+  .mobile-filter-actions {
     flex-direction: column;
-    align-items: stretch;
   }
 
-  .search-field,
-  .filter-field {
-    max-width: 100% !important;
+  .refresh-btn,
+  .filter-btn {
+    flex: none;
+  }
+}
+
+/* Small phones (360px - 399px) */
+@media (min-width: 360px) and (max-width: 399px) {
+  .mobile-container {
+    padding: 14px;
+  }
+
+  .count-chip {
+    font-size: 1rem;
+    height: 36px;
+  }
+}
+
+/* Medium phones (400px - 479px) */
+@media (min-width: 400px) and (max-width: 479px) {
+  .mobile-container {
+    padding: 16px;
+  }
+
+  .hero-layout {
+    gap: 18px;
+  }
+}
+
+/* Large phones (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .mobile-container {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .hero-card {
+    padding: 24px;
+  }
+
+  .hero-layout {
+    gap: 20px;
+  }
+
+  .hero-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero-title {
+    font-size: 1.4rem;
+  }
+}
+
+/* Tablets (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-container {
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .mobile-search-section {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .mobile-search {
+    margin-bottom: 0;
+  }
+
+  .mobile-filter-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .refresh-btn,
+  .filter-btn {
+    flex: none;
+    min-width: 120px;
+  }
+
+  .quick-filters {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .mobile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  .hero-card {
+    padding: 32px;
+  }
+
+  .hero-title {
+    font-size: 1.6rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .hero-card,
+  .mobile-list :deep(.v-card) {
+    background: rgba(var(--v-theme-surface), 0.9);
+    border-color: rgba(var(--v-theme-on-surface), 0.15);
+  }
+
+  .mobile-search :deep(.v-field),
+  .filter-field :deep(.v-field) {
+    background: rgba(var(--v-theme-surface), 0.9);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-list :deep(.v-card),
+  .mobile-search :deep(.v-field),
+  .refresh-btn,
+  .filter-btn {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .hero-card,
+  .mobile-list :deep(.v-card) {
+    border-width: 2px;
+  }
+
+  .quick-filters .filter-chip {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-card {
+    padding: 16px;
+  }
+
+  .hero-layout {
+    gap: 12px;
+  }
+
+  .hero-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .mobile-container {
+    padding: 12px;
   }
 }
 </style>

@@ -1,236 +1,300 @@
 <template>
-  <v-app>
-    <v-app-bar elevation="0" color="transparent" class="px-4">
-      <v-btn icon="mdi-arrow-left" variant="text" @click="goBack" class="mr-2"></v-btn>
+  <v-app class="professional-reservation-app">
+    <!-- 📱 PROFESSIONAL HEADER -->
+    <v-app-bar
+      elevation="0"
+      color="surface"
+      class="professional-header"
+      height="72">
 
-      <v-app-bar-title class="font-weight-bold">
-        Reserva #{{ reservationIdShort }}
+      <v-btn
+        icon="mdi-arrow-left"
+        variant="text"
+        @click="goBack"
+        class="back-btn">
+      </v-btn>
+
+      <v-app-bar-title class="header-title-section">
+        <div class="title-layout">
+          <div class="title-info">
+            <span class="main-title">Reserva #{{ reservationIdShort }}</span>
+            <span v-if="reservation" class="sub-title">{{ reservation.clientName }}</span>
+          </div>
+          <v-chip
+            v-if="reservation?.status"
+            :color="getStatusColor(reservation?.status)"
+            variant="flat"
+            size="small"
+            class="professional-status-chip">
+            {{ getStatusText(reservation.status) }}
+          </v-chip>
+        </div>
       </v-app-bar-title>
-
-      <v-spacer></v-spacer>
-
-      <!-- Status chip -->
-      <v-chip :color="getStatusColor(reservation?.status)" variant="elevated" class="font-weight-bold"
-        v-if="reservation?.status">
-        {{ getStatusText(reservation.status) }}
-      </v-chip>
     </v-app-bar>
 
-    <!-- Contenido principal -->
-    <v-main>
-      <v-container class="pa-4 pa-md-6" style="max-width: 1200px;">
+    <!-- 📱 MAIN CONTENT -->
+    <v-main class="professional-main">
 
-        <!-- Loading State -->
-        <div v-if="loading" class="d-flex justify-center align-center" style="min-height: 60vh;">
-          <div class="text-center">
-            <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
-            <h3 class="text-h6 mb-2">Cargando detalles...</h3>
-            <p class="text-body-2 text-medium-emphasis">Obteniendo información de la reserva</p>
-          </div>
+      <!-- Loading State -->
+      <div v-if="loading" class="professional-loading">
+        <div class="loading-card">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            size="40"
+            width="3">
+          </v-progress-circular>
+          <h3 class="loading-text">Cargando detalles de la reserva</h3>
         </div>
+      </div>
 
-        <!-- Error State -->
-        <v-alert v-else-if="error" type="error" variant="tonal" class="ma-4" :text="error"
-          title="Error al cargar la reserva"></v-alert>
+      <!-- Error State -->
+      <div v-else-if="error" class="professional-error">
+        <v-alert
+          type="error"
+          variant="tonal"
+          class="error-alert"
+          :text="error"
+          title="Error al cargar la reserva">
+        </v-alert>
+      </div>
 
-        <!-- Success State -->
-        <template v-else-if="reservation">
+      <!-- Success State -->
+      <div v-else-if="reservation" class="professional-content">
 
-          <!-- Hero Section -->
-          <div class="hero-section mb-8">
-            <v-card :color="getServiceColor(reservation.serviceName)" class="hero-card text-white" rounded="xl"
-              elevation="8">
-              <div class="hero-background"></div>
-              <v-card-text class="pa-8 position-relative">
-                <v-row align="center">
-                  <v-col cols="12" md="8">
-                    <div class="d-flex align-center mb-4">
-                      <v-avatar :color="getServiceColor(reservation.serviceName)" size="64" class="mr-4 hero-avatar">
-                        <v-icon :icon="getServiceIcon(reservation.serviceName)" size="32"></v-icon>
-                      </v-avatar>
-                      <div>
-                        <h1 class="text-h4 font-weight-bold mb-1">{{ reservation.serviceName }}</h1>
-                        <p class="text-h6 mb-0 opacity-90">{{ reservation.clientName }}</p>
-                      </div>
-                    </div>
+        <!-- 🎯 SERVICE OVERVIEW CARD -->
+        <v-card class="service-overview-card" elevation="1" rounded="lg">
+          <v-card-text class="service-overview-content">
 
-                    <div class="d-flex flex-wrap gap-4 mb-4">
-                      <div class="hero-detail">
-                        <v-icon icon="mdi-calendar" class="mr-2"></v-icon>
-                        {{ formatDate(reservation.date) }}
-                      </div>
-                      <div class="hero-detail">
-                        <v-icon icon="mdi-clock" class="mr-2"></v-icon>
-                        {{ reservation.time }}
-                      </div>
-                      <div class="hero-detail">
-                        <v-icon icon="mdi-currency-usd" class="mr-2"></v-icon>
-                        ${{ reservation.totalPrice }}
-                      </div>
-                    </div>
-                  </v-col>
+            <!-- Service Header -->
+            <div class="service-header-section">
+              <div class="service-icon-section">
+                <v-avatar
+                  :color="getServiceColor(reservation.serviceName)"
+                  size="48"
+                  class="service-avatar">
+                  <v-icon
+                    :icon="getServiceIcon(reservation.serviceName)"
+                    size="24"
+                    color="white">
+                  </v-icon>
+                </v-avatar>
+                <div class="service-title-group">
+                  <h1 class="service-name">{{ reservation.serviceName }}</h1>
+                  <p class="service-client">{{ reservation.clientName }}</p>
+                </div>
+              </div>
 
-                  <v-col cols="12" md="4" class="text-center text-md-right">
-                    <div class="hero-actions">
-                      <!-- <v-btn v-if="reservation.status === 'pending'" color="success" size="large" variant="elevated"
-                        prepend-icon="mdi-check" class="mb-2 mb-md-3" @click="approveReservation"
-                        :loading="actionLoading" block>
-                        Aprobar Reserva
-                      </v-btn> -->
+              <v-chip
+                v-if="reservation.isPriority"
+                color="error"
+                size="small"
+                variant="flat"
+                prepend-icon="mdi-alert"
+                class="priority-chip">
+                Prioritario
+              </v-chip>
+            </div>
 
-                      <v-btn color="white" variant="outlined" prepend-icon="mdi-whatsapp" @click="contactClient"
-                        :disabled="actionLoading" block>
-                        Contactar Cliente
-                      </v-btn>
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card-text>
-            </v-card>
-          </div>
-
-          <!-- Main Content Grid -->
-          <v-row>
-            <!-- Información del Cliente -->
-            <v-col cols="12" lg="4">
-              <v-card class="mb-6 client-card" rounded="xl" elevation="0" border>
-                <v-card-title class="pa-6 pb-4">
-                  <div class="d-flex align-center">
-                    <v-icon icon="mdi-account-circle" color="primary" size="28" class="mr-3"></v-icon>
-                    <div>
-                      <h3 class="text-h6 font-weight-bold mb-1">Información del Cliente</h3>
-                      <p class="text-body-2 text-medium-emphasis mb-0">Datos de contacto</p>
-                    </div>
+            <!-- Service Key Info -->
+            <div class="service-key-info">
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <v-icon icon="mdi-calendar" size="16"></v-icon>
                   </div>
-                </v-card-title>
-
-                <v-divider></v-divider>
-
-                <v-card-text class="pa-6">
-                  <div class="client-avatar-section mb-6">
-                    <v-avatar :color="getServiceColor(reservation.serviceName)" size="80" class="mb-4">
-                      <span class="text-h4 font-weight-bold">
-                        {{ getInitials(reservation.clientName) }}
-                      </span>
-                    </v-avatar>
-                    <h4 class="text-h5 font-weight-bold mb-1">{{ reservation.clientName }}</h4>
-                    <p class="text-body-1 text-medium-emphasis">
-                      {{ reservation.isNewClient ? 'Cliente Nuevo' : 'Cliente Recurrente' }}
-                    </p>
+                  <div class="info-content">
+                    <span class="info-label">Fecha</span>
+                    <span class="info-value">{{ formatDate(reservation.date) }}</span>
                   </div>
+                </div>
 
-                  <div class="contact-list">
-                    <div class="contact-item">
-                      <div class="contact-icon">
-                        <v-icon icon="mdi-email" color="primary"></v-icon>
-                      </div>
-                      <div class="contact-details">
-                        <p class="contact-label">Email</p>
-                        <p class="contact-value">{{ reservation.clientEmail }}</p>
-                      </div>
-                      <v-btn icon="mdi-content-copy" variant="text" size="small"
-                        @click="copyToClipboard(reservation.clientEmail)"></v-btn>
-                    </div>
-
-                    <div class="contact-item">
-                      <div class="contact-icon">
-                        <v-icon icon="mdi-phone" color="primary"></v-icon>
-                      </div>
-                      <div class="contact-details">
-                        <p class="contact-label">Teléfono</p>
-                        <p class="contact-value">{{ reservation.clientPhone }}</p>
-                      </div>
-                      <v-btn icon="mdi-phone" variant="text" size="small" @click="callClient"></v-btn>
-                    </div>
-
-                    <div class="contact-item">
-                      <div class="contact-icon">
-                        <v-icon icon="mdi-clock-time-four" color="primary"></v-icon>
-                      </div>
-                      <div class="contact-details">
-                        <p class="contact-label">Solicitud realizada</p>
-                        <p class="contact-value">{{ reservation.timeAgo }}</p>
-                      </div>
-                    </div>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <v-icon icon="mdi-clock-outline" size="16"></v-icon>
                   </div>
-                </v-card-text>
-              </v-card>
-
-              <!-- Timeline de acciones (si existe historial) -->
-              <v-card class="timeline-card" rounded="xl" elevation="0" border v-if="hasTimeline">
-                <v-card-title class="pa-6 pb-4">
-                  <div class="d-flex align-center">
-                    <v-icon icon="mdi-timeline" color="primary" size="28" class="mr-3"></v-icon>
-                    <div>
-                      <h3 class="text-h6 font-weight-bold mb-1">Historial</h3>
-                      <p class="text-body-2 text-medium-emphasis mb-0">Actividad de la reserva</p>
-                    </div>
+                  <div class="info-content">
+                    <span class="info-label">Hora</span>
+                    <span class="info-value">{{ reservation.time }}</span>
                   </div>
-                </v-card-title>
+                </div>
 
-                <v-divider></v-divider>
-
-                <v-card-text class="pa-6">
-                  <v-timeline side="end" density="compact">
-                    <v-timeline-item dot-color="primary" size="small">
-                      <div class="timeline-content">
-                        <p class="font-weight-medium mb-1">Reserva creada</p>
-                        <p class="text-body-2 text-medium-emphasis">{{ formatDateTime(reservation.bookingDate) }}</p>
-                      </div>
-                    </v-timeline-item>
-                  </v-timeline>
-                </v-card-text>
-              </v-card>
-            </v-col>
-
-            <!-- Detalles del Servicio -->
-            <v-col cols="12" lg="8">
-              <!-- Service Details Card -->
-              <v-card class="mb-6 service-details-card" rounded="xl" elevation="0" border>
-                <v-card-title class="pa-6 pb-4">
-                  <div class="d-flex align-center justify-space-between">
-                    <div class="d-flex align-center">
-                      <v-icon :icon="getServiceIcon(reservation.serviceName)" color="primary" size="28"
-                        class="mr-3"></v-icon>
-                      <div>
-                        <h3 class="text-h6 font-weight-bold mb-1">Detalles del Servicio</h3>
-                        <p class="text-body-2 text-medium-emphasis mb-0">Información específica</p>
-                      </div>
-                    </div>
-
-                    <v-chip v-if="reservation.isPriority" color="error" variant="elevated"
-                      prepend-icon="mdi-priority-high" class="font-weight-bold">
-                      Prioritario
-                    </v-chip>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <v-icon icon="mdi-currency-usd" size="16"></v-icon>
                   </div>
-                </v-card-title>
+                  <div class="info-content">
+                    <span class="info-label">Precio</span>
+                    <span class="info-value">${{ reservation.totalPrice }}</span>
+                  </div>
+                </div>
 
-                <v-divider></v-divider>
+                <div class="info-item">
+                  <div class="info-icon">
+                    <v-icon icon="mdi-clock-time-four-outline" size="16"></v-icon>
+                  </div>
+                  <div class="info-content">
+                    <span class="info-label">Solicitud</span>
+                    <span class="info-value">{{ reservation.timeAgo }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                <v-card-text class="pa-6">
-                  <!-- Componente dinámico para detalles específicos -->
-                  <ConfirmationDetailsFactory :reservation="reservation" />
-                </v-card-text>
-              </v-card>
+            <!-- Contact Action -->
+            <v-btn
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-whatsapp"
+              @click="contactClient"
+              :disabled="actionLoading"
+              block
+              size="large"
+              class="contact-action-btn">
+              Contactar Cliente
+            </v-btn>
+          </v-card-text>
+        </v-card>
 
-              <!-- Suppliers Section -->
-              <ReservationSuppliersSection :reservation="reservation" @supplier-selected="handleSupplierSelected"
-                @supplier-contacted="handleSupplierContacted" />
-            </v-col>
-          </v-row>
+        <!-- 👤 CLIENT INFORMATION CARD -->
+        <v-card class="client-info-card" elevation="1" rounded="lg">
+          <v-card-title class="card-title">
+            <v-icon icon="mdi-account-circle-outline" class="title-icon"></v-icon>
+            <div class="title-text">
+              <span class="title-main">Información del Cliente</span>
+              <span class="title-sub">Datos de contacto y perfil</span>
+            </div>
+          </v-card-title>
 
-        </template>
-      </v-container>
+          <v-divider class="card-divider"></v-divider>
+
+          <v-card-text class="client-info-content">
+
+            <!-- Client Profile -->
+            <div class="client-profile-section">
+              <v-avatar
+                :color="getServiceColor(reservation.serviceName)"
+                size="56"
+                class="client-avatar">
+                <span class="client-initials">
+                  {{ getInitials(reservation.clientName) }}
+                </span>
+              </v-avatar>
+              <div class="client-profile-info">
+                <h3 class="client-full-name">{{ reservation.clientName }}</h3>
+                <p class="client-status">
+                  <v-icon
+                    :icon="reservation.isNewClient ? 'mdi-account-plus' : 'mdi-account-check'"
+                    size="14"
+                    class="mr-1">
+                  </v-icon>
+                  {{ reservation.isNewClient ? 'Cliente Nuevo' : 'Cliente Recurrente' }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Contact Details -->
+            <div class="contact-details-section">
+              <h4 class="section-subtitle">Contacto</h4>
+
+              <div class="contact-methods">
+                <!-- Email -->
+                <div class="contact-method">
+                  <div class="method-icon">
+                    <v-icon icon="mdi-email-outline" size="18"></v-icon>
+                  </div>
+                  <div class="method-info">
+                    <span class="method-label">Correo electrónico</span>
+                    <span class="method-value">{{ reservation.clientEmail }}</span>
+                  </div>
+                  <v-btn
+                    icon="mdi-content-copy"
+                    variant="text"
+                    size="small"
+                    @click="copyToClipboard(reservation.clientEmail)"
+                    class="method-action">
+                  </v-btn>
+                </div>
+
+                <!-- Phone -->
+                <div class="contact-method">
+                  <div class="method-icon">
+                    <v-icon icon="mdi-phone-outline" size="18"></v-icon>
+                  </div>
+                  <div class="method-info">
+                    <span class="method-label">Teléfono</span>
+                    <span class="method-value">{{ reservation.clientPhone }}</span>
+                  </div>
+                  <v-btn
+                    icon="mdi-phone"
+                    variant="text"
+                    size="small"
+                    @click="callClient"
+                    class="method-action">
+                  </v-btn>
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- 🛠️ SERVICE DETAILS CARD -->
+        <v-card class="service-details-card" elevation="1" rounded="lg">
+          <v-card-title class="card-title">
+            <v-icon
+              :icon="getServiceIcon(reservation.serviceName)"
+              class="title-icon">
+            </v-icon>
+            <div class="title-text">
+              <span class="title-main">Detalles del Servicio</span>
+              <span class="title-sub">Especificaciones y requerimientos</span>
+            </div>
+          </v-card-title>
+
+          <v-divider class="card-divider"></v-divider>
+
+          <v-card-text class="service-details-content">
+            <ConfirmationDetailsFactory :reservation="reservation" />
+          </v-card-text>
+        </v-card>
+
+        <!-- 👥 SUPPLIERS CARD -->
+        <v-card class="suppliers-card" elevation="1" rounded="lg">
+          <v-card-title class="card-title">
+            <v-icon icon="mdi-account-hard-hat-outline" class="title-icon"></v-icon>
+            <div class="title-text">
+              <span class="title-main">Proveedores Disponibles</span>
+              <span class="title-sub">Profesionales para este servicio</span>
+            </div>
+          </v-card-title>
+
+          <v-divider class="card-divider"></v-divider>
+
+          <v-card-text class="suppliers-content">
+            <ReservationSuppliersSection
+              :reservation="reservation"
+              @supplier-selected="handleSupplierSelected"
+              @supplier-contacted="handleSupplierContacted" />
+          </v-card-text>
+        </v-card>
+
+      </div>
     </v-main>
 
-    <!-- Snackbar para notificaciones -->
-    <v-snackbar v-model="showSnackbar" :color="snackbarColor" location="bottom end" timeout="4000" rounded="pill">
-      <div class="d-flex align-center">
-        <v-icon :icon="snackbarIcon" class="mr-2" size="small"></v-icon>
-        {{ snackbarText }}
+    <!-- 🔔 PROFESSIONAL SNACKBAR -->
+    <v-snackbar
+      v-model="showSnackbar"
+      :color="snackbarColor"
+      location="bottom center"
+      timeout="4000"
+      rounded="lg"
+      class="professional-snackbar">
+      <div class="snackbar-content">
+        <v-icon :icon="snackbarIcon" class="snackbar-icon" size="small"></v-icon>
+        <span class="snackbar-text">{{ snackbarText }}</span>
       </div>
       <template v-slot:actions>
-        <v-btn icon="mdi-close" variant="text" @click="showSnackbar = false"></v-btn>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="showSnackbar = false"></v-btn>
       </template>
     </v-snackbar>
   </v-app>
@@ -467,173 +531,642 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Hero Section */
-.hero-section {
-  margin-bottom: 2rem;
+/* 🎯 PROFESSIONAL DESIGN SYSTEM */
+
+.professional-reservation-app {
+  background: #fafafa;
 }
 
-.hero-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--hero-color-start), var(--hero-color-end));
+/* 📱 Professional Header */
+.professional-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.hero-background {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  transform: translate(50px, -50px);
+.back-btn {
+  margin-left: -8px;
+  color: rgba(0, 0, 0, 0.7);
 }
 
-.hero-avatar {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+.header-title-section {
+  flex: 1;
 }
 
-.hero-detail {
+.title-layout {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.title-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.main-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  line-height: 1.2;
+}
+
+.sub-title {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.professional-status-chip {
   font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+}
+
+/* 📱 Main Content */
+.professional-main {
+  background: #fafafa;
+  padding-top: 8px;
+}
+
+.professional-content {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 🔄 Loading State */
+.professional-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 20px;
+}
+
+.loading-card {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.loading-text {
   font-size: 1rem;
-}
-
-.hero-actions {
-  min-width: 200px;
-}
-
-/* Cards */
-.client-card,
-.service-details-card,
-.timeline-card {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.client-card:hover,
-.service-details-card:hover,
-.timeline-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-/* Client section */
-.client-avatar-section {
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.7);
+  margin: 0;
   text-align: center;
 }
 
-.contact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ❌ Error State */
+.professional-error {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.contact-item {
+.error-alert {
+  border-radius: 12px;
+}
+
+/* 📄 Card System */
+.service-overview-card,
+.client-info-card,
+.service-details-card,
+.suppliers-card {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.service-overview-card:hover,
+.client-info-card:hover,
+.service-details-card:hover,
+.suppliers-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* 🎯 Service Overview Card */
+.service-overview-content {
+  padding: 24px;
+}
+
+.service-header-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.service-icon-section {
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background-color: rgba(var(--v-theme-surface-variant), 0.3);
+  gap: 16px;
+  flex: 1;
+}
+
+.service-avatar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.service-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.service-client {
+  font-size: 1rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0;
+  font-weight: 400;
+}
+
+.priority-chip {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+}
+
+.service-key-info {
+  margin-bottom: 24px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-icon {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.contact-action-btn {
+  text-transform: none;
+  font-weight: 600;
+  font-size: 1rem;
+  height: 48px;
+  border-radius: 12px;
+}
+
+/* 📄 Card Titles */
+.card-title {
+  padding: 20px 24px 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  color: rgba(0, 0, 0, 0.6);
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+}
+
+.title-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title-main {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  line-height: 1.2;
+}
+
+.title-sub {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 400;
+}
+
+.card-divider {
+  margin: 0 24px;
+  opacity: 0.3;
+}
+
+/* 👤 Client Info Card */
+.client-info-content {
+  padding: 24px;
+}
+
+.client-profile-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.client-avatar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.client-initials {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.client-profile-info {
+  flex: 1;
+}
+
+.client-full-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+  margin: 0 0 4px 0;
+}
+
+.client-status {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.contact-details-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-subtitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contact-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-method {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f8f9fa;
   border-radius: 12px;
   transition: all 0.2s ease;
 }
 
-.contact-item:hover {
-  background-color: rgba(var(--v-theme-surface-variant), 0.5);
-  transform: translateX(4px);
+.contact-method:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
 }
 
-.contact-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background-color: rgba(var(--v-theme-primary), 0.1);
+.method-icon {
+  width: 36px;
+  height: 36px;
+  background: white;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 1rem;
+  color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.contact-details {
+.method-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
-.contact-label {
+.method-label {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgba(var(--v-theme-on-surface), 0.6);
-  margin: 0 0 4px 0;
 }
 
-.contact-value {
+.method-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.87);
-  margin: 0;
+  color: rgba(0, 0, 0, 0.87);
+  word-break: break-word;
 }
 
-/* Timeline */
-.timeline-content {
-  padding-left: 1rem;
+.method-action {
+  color: rgba(0, 0, 0, 0.6);
 }
 
-/* Responsive design */
-@media (max-width: 960px) {
-  .hero-card .v-row {
-    text-align: center;
+/* 🛠️ Service Details Card */
+.service-details-content {
+  padding: 24px;
+}
+
+/* 👥 Suppliers Card */
+.suppliers-content {
+  padding: 24px;
+}
+
+/* 🔔 Professional Snackbar */
+.professional-snackbar {
+  margin-bottom: 20px;
+}
+
+.professional-snackbar :deep(.v-snackbar__wrapper) {
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.87) !important;
+  backdrop-filter: blur(10px);
+}
+
+.snackbar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.snackbar-icon {
+  color: white;
+}
+
+.snackbar-text {
+  color: white;
+  font-weight: 500;
+}
+
+/* 📱 RESPONSIVE BREAKPOINTS */
+
+/* Extra small phones (320px - 359px) */
+@media (max-width: 359px) {
+  .professional-content {
+    padding: 12px;
+    gap: 16px;
   }
 
-  .hero-actions {
-    min-width: auto;
-    width: 100%;
+  .service-overview-content,
+  .client-info-content,
+  .service-details-content,
+  .suppliers-content {
+    padding: 16px;
   }
 
-  .hero-detail {
-    justify-content: center;
-    font-size: 0.9rem;
+  .card-title {
+    padding: 16px 16px 12px 16px;
+  }
+
+  .card-divider {
+    margin: 0 16px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .service-header-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 }
 
-@media (max-width: 600px) {
-  .hero-background {
-    display: none;
+/* Small phones (360px - 479px) */
+@media (min-width: 360px) and (max-width: 479px) {
+  .professional-content {
+    padding: 14px;
+    gap: 18px;
   }
 
-  .contact-item {
-    padding: 0.75rem;
-  }
-
-  .contact-icon {
-    width: 36px;
-    height: 36px;
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 }
 
-/* Animaciones */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
+/* Medium phones (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .professional-content {
+    padding: 16px;
+    gap: 20px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 }
 
-.v-card {
-  animation: slideInUp 0.6s ease-out;
+/* Large phones and tablets (768px+) */
+@media (min-width: 768px) {
+  .professional-content {
+    padding: 24px;
+    max-width: 800px;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .contact-methods {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
 }
 
-.v-card:nth-child(2) {
-  animation-delay: 0.1s;
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .professional-content {
+    max-width: 1000px;
+    padding: 32px;
+    gap: 24px;
+  }
+
+  .service-overview-content,
+  .client-info-content,
+  .service-details-content,
+  .suppliers-content {
+    padding: 32px;
+  }
+
+  .card-title {
+    padding: 24px 32px 20px 32px;
+  }
+
+  .card-divider {
+    margin: 0 32px;
+  }
 }
 
-.v-card:nth-child(3) {
-  animation-delay: 0.2s;
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .professional-reservation-app {
+    background: #121212;
+  }
+
+  .professional-header {
+    background: rgba(18, 18, 18, 0.95) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .back-btn {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .main-title {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .sub-title {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .professional-main {
+    background: #121212;
+  }
+
+  .service-overview-card,
+  .client-info-card,
+  .service-details-card,
+  .suppliers-card,
+  .loading-card {
+    background: #1e1e1e;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .info-item,
+  .client-profile-section,
+  .contact-method {
+    background: #2a2a2a;
+  }
+
+  .info-icon,
+  .method-icon,
+  .title-icon {
+    background: #2a2a2a;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .service-name,
+  .client-full-name,
+  .title-main,
+  .loading-text,
+  .info-value,
+  .method-value {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .service-client,
+  .client-status,
+  .title-sub,
+  .info-label,
+  .method-label,
+  .section-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .contact-method:hover {
+    background: #333333;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .service-overview-card,
+  .client-info-card,
+  .service-details-card,
+  .suppliers-card,
+  .contact-method {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .service-overview-card,
+  .client-info-card,
+  .service-details-card,
+  .suppliers-card {
+    border-width: 2px;
+  }
+
+  .info-item,
+  .client-profile-section,
+  .contact-method {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+  }
 }
 </style>

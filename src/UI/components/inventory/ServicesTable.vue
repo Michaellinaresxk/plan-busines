@@ -308,17 +308,6 @@
         </v-card>
       </div>
     </div>
-
-    <!-- Debug Panel (opcional) -->
-    <v-card v-if="isDev && Object.keys(selectedVariants).length > 0" class="mt-4" variant="outlined">
-      <v-card-title>
-        <v-icon icon="mdi-bug" class="mr-2"></v-icon>
-        Debug: Variantes Seleccionadas
-      </v-card-title>
-      <v-card-text>
-        <pre class="text-caption">{{ JSON.stringify(selectedVariants, null, 2) }}</pre>
-      </v-card-text>
-    </v-card>
   </div>
 </template>
 

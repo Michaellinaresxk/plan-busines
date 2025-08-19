@@ -1,186 +1,275 @@
-<!-- src/UI/components/reservation/ReservationSuppliersSection.vue - Enhanced -->
+<!-- src/UI/components/reservation/ReservationSuppliersSection.vue - Modern Enhanced -->
 <template>
-  <v-card class="suppliers-section" rounded="xl" elevation="0" border>
-    <v-card-title class="pa-6 pb-4">
-      <div class="d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <div class="title-icon-container">
-            <v-icon icon="mdi-account-search" color="white" size="24"></v-icon>
+  <v-card class="modern-suppliers-section" rounded="xl" elevation="0">
+
+    <!-- 🎯 MODERN HEADER -->
+    <div class="modern-header">
+      <div class="header-background"></div>
+      <v-card-title class="header-content">
+        <div class="header-layout">
+          <div class="header-main">
+            <div class="modern-title-icon">
+              <v-icon icon="mdi-account-search" color="white" size="24"></v-icon>
+            </div>
+            <div class="header-text">
+              <h3 class="modern-title">Proveedores Disponibles</h3>
+              <p class="modern-subtitle">{{ getSearchDescription() }}</p>
+            </div>
           </div>
-          <div class="ml-4">
-            <h3 class="text-h6 font-weight-bold mb-1">Proveedores Disponibles</h3>
-            <p class="text-body-2 text-medium-emphasis mb-0">
-              {{ getSearchDescription() }}
-            </p>
+          <div class="header-badge">
+            <v-chip
+              color="white"
+              variant="elevated"
+              size="small"
+              class="modern-count-chip">
+              <v-icon icon="mdi-account-group" size="14" class="mr-1"></v-icon>
+              {{ compatibleSuppliers.length }}
+            </v-chip>
           </div>
         </div>
-      </div>
-    </v-card-title>
+      </v-card-title>
+    </div>
 
-    <v-divider></v-divider>
+    <v-card-text class="modern-content">
 
-    <v-card-text class="pa-6">
-      <!-- Loading State -->
-      <div v-if="loading" class="loading-container">
-        <div class="loading-content">
-          <v-progress-circular indeterminate color="primary" size="48" width="3"></v-progress-circular>
-          <h4 class="text-h6 mt-4 mb-2">Buscando proveedores...</h4>
-          <p class="text-body-2 text-medium-emphasis">Analizando compatibilidad de servicios</p>
+      <!-- 🔄 MODERN LOADING STATE -->
+      <div v-if="loading" class="modern-loading">
+        <div class="loading-card">
+          <div class="loading-animation">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              size="40"
+              width="3">
+            </v-progress-circular>
+          </div>
+          <h4 class="loading-title">Buscando proveedores...</h4>
+          <p class="loading-subtitle">Analizando compatibilidad de servicios</p>
         </div>
       </div>
 
-      <!-- Suppliers Grid -->
-      <div v-else-if="compatibleSuppliers.length > 0" class="suppliers-grid">
-        <v-card v-for="supplier in compatibleSuppliers" :key="supplier.id" class="supplier-card" rounded="xl"
-          elevation="0" border>
+      <!-- 👥 MODERN SUPPLIERS GRID -->
+      <div v-else-if="compatibleSuppliers.length > 0" class="modern-suppliers-grid">
+        <div
+          v-for="(supplier, index) in compatibleSuppliers"
+          :key="supplier.id"
+          class="modern-supplier-card"
+          :style="{ animationDelay: `${index * 150}ms` }">
+
+          <!-- Card Glow Effect -->
+          <div class="card-glow"></div>
 
           <!-- Supplier Header -->
-          <div class="supplier-header">
-            <div class="supplier-avatar-section">
-              <v-avatar :color="getSupplierColor(supplier)" size="56" class="supplier-avatar">
-                <span class="text-h6 font-weight-bold text-white">
-                  {{ getInitials(supplier.name) }}
-                </span>
-              </v-avatar>
+          <div class="supplier-header-modern">
+            <div class="avatar-section">
+              <div class="avatar-container">
+                <v-avatar
+                  :color="getSupplierColor(supplier)"
+                  size="60"
+                  class="modern-avatar">
+                  <span class="avatar-initials">
+                    {{ getInitials(supplier.name) }}
+                  </span>
+                </v-avatar>
 
-              <div class="supplier-status-badge">
-                <v-chip color="success" size="x-small" variant="flat">
-                  <v-icon icon="mdi-check-circle" size="12" class="mr-1"></v-icon>
-                  Activo
-                </v-chip>
+                <!-- Status Indicator -->
+                <div class="status-indicator">
+                  <div class="status-dot"></div>
+                </div>
               </div>
+
+              <!-- Supplier Badge -->
+              <v-chip
+                color="success"
+                size="x-small"
+                variant="flat"
+                class="supplier-badge">
+                <v-icon icon="mdi-check-circle" size="10" class="mr-1"></v-icon>
+                Verificado
+              </v-chip>
             </div>
 
-            <div class="supplier-main-info">
-              <h4 class="supplier-name">{{ supplier.name }}</h4>
-              <p class="supplier-email">{{ supplier.email }}</p>
+            <div class="supplier-info-modern">
+              <h4 class="supplier-name-modern">{{ supplier.name }}</h4>
+              <p class="supplier-email-modern">{{ supplier.email }}</p>
             </div>
           </div>
 
-          <v-card-text class="pa-4 pt-0">
-            <!-- Contact Info -->
-            <div class="contact-section">
-              <div class="contact-item">
-                <div class="contact-icon-wrapper">
-                  <v-icon icon="mdi-phone" size="16" color="primary"></v-icon>
-                </div>
-                <span class="contact-text">{{ formatPhone(supplier.phone) }}</span>
+          <!-- Contact Information -->
+          <div class="contact-section-modern">
+            <div class="contact-item-modern">
+              <div class="contact-icon-modern phone-icon">
+                <v-icon icon="mdi-phone" size="14"></v-icon>
               </div>
-
-              <div class="contact-item">
-                <div class="contact-icon-wrapper">
-                  <v-icon icon="mdi-tools" size="16" color="primary"></v-icon>
-                </div>
-                <span class="contact-text">{{ supplier.service }}</span>
-              </div>
-
-              <!-- Vehicle Type for airport transfer -->
-              <div v-if="supplier.vehicleType && isAirportTransfer" class="contact-item vehicle-info">
-                <div class="contact-icon-wrapper">
-                  <v-icon icon="mdi-car" size="16" color="blue"></v-icon>
-                </div>
-                <span class="contact-text">{{ getVehicleDisplayName(supplier.vehicleType) }}</span>
-                <v-chip size="x-small" color="blue" variant="tonal" class="ml-2">
-                  Transporte
-                </v-chip>
-              </div>
+              <span class="contact-text-modern">{{ formatPhone(supplier.phone) }}</span>
             </div>
 
-            <!-- Actions -->
-            <div class="supplier-actions">
-              <!-- Show different button states based on inquiry status -->
-              <template v-if="!supplierInquiries[supplier.id]">
-                <!-- Initial state - Send request -->
-                <v-btn color="primary" variant="elevated" size="large" class="action-btn primary-action"
-                  :loading="contactingSupplier === supplier.id" @click="handleContactSupplier(supplier)">
-                  <v-icon icon="mdi-whatsapp" size="20" class="mr-2"></v-icon>
-                  Solicitar Servicio
-                </v-btn>
-              </template>
-
-              <template v-else-if="supplierInquiries[supplier.id].status === 'pending'">
-                <!-- Pending state - Show resend option -->
-                <v-btn color="warning" variant="outlined" size="large" class="action-btn" disabled>
-                  <v-icon icon="mdi-clock-outline" size="20" class="mr-2"></v-icon>
-                  Esperando Respuesta
-                </v-btn>
-                <v-btn color="secondary" variant="text" size="small" class="mt-2" @click="sendReminder(supplier)">
-                  Enviar Recordatorio
-                </v-btn>
-              </template>
-
-              <template v-else-if="supplierInquiries[supplier.id].status === 'accepted'">
-                <!-- Accepted state -->
-                <v-btn color="success" variant="tonal" size="large" class="action-btn" disabled>
-                  <v-icon icon="mdi-check-circle" size="20" class="mr-2"></v-icon>
-                  ¡Servicio Confirmado!
-                </v-btn>
-              </template>
-
-              <template v-else-if="supplierInquiries[supplier.id].status === 'declined'">
-                <!-- Declined state -->
-                <v-btn color="error" variant="outlined" size="large" class="action-btn" disabled>
-                  <v-icon icon="mdi-close-circle" size="20" class="mr-2"></v-icon>
-                  No Disponible
-                </v-btn>
-              </template>
+            <div class="contact-item-modern">
+              <div class="contact-icon-modern service-icon">
+                <v-icon icon="mdi-tools" size="14"></v-icon>
+              </div>
+              <span class="contact-text-modern">{{ supplier.service }}</span>
             </div>
 
-            <!-- Response tracking -->
-            <div v-if="supplierInquiries[supplier.id]" class="inquiry-status mt-3">
-              <v-chip :color="getInquiryStatusColor(supplierInquiries[supplier.id].status)" size="small"
-                variant="tonal">
-                <v-icon :icon="getInquiryStatusIcon(supplierInquiries[supplier.id].status)" size="16"
-                  class="mr-1"></v-icon>
+            <!-- Vehicle Type for airport transfer -->
+            <div v-if="supplier.vehicleType && isAirportTransfer" class="contact-item-modern vehicle-item">
+              <div class="contact-icon-modern vehicle-icon">
+                <v-icon icon="mdi-car" size="14"></v-icon>
+              </div>
+              <span class="contact-text-modern">{{ getVehicleDisplayName(supplier.vehicleType) }}</span>
+              <v-chip size="x-small" color="blue" variant="tonal" class="vehicle-chip">
+                Transporte
+              </v-chip>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="supplier-actions-modern">
+            <!-- Initial state - Send request -->
+            <template v-if="!supplierInquiries[supplier.id]">
+              <v-btn
+                color="primary"
+                variant="flat"
+                size="large"
+                class="modern-action-btn primary-modern"
+                :loading="contactingSupplier === supplier.id"
+                @click="handleContactSupplier(supplier)"
+                block>
+                <v-icon icon="mdi-whatsapp" size="18" class="mr-2"></v-icon>
+                Solicitar Servicio
+              </v-btn>
+            </template>
+
+            <!-- Pending state -->
+            <template v-else-if="supplierInquiries[supplier.id].status === 'pending'">
+              <v-btn
+                color="warning"
+                variant="tonal"
+                size="large"
+                class="modern-action-btn pending-modern"
+                disabled
+                block>
+                <v-icon icon="mdi-clock-outline" size="18" class="mr-2"></v-icon>
+                Esperando Respuesta
+              </v-btn>
+              <v-btn
+                color="secondary"
+                variant="text"
+                size="small"
+                class="reminder-btn"
+                @click="sendReminder(supplier)">
+                Enviar Recordatorio
+              </v-btn>
+            </template>
+
+            <!-- Accepted state -->
+            <template v-else-if="supplierInquiries[supplier.id].status === 'accepted'">
+              <v-btn
+                color="success"
+                variant="flat"
+                size="large"
+                class="modern-action-btn accepted-modern"
+                disabled
+                block>
+                <v-icon icon="mdi-check-circle" size="18" class="mr-2"></v-icon>
+                ¡Servicio Confirmado!
+              </v-btn>
+            </template>
+
+            <!-- Declined state -->
+            <template v-else-if="supplierInquiries[supplier.id].status === 'declined'">
+              <v-btn
+                color="error"
+                variant="tonal"
+                size="large"
+                class="modern-action-btn declined-modern"
+                disabled
+                block>
+                <v-icon icon="mdi-close-circle" size="18" class="mr-2"></v-icon>
+                No Disponible
+              </v-btn>
+            </template>
+          </div>
+
+          <!-- Inquiry Status -->
+          <div v-if="supplierInquiries[supplier.id]" class="inquiry-status-modern">
+            <div class="status-container">
+              <v-chip
+                :color="getInquiryStatusColor(supplierInquiries[supplier.id].status)"
+                size="small"
+                variant="tonal"
+                class="status-chip-modern">
+                <v-icon
+                  :icon="getInquiryStatusIcon(supplierInquiries[supplier.id].status)"
+                  size="12"
+                  class="mr-1">
+                </v-icon>
                 {{ getInquiryStatusText(supplierInquiries[supplier.id].status) }}
               </v-chip>
 
-              <span class="inquiry-time ml-2 text-caption text-medium-emphasis">
+              <span class="inquiry-time-modern">
                 {{ formatTimeAgo(supplierInquiries[supplier.id].sentAt) }}
               </span>
             </div>
-          </v-card-text>
-        </v-card>
+          </div>
+        </div>
       </div>
 
-      <!-- Empty State -->
-      <v-card v-else class="empty-state-card" variant="tonal" color="grey-lighten-4" rounded="xl">
-        <v-card-text class="pa-8 text-center">
-          <div class="empty-state-icon">
-            <v-icon icon="mdi-account-search-outline" size="80" color="grey-lighten-1"></v-icon>
+      <!-- 🚫 MODERN EMPTY STATE -->
+      <div v-else class="modern-empty-state">
+        <div class="empty-card">
+          <div class="empty-icon-container">
+            <div class="empty-icon-bg">
+              <v-icon icon="mdi-account-search-outline" size="48" class="empty-icon"></v-icon>
+            </div>
           </div>
 
-          <h3 class="text-h5 mb-3 font-weight-bold">No hay proveedores compatibles</h3>
-
-          <p class="text-body-1 text-medium-emphasis mb-6 empty-message">
-            {{ getEmptyStateMessage() }}
-          </p>
+          <div class="empty-content">
+            <h3 class="empty-title">No hay proveedores compatibles</h3>
+            <p class="empty-message">{{ getEmptyStateMessage() }}</p>
+          </div>
 
           <div class="empty-actions">
-            <v-btn color="primary" variant="elevated" size="large" @click="refreshSuppliers" :loading="loading">
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="large"
+              @click="refreshSuppliers"
+              :loading="loading"
+              class="refresh-btn">
               <v-icon icon="mdi-refresh" class="mr-2"></v-icon>
               Buscar nuevamente
             </v-btn>
           </div>
-        </v-card-text>
-      </v-card>
+        </div>
+      </div>
+
     </v-card-text>
 
-    <!-- Success Snackbar -->
-    <v-snackbar v-model="showSuccessSnackbar" color="success" location="bottom center" timeout="4000" rounded="pill">
-      <div class="d-flex align-center">
-        <v-btn>
-          <v-icon icon="mdi-whatsapp" class="mr-2"></v-icon>
-          {{ successMessage }}
-        </v-btn>
+    <!-- Modern Snackbars -->
+    <v-snackbar
+      v-model="showSuccessSnackbar"
+      color="success"
+      location="bottom center"
+      timeout="4000"
+      rounded="xl"
+      class="modern-snackbar">
+      <div class="snackbar-content">
+        <v-icon icon="mdi-whatsapp" class="snackbar-icon"></v-icon>
+        <span class="snackbar-text">{{ successMessage }}</span>
       </div>
     </v-snackbar>
 
-    <!-- Error Snackbar -->
-    <v-snackbar v-model="showErrorSnackbar" color="error" location="bottom center" timeout="5000" rounded="pill">
-      <div class="d-flex align-center">
-        <v-icon icon="mdi-alert-circle" class="mr-2"></v-icon>
-        {{ errorMessage }}
+    <v-snackbar
+      v-model="showErrorSnackbar"
+      color="error"
+      location="bottom center"
+      timeout="5000"
+      rounded="xl"
+      class="modern-snackbar">
+      <div class="snackbar-content">
+        <v-icon icon="mdi-alert-circle" class="snackbar-icon"></v-icon>
+        <span class="snackbar-text">{{ errorMessage }}</span>
       </div>
     </v-snackbar>
   </v-card>
@@ -549,207 +638,666 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Previous styles remain the same... */
-.title-icon-container {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
+/* 🎯 MODERN SUPPLIERS SECTION STYLES */
 
-.supplier-count-chip {
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-  font-weight: 600;
-}
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-.loading-content {
-  text-align: center;
-}
-
-.suppliers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-}
-
-.supplier-card {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 1px solid rgba(var(--v-theme-outline), 0.1);
-  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 1), rgba(var(--v-theme-surface-variant), 0.3));
-  position: relative;
+.modern-suppliers-section {
+  background: rgba(var(--v-theme-surface), 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   overflow: hidden;
 }
 
-.supplier-card::before {
+/* 🎨 Modern Header */
+.modern-header {
+  position: relative;
+  background: linear-gradient(135deg,
+    rgb(var(--v-theme-primary)) 0%,
+    rgb(var(--v-theme-secondary)) 100%);
+  overflow: hidden;
+}
+
+.header-background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  transform: translateX(50px);
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+  padding: 24px !important;
+}
+
+.header-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.modern-title-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.header-text {
+  flex: 1;
+}
+
+.modern-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.modern-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.header-badge {
+  flex-shrink: 0;
+}
+
+.modern-count-chip {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 📱 Modern Content */
+.modern-content {
+  padding: 24px !important;
+}
+
+/* 🔄 Modern Loading */
+.modern-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.loading-card {
+  background: rgba(var(--v-theme-surface), 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.loading-animation {
+  margin-bottom: 20px;
+}
+
+.loading-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  margin: 0 0 8px 0;
+}
+
+.loading-subtitle {
+  font-size: 0.9rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  margin: 0;
+}
+
+/* 👥 Modern Suppliers Grid */
+.modern-suppliers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.modern-supplier-card {
+  background: rgba(var(--v-theme-surface), 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  animation: slideInUp 0.6s ease-out forwards;
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modern-supplier-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
+  background: linear-gradient(90deg,
+    rgb(var(--v-theme-primary)),
+    rgb(var(--v-theme-secondary)));
+  border-radius: 20px 20px 0 0;
 }
 
-.supplier-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 28px rgba(var(--v-theme-primary), 0.15);
-  border-color: rgba(var(--v-theme-primary), 0.3);
+.modern-supplier-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
-.supplier-header {
-  padding: 20px 16px 16px;
-  position: relative;
-}
-
-.supplier-avatar-section {
-  position: relative;
-  margin-bottom: 12px;
-}
-
-.supplier-avatar {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 3px solid white;
-}
-
-.supplier-status-badge {
+.card-glow {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg,
+    rgba(var(--v-theme-primary), 0.1),
+    rgba(var(--v-theme-secondary), 0.1));
+  border-radius: 22px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
 }
 
-.supplier-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: rgba(var(--v-theme-on-surface), 0.9);
-  margin-bottom: 4px;
-  line-height: 1.3;
+.modern-supplier-card:hover .card-glow {
+  opacity: 1;
 }
 
-.supplier-email {
-  font-size: 0.875rem;
-  color: rgba(var(--v-theme-on-surface), 0.6);
-  margin: 0;
+/* 👤 Supplier Header */
+.supplier-header-modern {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.contact-section {
-  margin-bottom: 16px;
+.avatar-section {
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
-.contact-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 0;
+.avatar-container {
+  position: relative;
 }
 
-.contact-item.vehicle-info {
-  background: rgba(var(--v-theme-blue), 0.05);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(var(--v-theme-blue), 0.1);
+.modern-avatar {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
 }
 
-.contact-icon-wrapper {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(var(--v-theme-primary), 0.1);
+.avatar-initials {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+}
+
+.status-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
-  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.contact-text {
-  font-size: 0.875rem;
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: rgb(var(--v-theme-success));
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.supplier-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.supplier-info-modern {
+  flex: 1;
+  min-width: 0;
+}
+
+.supplier-name-modern {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.9);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.supplier-email-modern {
+  font-size: 0.85rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  margin: 0;
   font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.8);
 }
 
-.supplier-actions {
+/* 📞 Contact Section */
+.contact-section-modern {
+  margin-bottom: 24px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
 }
 
-.action-btn {
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-  border-radius: 10px;
+.contact-item-modern {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
-.primary-action {
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.primary-action:hover {
-  box-shadow: 0 6px 16px rgba(var(--v-theme-primary), 0.4);
+.contact-item-modern:hover {
+  background: rgba(var(--v-theme-surface-variant), 0.5);
   transform: translateY(-1px);
 }
 
-.inquiry-status {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  background: rgba(var(--v-theme-surface-variant), 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(var(--v-theme-outline), 0.1);
+.vehicle-item {
+  background: rgba(var(--v-theme-blue), 0.05) !important;
+  border: 1px solid rgba(var(--v-theme-blue), 0.1);
 }
 
-.inquiry-time {
+.contact-icon-modern {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  flex-shrink: 0;
+}
+
+.phone-icon {
+  background: rgba(var(--v-theme-success), 0.1);
+  color: rgb(var(--v-theme-success));
+}
+
+.service-icon {
+  background: rgba(var(--v-theme-info), 0.1);
+  color: rgb(var(--v-theme-info));
+}
+
+.vehicle-icon {
+  background: rgba(var(--v-theme-blue), 0.1);
+  color: rgb(var(--v-theme-blue));
+}
+
+.contact-text-modern {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+  flex: 1;
+}
+
+.vehicle-chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* 🎯 Modern Actions */
+.supplier-actions-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modern-action-btn {
+  text-transform: none;
+  font-weight: 600;
+  border-radius: 12px;
+  height: 48px;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+.primary-modern {
+  background: linear-gradient(135deg,
+    rgb(var(--v-theme-primary)),
+    rgb(var(--v-theme-secondary)));
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.3);
+  color: white;
+}
+
+.primary-modern:hover {
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.4);
+  transform: translateY(-2px);
+}
+
+.pending-modern {
+  background: rgba(var(--v-theme-warning), 0.1);
+  color: rgb(var(--v-theme-warning));
+  border: 1px solid rgba(var(--v-theme-warning), 0.3);
+}
+
+.accepted-modern {
+  background: linear-gradient(135deg,
+    rgb(var(--v-theme-success)),
+    rgba(var(--v-theme-success), 0.8));
+  color: white;
+}
+
+.declined-modern {
+  background: rgba(var(--v-theme-error), 0.1);
+  color: rgb(var(--v-theme-error));
+  border: 1px solid rgba(var(--v-theme-error), 0.3);
+}
+
+.reminder-btn {
+  text-transform: none;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+/* 📊 Inquiry Status */
+.inquiry-status-modern {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  padding-top: 16px;
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-chip-modern {
+  font-weight: 500;
   font-size: 0.75rem;
 }
 
-.empty-state-card {
-  border: 2px dashed rgba(var(--v-theme-outline), 0.3);
+.inquiry-time-modern {
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-weight: 500;
 }
 
-.empty-state-icon {
-  margin-bottom: 16px;
-  opacity: 0.7;
+/* 🚫 Modern Empty State */
+.modern-empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.empty-card {
+  background: rgba(var(--v-theme-surface), 0.6);
+  backdrop-filter: blur(20px);
+  border: 2px dashed rgba(var(--v-theme-on-surface), 0.2);
+  border-radius: 24px;
+  padding: 48px 32px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.empty-icon-container {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.empty-icon-bg {
+  width: 80px;
+  height: 80px;
+  background: rgba(var(--v-theme-surface-variant), 0.3);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+
+.empty-content {
+  margin-bottom: 32px;
+}
+
+.empty-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+  margin: 0 0 12px 0;
 }
 
 .empty-message {
-  max-width: 400px;
-  margin: 0 auto;
+  font-size: 0.95rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .empty-actions {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
+}
+
+.refresh-btn {
+  text-transform: none;
+  font-weight: 600;
+  border-radius: 12px;
+  height: 48px;
+  background: linear-gradient(135deg,
+    rgb(var(--v-theme-primary)),
+    rgb(var(--v-theme-secondary)));
+  color: white;
+}
+
+/* 🔔 Modern Snackbars */
+.modern-snackbar :deep(.v-snackbar__wrapper) {
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.snackbar-content {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-@media (max-width: 768px) {
-  .suppliers-grid {
-    grid-template-columns: 1fr;
+.snackbar-icon {
+  color: white;
+}
+
+.snackbar-text {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* 📱 RESPONSIVE DESIGN */
+
+/* Small phones (320px - 479px) */
+@media (max-width: 479px) {
+  .modern-content {
+    padding: 16px !important;
   }
 
-  .supplier-actions {
+  .header-content {
+    padding: 20px !important;
+  }
+
+  .header-layout {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 
-  .empty-actions {
+  .modern-suppliers-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .modern-supplier-card {
+    padding: 20px;
+  }
+
+  .supplier-header-modern {
     flex-direction: column;
     align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .supplier-info-modern {
+    text-align: center;
+  }
+
+  .empty-card {
+    padding: 32px 20px;
+  }
+}
+
+/* Medium phones (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .modern-suppliers-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .header-layout {
+    gap: 12px;
+  }
+}
+
+/* Large phones (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .modern-suppliers-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .modern-content {
+    padding: 32px !important;
+  }
+
+  .header-content {
+    padding: 32px !important;
+  }
+
+  .modern-suppliers-grid {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 24px;
+  }
+
+  .modern-supplier-card {
+    padding: 28px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .modern-suppliers-section {
+    background: rgba(var(--v-theme-surface), 0.95);
+    border-color: rgba(var(--v-theme-on-surface), 0.15);
+  }
+
+  .modern-supplier-card,
+  .loading-card,
+  .empty-card {
+    background: rgba(var(--v-theme-surface), 0.9);
+    border-color: rgba(var(--v-theme-on-surface), 0.15);
+  }
+
+  .contact-item-modern {
+    background: rgba(var(--v-theme-surface), 0.4);
+  }
+
+  .contact-item-modern:hover {
+    background: rgba(var(--v-theme-surface), 0.6);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .modern-supplier-card,
+  .contact-item-modern,
+  .modern-action-btn {
+    animation: none;
+    transition: none;
+  }
+
+  .modern-supplier-card:hover,
+  .contact-item-modern:hover,
+  .primary-modern:hover {
+    transform: none;
+  }
+
+  .status-dot {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .modern-supplier-card,
+  .loading-card,
+  .empty-card {
+    border-width: 2px;
+  }
+
+  .contact-item-modern {
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.3);
   }
 }
 </style>

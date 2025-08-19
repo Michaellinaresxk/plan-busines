@@ -39,21 +39,7 @@
               </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
-              <v-card class="stats-card h-100" elevation="2" rounded="lg">
-                <v-card-text class="pa-4">
-                  <div class="d-flex align-center justify-space-between">
-                    <div>
-                      <p class="text-caption text-medium-emphasis mb-1">Total Variantes</p>
-                      <h2 class="text-h4 font-weight-bold text-info">{{ businessStats.totalVariants }}</h2>
-                    </div>
-                    <v-avatar color="info" size="48" variant="tonal">
-                      <v-icon icon="mdi-tune-variant" size="24"></v-icon>
-                    </v-avatar>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
+
 
             <v-col cols="12" sm="6" md="3">
               <v-card class="stats-card h-100" elevation="2" rounded="lg">

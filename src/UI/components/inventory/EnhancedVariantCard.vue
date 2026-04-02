@@ -1,236 +1,209 @@
 <template>
-  <v-card class="enhanced-variant-card" elevation="2" rounded="lg">
-    <!-- Card Header -->
-    <v-card-title class="pa-4 pb-2">
-      <div class="d-flex align-center justify-space-between">
-        <div class="d-flex align-items-center">
-          <v-avatar :color="serviceConfig?.color || '#6366F1'" size="32" class="mr-3">
-            <v-icon :icon="serviceConfig?.icon || 'mdi-cog'" color="white" size="18"></v-icon>
-          </v-avatar>
-          <span class="text-subtitle-1 font-weight-bold">
-            {{ localVariant.name || `Nueva ${serviceConfig?.name || 'Variante'}` }}
-          </span>
+  <div class="variant-card">
+
+    <!-- Header -->
+    <div class="variant-header">
+      <div class="variant-title-group">
+        <div class="variant-icon">
+          <v-icon :icon="serviceConfig?.icon || 'mdi-cog'" size="16" color="white" />
         </div>
-        <div class="card-actions">
-          <v-btn
-            icon="mdi-content-copy"
-            variant="text"
-            size="small"
-            @click="duplicateVariant">
-          </v-btn>
-          <v-btn
-            icon="mdi-delete"
-            variant="text"
-            size="small"
-            color="error"
-            @click="deleteVariant">
-          </v-btn>
+        <div>
+          <p class="variant-name">
+            {{ localVariant.name || `Nueva ${serviceConfig?.name || 'Variante'}` }}
+          </p>
+          <p v-if="priceCalculation" class="variant-price-preview">
+            ${{ formatPrice(priceCalculation.clientPays) }}
+          </p>
         </div>
       </div>
-    </v-card-title>
 
-    <!-- Card Content -->
-    <v-card-text class="pa-4">
+      <div class="variant-header-actions">
+        <button class="icon-btn" @click="duplicateVariant" title="Duplicar">
+          <v-icon icon="mdi-content-copy" size="15" />
+        </button>
+        <button class="icon-btn icon-btn--danger" @click="deleteVariant" title="Eliminar">
+          <v-icon icon="mdi-delete-outline" size="15" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="variant-body">
       <v-form @submit.prevent="saveVariant">
-        <v-row>
-          <!-- Variant Name -->
-          <v-col cols="12">
-            <v-text-field
-              v-model="localVariant.name"
-              label="Nombre de la Variante"
-              variant="outlined"
-              density="compact"
-              placeholder="ej: ATV Premium con Guía"
-              @blur="saveVariant">
-            </v-text-field>
-          </v-col>
 
-          <!-- Service-Specific Fields (Dynamic) -->
-          <template v-if="serviceConfig?.fields">
+        <!-- Variant Name -->
+        <div class="field-group">
+          <label class="field-label">Nombre</label>
+          <v-text-field
+            v-model="localVariant.name"
+            variant="outlined"
+            density="compact"
+            placeholder="ej: ATV Premium con Guía"
+            hide-details
+            class="luxury-input"
+            @blur="saveVariant"
+          />
+        </div>
+
+        <!-- Service-Specific Fields -->
+        <template v-if="serviceConfig?.fields">
+          <v-row dense class="mt-1">
             <v-col
               v-for="field in serviceConfig.fields"
               :key="field.key"
-              cols="12" md="6">
+              cols="12"
+              :md="serviceConfig.fields.length > 1 ? 6 : 12"
+            >
+              <div class="field-group">
+                <label class="field-label">{{ field.label }}</label>
 
-              <!-- Select Field -->
-              <v-select
-                v-if="field.type === 'select'"
-                v-model="localVariant[field.key]"
-                :items="field.options"
-                :label="field.label"
-                variant="outlined"
-                density="compact"
-                @update:model-value="recalculateAndSave">
-                <template #item="{ props, item }">
-                  <v-list-item v-bind="props">
-                    <template #append v-if="item.raw.extraPrice">
-                      <v-chip size="small" color="info" variant="tonal">
-                        {{ item.raw.extraPrice > 0 ? '+' : '' }}${{ item.raw.extraPrice }}
-                      </v-chip>
-                    </template>
-                  </v-list-item>
-                </template>
-              </v-select>
+                <v-select
+                  v-if="field.type === 'select'"
+                  v-model="localVariant[field.key]"
+                  :items="field.options"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="luxury-input"
+                  @update:model-value="recalculateAndSave"
+                >
+                  <template #item="{ props: itemProps, item }">
+                    <v-list-item v-bind="itemProps">
+                      <template v-if="(item.raw as any).extraPrice" #append>
+                        <span class="option-price">${{ (item.raw as any).extraPrice }}</span>
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
 
-              <!-- Number Field -->
-              <v-text-field
-                v-else-if="field.type === 'number'"
-                v-model.number="localVariant[field.key]"
-                :label="field.label"
-                :prefix="field.prefix"
-                :suffix="field.suffix"
-                type="number"
-                variant="outlined"
-                density="compact"
-                @update:model-value="recalculateAndSave">
-              </v-text-field>
+                <v-text-field
+                  v-else-if="field.type === 'number'"
+                  v-model.number="localVariant[field.key]"
+                  :prefix="field.prefix"
+                  :suffix="field.suffix"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="luxury-input"
+                  @update:model-value="recalculateAndSave"
+                />
 
-              <!-- Switch Field -->
-              <v-switch
-                v-else-if="field.type === 'switch'"
-                v-model="localVariant[field.key]"
-                :label="field.label"
-                color="primary"
-                @update:model-value="recalculateAndSave">
-              </v-switch>
+                <div v-else-if="field.type === 'switch'" class="switch-row">
+                  <v-switch
+                    v-model="localVariant[field.key]"
+                    :label="field.label"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    @update:model-value="recalculateAndSave"
+                  />
+                </div>
+              </div>
             </v-col>
-          </template>
+          </v-row>
+        </template>
 
-          <!-- Manual Price Override (Optional) -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model.number="localVariant.basePrice"
-              label="Precio Base (Override)"
-              variant="outlined"
-              density="compact"
-              type="number"
-              prefix="$"
-              hint="Opcional: sobrescribir precio base calculado"
-              @blur="recalculateAndSave">
-            </v-text-field>
-          </v-col>
+        <!-- Price override -->
+        <div class="field-group mt-1">
+          <label class="field-label">Precio Base <span class="field-label--optional">(override)</span></label>
+          <v-text-field
+            v-model.number="localVariant.basePrice"
+            variant="outlined"
+            density="compact"
+            type="number"
+            prefix="$"
+            hide-details
+            class="luxury-input"
+            @blur="recalculateAndSave"
+          />
+        </div>
 
-          <!-- Description -->
-          <v-col cols="12">
-            <v-textarea
-              v-model="localVariant.description"
-              label="Descripción"
-              variant="outlined"
-              density="compact"
-              rows="2"
-              placeholder="Describe las características específicas de esta variante"
-              @blur="saveVariant">
-            </v-textarea>
-          </v-col>
+        <!-- Description -->
+        <div class="field-group mt-1">
+          <label class="field-label">Descripción</label>
+          <v-textarea
+            v-model="localVariant.description"
+            variant="outlined"
+            density="compact"
+            rows="2"
+            hide-details
+            placeholder="Características específicas de esta variante"
+            class="luxury-input"
+            @blur="saveVariant"
+          />
+        </div>
 
-          <!-- Features -->
-          <v-col cols="12">
-            <v-combobox
-              v-model="localVariant.features"
-              label="Características Incluidas"
-              variant="outlined"
-              density="compact"
-              multiple
-              chips
-              clearable
-              placeholder="ej: Guía incluido, Equipo de seguridad, Refrigerios"
-              @update:model-value="saveVariant">
-            </v-combobox>
-          </v-col>
-        </v-row>
+        <!-- Features -->
+        <div class="field-group mt-1">
+          <label class="field-label">Incluye</label>
+          <v-combobox
+            v-model="localVariant.features"
+            variant="outlined"
+            density="compact"
+            multiple
+            chips
+            clearable
+            hide-details
+            placeholder="Guía incluido, Equipo de seguridad..."
+            class="luxury-input"
+            @update:model-value="saveVariant"
+          />
+        </div>
       </v-form>
+    </div>
 
-      <!-- Business Price Calculation Display -->
-      <div v-if="priceCalculation" class="price-calculation-section mt-4">
-        <v-divider class="mb-3"></v-divider>
-        <h4 class="text-subtitle-2 mb-3 d-flex align-center">
-          <v-icon icon="mdi-calculator" class="mr-2" color="success" size="16"></v-icon>
-          Cálculo de Precios
-        </h4>
+    <!-- Price Breakdown -->
+    <div v-if="priceCalculation" class="price-section">
+      <div class="price-section-label">Desglose de precio</div>
 
-        <v-card variant="outlined" :color="serviceConfig?.color || 'primary'" class="price-breakdown-card">
-          <v-card-text class="pa-3">
-            <v-row dense>
-              <v-col cols="6" sm="3">
-                <div class="price-breakdown-item">
-                  <span class="breakdown-label">Base:</span>
-                  <span class="breakdown-value">${{ formatPrice(priceCalculation.basePrice) }}</span>
-                </div>
-              </v-col>
-              <v-col cols="6" sm="3">
-                <div class="price-breakdown-item">
-                  <span class="breakdown-label">Extras:</span>
-                  <span class="breakdown-value info">+${{ formatPrice(priceCalculation.extraPrice) }}</span>
-                </div>
-              </v-col>
-              <v-col cols="6" sm="3">
-                <div class="price-breakdown-item">
-                  <span class="breakdown-label">Ganancia:</span>
-                  <span class="breakdown-value success">${{ formatPrice(priceCalculation.profit) }}</span>
-                </div>
-              </v-col>
-              <v-col cols="6" sm="3">
-                <div class="price-breakdown-item">
-                  <span class="breakdown-label">Taxes:</span>
-                  <span class="breakdown-value warning">${{ formatPrice(priceCalculation.taxes) }}</span>
-                </div>
-              </v-col>
-            </v-row>
-
-            <v-divider class="my-2"></v-divider>
-
-            <div class="d-flex justify-space-between align-center">
-              <span class="text-subtitle-2 font-weight-bold">Cliente Paga:</span>
-              <span class="text-h6 font-weight-bold" :style="{ color: serviceConfig?.color || '#6366F1' }">
-                ${{ formatPrice(priceCalculation.clientPays) }}
-              </span>
-            </div>
-          </v-card-text>
-        </v-card>
+      <div class="price-rows">
+        <div class="price-row">
+          <span class="price-row-label">Subtotal proveedor</span>
+          <span class="price-row-value">${{ formatPrice(priceCalculation.subtotal) }}</span>
+        </div>
+        <div class="price-row">
+          <span class="price-row-label">Ganancia</span>
+          <span class="price-row-value">${{ formatPrice(priceCalculation.profit) }}</span>
+        </div>
+        <div class="price-row">
+          <span class="price-row-label">ITBIS ({{ Math.round(priceCalculation.taxes / priceCalculation.clientPays * 100) }}%)</span>
+          <span class="price-row-value">${{ formatPrice(priceCalculation.taxes) }}</span>
+        </div>
       </div>
-    </v-card-text>
 
-    <!-- Card Actions -->
-    <v-card-actions class="pa-4 pt-0">
-      <v-switch
-        v-model="localVariant.isAvailable"
-        :label="localVariant.isAvailable ? 'Disponible' : 'No Disponible'"
-        :color="localVariant.isAvailable ? 'success' : 'error'"
-        @update:model-value="saveVariant">
-      </v-switch>
-      <v-spacer></v-spacer>
+      <div class="price-total">
+        <span class="price-total-label">Cliente paga</span>
+        <span class="price-total-value">${{ formatPrice(priceCalculation.clientPays) }}</span>
+      </div>
+    </div>
 
-      <!-- Status Chips -->
-      <div class="status-chips">
-        <v-chip
-          v-if="priceCalculation"
-          :color="serviceConfig?.color || 'primary'"
-          size="small"
-          variant="tonal"
-          class="mr-2">
-          ${{ formatPrice(priceCalculation.clientPays) }}
-        </v-chip>
-        <v-chip
-          v-if="getCapacityInfo()"
-          color="info"
-          size="small"
-          variant="tonal"
-          class="mr-2">
+    <!-- Footer -->
+    <div class="variant-footer">
+      <div class="availability-toggle">
+        <v-switch
+          v-model="localVariant.isAvailable"
+          color="success"
+          density="compact"
+          hide-details
+          @update:model-value="saveVariant"
+        />
+        <span class="availability-label" :class="localVariant.isAvailable ? 'available' : 'unavailable'">
+          {{ localVariant.isAvailable ? 'Disponible' : 'Inactiva' }}
+        </span>
+      </div>
+
+      <div class="footer-tags">
+        <span v-if="getCapacityInfo()" class="footer-tag">
           {{ getCapacityInfo() }}
-        </v-chip>
-        <v-chip
-          :color="localVariant.isAvailable ? 'success' : 'error'"
-          size="small"
-          variant="tonal">
-          {{ localVariant.isAvailable ? 'Activa' : 'Inactiva' }}
-        </v-chip>
+        </span>
       </div>
-    </v-card-actions>
-  </v-card>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { calculateServicePrice, type PriceCalculation } from '@/config/simpleServiceConfig';
 import type { ServiceView } from '@/views/ServiceView';
 
@@ -239,7 +212,6 @@ interface Props {
   service: ServiceView;
   serviceConfig: any;
 }
-
 interface Emits {
   'update': [variant: Record<string, any>];
   'delete': [];
@@ -248,13 +220,9 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Local reactive copy of the variant
 const localVariant = ref<Record<string, any>>({});
-
-// Price calculation
 const priceCalculation = ref<PriceCalculation | null>(null);
 
-// Initialize variant data
 function initializeVariant() {
   localVariant.value = {
     ...props.variant,
@@ -265,8 +233,6 @@ function initializeVariant() {
     features: props.variant.features || [],
     basePrice: props.variant.basePrice || props.service.basePrice
   };
-
-  // Initialize service-specific fields
   if (props.serviceConfig?.fields) {
     props.serviceConfig.fields.forEach((field: any) => {
       if (localVariant.value[field.key] === undefined) {
@@ -280,51 +246,31 @@ function initializeVariant() {
       }
     });
   }
-
   calculatePrice();
 }
 
-// Calculate price using business logic
 function calculatePrice() {
-  if (!props.serviceConfig) {
-    priceCalculation.value = null;
-    return;
-  }
-
+  if (!props.serviceConfig) { priceCalculation.value = null; return; }
   try {
-    const combinedData = {
+    priceCalculation.value = calculateServicePrice(props.service.category, {
       ...props.service,
       ...localVariant.value
-    };
-
-    priceCalculation.value = calculateServicePrice(props.service.category, combinedData);
-  } catch (error) {
-    console.error('Error calculating variant price:', error);
+    });
+  } catch {
     priceCalculation.value = null;
   }
 }
 
-// Smart capacity getter
 function getCapacityInfo(): string | null {
-  if (localVariant.value.maxCapacity) {
-    return `${localVariant.value.maxCapacity} pax`;
-  }
-  if (localVariant.value.capacity) {
-    return `${localVariant.value.capacity} plazas`;
-  }
-  if (localVariant.value.maxPassengers) {
-    return `${localVariant.value.maxPassengers} pax`;
-  }
-  if (localVariant.value.maxParticipants) {
-    return `${localVariant.value.maxParticipants} personas`;
-  }
-  if (localVariant.value.duration) {
-    return `${localVariant.value.duration} min`;
-  }
+  const v = localVariant.value;
+  if (v.maxCapacity)    return `${v.maxCapacity} pax`;
+  if (v.capacity)       return `${v.capacity} plazas`;
+  if (v.maxPassengers)  return `${v.maxPassengers} pax`;
+  if (v.maxParticipants) return `${v.maxParticipants} personas`;
+  if (v.duration)       return `${v.duration} min`;
   return null;
 }
 
-// Format price for display
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('es-DO', {
     minimumFractionDigits: 0,
@@ -332,144 +278,326 @@ function formatPrice(price: number): string {
   }).format(price);
 }
 
-// Methods
 function recalculateAndSave() {
   calculatePrice();
   saveVariant();
 }
 
 function saveVariant() {
-  // Clean up undefined values and include price calculation
-  const cleanVariant = {
-    ...Object.fromEntries(
-      Object.entries(localVariant.value).filter(([_, value]) => value !== undefined)
-    )
-  };
-
-  // Include calculated price information
+  const clean: Record<string, any> = Object.fromEntries(
+    Object.entries(localVariant.value).filter(([, v]) => v !== undefined)
+  );
   if (priceCalculation.value) {
-    cleanVariant.calculatedPrice = priceCalculation.value.clientPays;
-    cleanVariant.profit = priceCalculation.value.profit;
-    cleanVariant.taxes = priceCalculation.value.taxes;
-    cleanVariant.priceBreakdown = priceCalculation.value;
+    clean.calculatedPrice = priceCalculation.value.clientPays;
+    clean.profit = priceCalculation.value.profit;
+    clean.taxes = priceCalculation.value.taxes;
+    clean.priceBreakdown = priceCalculation.value;
   }
-
-  emit('update', cleanVariant);
+  emit('update', clean);
 }
 
 function deleteVariant() {
-  if (confirm(`¿Estás seguro de que quieres eliminar la variante "${localVariant.value.name || 'Sin nombre'}"?`)) {
+  if (confirm(`¿Eliminar la variante "${localVariant.value.name || 'Sin nombre'}"?`)) {
     emit('delete');
   }
 }
 
 function duplicateVariant() {
-  const duplicated = {
+  emit('update', {
     ...localVariant.value,
     id: `variant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name: `${localVariant.value.name} (Copia)`
-  };
-  emit('update', duplicated);
+  });
 }
 
-// Lifecycle
-onMounted(() => {
-  initializeVariant();
-});
-
-// Watch for external changes
-watch(() => props.variant, () => {
-  initializeVariant();
-}, { deep: true });
-
-// Watch for service changes that might affect calculations
-watch(() => props.service, () => {
-  calculatePrice();
-}, { deep: true });
+onMounted(initializeVariant);
+watch(() => props.variant, initializeVariant, { deep: true });
+watch(() => props.service, calculatePrice, { deep: true });
 </script>
 
 <style scoped>
-.enhanced-variant-card {
-  transition: all 0.3s ease;
-  border: 1px solid rgba(var(--v-theme-outline), 0.12);
+/* ─── Card Shell ─── */
+.variant-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
 }
 
-.enhanced-variant-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+.variant-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 20px -4px rgba(0,0,0,0.06);
 }
 
-.card-actions {
+/* ─── Header ─── */
+.variant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #F8FAFC;
+}
+
+.variant-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.variant-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.variant-name {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: #0F172A;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.1px;
+}
+
+.variant-price-preview {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6366F1;
+  margin: 1px 0 0;
+}
+
+.variant-header-actions {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
-.price-calculation-section {
-  margin-top: 16px;
+/* ─── Icon buttons ─── */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #94A3B8;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.price-breakdown-card {
-  background: rgba(var(--v-theme-surface-variant), 0.3);
-  border: 1px solid rgba(var(--v-theme-outline), 0.2);
+.icon-btn:hover { background: #F1F5F9; color: #475569; }
+.icon-btn--danger:hover { background: #FEF2F2; color: #EF4444; }
+
+/* ─── Body / Form ─── */
+.variant-body {
+  padding: 16px 20px;
 }
 
-.price-breakdown-item {
+.field-group {
+  margin-bottom: 12px;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #94A3B8;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.field-label--optional {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.7rem;
+  color: #CBD5E1;
+}
+
+/* Minimal input override */
+:deep(.luxury-input .v-field__outline__start),
+:deep(.luxury-input .v-field__outline__end),
+:deep(.luxury-input .v-field__outline__notch) {
+  border-color: #E2E8F0 !important;
+}
+
+:deep(.luxury-input .v-field:hover .v-field__outline__start),
+:deep(.luxury-input .v-field:hover .v-field__outline__end),
+:deep(.luxury-input .v-field:hover .v-field__outline__notch) {
+  border-color: #CBD5E1 !important;
+}
+
+:deep(.luxury-input.v-input--focused .v-field__outline__start),
+:deep(.luxury-input.v-input--focused .v-field__outline__end),
+:deep(.luxury-input.v-input--focused .v-field__outline__notch) {
+  border-color: #6366F1 !important;
+}
+
+:deep(.luxury-input .v-field__input) {
+  font-size: 0.8375rem !important;
+  color: #1E293B !important;
+}
+
+.switch-row {
+  padding-top: 4px;
+}
+
+.option-price {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6366F1;
+  background: rgba(99, 102, 241, 0.08);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+/* ─── Price Section ─── */
+.price-section {
+  margin: 0 20px 16px;
+  background: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.price-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin-bottom: 10px;
+}
+
+.price-rows {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  text-align: center;
-  padding: 4px;
 }
 
-.breakdown-label {
-  font-size: 0.7rem;
+.price-row-label {
+  font-size: 0.8rem;
+  color: #64748B;
+}
+
+.price-row-value {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-  opacity: 0.7;
-  text-transform: uppercase;
-  margin-bottom: 2px;
+  color: #475569;
 }
 
-.breakdown-value {
+.price-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-total-label {
   font-size: 0.85rem;
-  font-weight: 700;
-  color: rgb(var(--v-theme-on-surface));
+  font-weight: 600;
+  color: #334155;
 }
 
-.breakdown-value.info {
-  color: rgb(var(--v-theme-info));
+.price-total-value {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: #6366F1;
+  letter-spacing: -0.3px;
 }
 
-.breakdown-value.success {
-  color: rgb(var(--v-theme-success));
+/* ─── Footer ─── */
+.variant-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 14px;
+  border-top: 1px solid #F8FAFC;
 }
 
-.breakdown-value.warning {
-  color: rgb(var(--v-theme-warning));
-}
-
-.status-chips {
+.availability-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.v-form {
-  width: 100%;
+.availability-label {
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.v-switch :deep(.v-label) {
-  font-size: 0.875rem;
+.availability-label.available   { color: #10B981; }
+.availability-label.unavailable { color: #94A3B8; }
+
+.footer-tags {
+  display: flex;
+  gap: 6px;
 }
 
-@media (max-width: 768px) {
-  .status-chips {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
+.footer-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
 
-  .price-breakdown-item {
-    margin-bottom: 8px;
-  }
+/* ─── Dark theme ─── */
+.v-theme--dark .variant-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.v-theme--dark .variant-header { border-bottom-color: #334155; }
+.v-theme--dark .variant-name   { color: #F1F5F9; }
+.v-theme--dark .icon-btn       { color: #475569; }
+.v-theme--dark .icon-btn:hover { background: #334155; color: #94A3B8; }
+.v-theme--dark .icon-btn--danger:hover { background: rgba(239,68,68,0.1); color: #F87171; }
+
+.v-theme--dark .field-label { color: #475569; }
+
+.v-theme--dark .price-section {
+  background: #0F172A;
+  border-color: #334155;
+}
+.v-theme--dark .price-row-label  { color: #475569; }
+.v-theme--dark .price-row-value  { color: #94A3B8; }
+.v-theme--dark .price-total-label { color: #CBD5E1; }
+.v-theme--dark .price-rows       { border-bottom-color: #334155; }
+
+.v-theme--dark .variant-footer   { border-top-color: #334155; }
+.v-theme--dark .footer-tag {
+  background: #0F172A;
+  border-color: #334155;
+  color: #475569;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .variant-header { padding: 14px 16px 12px; }
+  .variant-body   { padding: 12px 16px; }
+  .price-section  { margin: 0 16px 12px; }
+  .variant-footer { padding: 8px 16px 12px; }
 }
 </style>

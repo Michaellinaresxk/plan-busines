@@ -1,43 +1,35 @@
 <template>
   <div class="login-page">
+    <!-- Decorative blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
     <v-container fluid class="fill-height pa-0 ma-0">
-      <!-- Animated Background -->
-      <div class="animated-bg"></div>
-      <div class="animated-bg bg2"></div>
-      <div class="animated-bg bg3"></div>
-
-      <!-- Main Content -->
       <v-row class="fill-height align-center justify-center" no-gutters>
-        <v-col cols="12" sm="8" md="6" lg="5" xl="4" class="login-col">
-          <v-slide-y-transition>
-            <v-card class="login-card mx-auto" elevation="24" rounded="xl" theme="dark"
-              :class="{ 'form-loaded': formLoaded }">
-              <div class="card-content-wrapper pa-0">
-                <!-- Brand Section -->
-                <div class="brand-section text-center pt-10 pb-6">
-                  <div class="logo-wrapper mb-2">
-                    <v-icon icon="mdi-layers-triple" size="52" color="primary" class="logo-icon" />
-                  </div>
-                  <h1 class="text-h4 font-weight-bold mb-1 welcome-text">
-                    Plan Business
-                  </h1>
-                  <p class="text-body-2 text-medium-emphasis">
-                    Sign in to your account
-                  </p>
-                </div>
+        <v-col cols="12" sm="8" md="5" lg="4" xl="3" class="login-col">
+          <div class="login-card" :class="{ 'login-card--visible': formLoaded }">
 
-                <!-- Form Container -->
-                <v-card-text class="px-8 pt-2 pb-6">
-                  <v-slide-y-transition>
-                    <div v-show="formLoaded">
-                      <LoginForm :loading="isLoading" @submit="loginUser" @forgot-password="handleForgotPassword"
-                        @go-to-signup="handleGoToSignup" />
-                    </div>
-                  </v-slide-y-transition>
-                </v-card-text>
+            <!-- Brand -->
+            <div class="login-brand">
+              <div class="login-logo">
+                <v-icon icon="mdi-calendar-check" size="24" color="white" />
               </div>
-            </v-card>
-          </v-slide-y-transition>
+              <h1 class="login-title">Plan<span class="login-title-accent">Business</span></h1>
+              <p class="login-subtitle">Accede a tu panel de control</p>
+            </div>
+
+            <!-- Form -->
+            <div class="login-form-wrapper" v-show="formLoaded">
+              <LoginForm
+                :loading="isLoading"
+                @submit="loginUser"
+                @forgot-password="handleForgotPassword"
+                @go-to-signup="handleGoToSignup"
+              />
+            </div>
+
+          </div>
         </v-col>
       </v-row>
     </v-container>
@@ -50,61 +42,45 @@ import { useRouter } from 'vue-router';
 import { userServiceKey } from '@/services/userService';
 import LoginForm from '@/UI/components/auth/LoginForm.vue';
 
-// Types
 interface LoginPayload {
   email: string;
   password: string;
 }
 
-// Dependencies
 const router = useRouter();
 const userService = inject(userServiceKey);
 
-if (!userService) {
-  throw new Error('userService is not available');
-}
+if (!userService) throw new Error('userService is not available');
 
-// State
 const formLoaded = ref(false);
 const isLoading = ref(false);
 
-// Event handlers
-const loginUser = async (payload: LoginPayload): Promise<void> => {
+const loginUser = async (payload: LoginPayload) => {
   try {
     isLoading.value = true;
-    const user = await userService.loginUser(payload.email, payload.password);
-    console.log('User signed in:', user);
+    await userService!.loginUser(payload.email, payload.password);
     router.push({ path: '/dashboard' });
   } catch (error) {
-    console.log('Login error:', error);
+    console.error('Login error:', error);
   } finally {
     isLoading.value = false;
   }
 };
 
-const handleForgotPassword = (): void => {
-  router.push({ name: 'ForgotPassword' });
-};
+const handleForgotPassword = () => router.push({ name: 'ForgotPassword' });
+const handleGoToSignup = () => router.push({ name: 'Register' });
 
-const handleGoToSignup = (): void => {
-  router.push({ name: 'Register' });
-};
-
-// Lifecycle
-onMounted(() => {
-  setTimeout(() => {
-    formLoaded.value = true;
-  }, 300);
-});
+onMounted(() => setTimeout(() => { formLoaded.value = true; }, 200));
 </script>
 
 <style scoped>
+/* ─── Page ─── */
 .login-page {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   position: relative;
-  background-color: #0c0c16;
+  background: #0A0A14;
 }
 
 .login-col {
@@ -112,124 +88,133 @@ onMounted(() => {
   padding: 20px;
 }
 
-.login-card {
-  max-width: 460px;
-  width: 100%;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  background: rgba(30, 30, 46, 0.7) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transform: translateY(30px);
-  opacity: 0;
-  transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+/* ─── Decorative Blobs ─── */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
 }
 
-.form-loaded {
+.blob-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #6366F1, transparent 70%);
+  top: -120px;
+  right: -80px;
+  animation: blobFloat 14s ease-in-out alternate infinite;
+}
+
+.blob-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #8B5CF6, transparent 70%);
+  bottom: -100px;
+  left: -60px;
+  animation: blobFloat 18s ease-in-out alternate-reverse infinite;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #3B82F6, transparent 70%);
+  top: 40%;
+  left: 30%;
+  opacity: 0.2;
+  animation: blobFloat 22s ease-in-out infinite;
+}
+
+@keyframes blobFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(30px, -20px) scale(1.05); }
+  66%  { transform: translate(-20px, 15px) scale(0.97); }
+  100% { transform: translate(10px, -10px) scale(1.02); }
+}
+
+/* ─── Card ─── */
+.login-card {
+  background: rgba(15, 15, 30, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 40px 36px 36px;
+  max-width: 440px;
+  margin: 0 auto;
+  transform: translateY(24px);
+  opacity: 0;
+  transition: transform 0.65s cubic-bezier(0.19, 1, 0.22, 1),
+              opacity 0.65s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.login-card--visible {
   transform: translateY(0);
   opacity: 1;
 }
 
-.brand-section {
-  user-select: none;
+/* ─── Brand section ─── */
+.login-brand {
+  text-align: center;
+  margin-bottom: 36px;
 }
 
-.welcome-text {
-  background: linear-gradient(90deg, #64b5f6, #42a5f5, #2196f3);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.login-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4); }
+  50%       { box-shadow: 0 8px 32px rgba(99, 102, 241, 0.65); }
+}
+
+.login-title {
+  font-size: 1.75rem;
   font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
 }
 
-.logo-icon {
-  animation: pulse 2s infinite;
-  cursor: default;
+.login-title-accent {
+  color: #818CF8;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+.login-subtitle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
 }
 
-/* Animated background */
-.animated-bg {
-  position: absolute;
-  width: 70vmax;
-  height: 70vmax;
-  border-radius: 50%;
-  background: rgba(33, 150, 243, 0.1);
-  right: -30vmax;
-  top: -10vmax;
-  z-index: 0;
-  animation: move 10s linear alternate infinite;
+/* ─── Form wrapper ─── */
+.login-form-wrapper {
+  /* LoginForm handles its own styles */
 }
 
-.bg2 {
-  background: rgba(33, 150, 243, 0.05);
-  left: -20vmax;
-  top: -50vmax;
-  transform: scale(0.8);
-  animation: move 15s linear alternate-reverse infinite;
-}
-
-.bg3 {
-  background: rgba(33, 150, 243, 0.07);
-  right: 30vmax;
-  bottom: -50vmax;
-  transform: scale(1.2);
-  animation: move 20s linear infinite;
-}
-
-@keyframes move {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-  }
-
-  25% {
-    transform: translate(10%, 10%) rotate(3deg) scale(1.05);
-  }
-
-  50% {
-    transform: translate(5%, 15%) rotate(-3deg) scale(1.1);
-  }
-
-  75% {
-    transform: translate(15%, 5%) rotate(5deg) scale(1.05);
-  }
-
-  100% {
-    transform: translate(0%, 0%) rotate(0deg) scale(1);
-  }
-}
-
-/* Responsive improvements */
+/* ─── Responsive ─── */
 @media (max-width: 600px) {
   .login-card {
-    max-width: 90vw;
-    margin: 0 5vw;
+    padding: 32px 24px 28px;
+    border-radius: 20px;
   }
 
-  .brand-section {
-    padding-top: 2rem !important;
+  .login-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
   }
 
-  .welcome-text {
-    font-size: 1.5rem !important;
-  }
-
-  .login-col {
-    padding: 16px;
+  .login-title {
+    font-size: 1.5rem;
   }
 }
 </style>

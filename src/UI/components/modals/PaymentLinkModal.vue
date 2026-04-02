@@ -1,5 +1,6 @@
+<!-- PaymentLinkModal.vue - SIMPLIFICADO para usar template existente -->
 <template>
-  <v-dialog v-model="show" max-width="600" persistent>
+  <v-dialog v-model="show" max-width="500" persistent>
     <v-card>
       <!-- Header -->
       <v-card-title class="text-h5 pt-5 pb-2 px-5 bg-primary text-white">
@@ -19,11 +20,14 @@
               <p class="text-body-2 mb-0">
                 {{ reservation?.serviceName }} • ${{ reservation?.totalPrice }}
               </p>
+              <p class="text-caption text-medium-emphasis mb-0">
+                {{ reservation?.clientEmail }}
+              </p>
             </div>
           </div>
         </v-alert>
 
-        <!-- Opciones de envío -->
+        <!-- Método de envío simplificado -->
         <v-card variant="outlined" class="mb-4">
           <v-card-text>
             <h4 class="text-subtitle-1 font-weight-bold mb-3">Método de envío:</h4>
@@ -36,69 +40,47 @@
                     <div>
                       <strong>Generar automáticamente</strong>
                       <div class="text-body-2 text-medium-emphasis">
-                        Crear link de Stripe y enviar por email
+                        Crear link de Stripe y enviar usando tu template de email
                       </div>
                     </div>
                   </div>
                 </template>
               </v-radio>
 
-              <v-radio value="manual" color="secondary">
+              <v-radio value="manual" color="primary">
                 <template #label>
                   <div class="d-flex align-center">
-                    <v-icon icon="mdi-link-variant" color="secondary" class="mr-2"></v-icon>
+                    <v-icon icon="mdi-link-variant" color="primary" class="mr-2"></v-icon>
                     <div>
-                      <strong>Agregar link manualmente</strong>
+                      <strong>Link manual</strong>
                       <div class="text-body-2 text-medium-emphasis">
-                        Pegar un link de pago existente
+                        Usar un link de pago personalizado
                       </div>
                     </div>
                   </div>
                 </template>
               </v-radio>
             </v-radio-group>
+
+            <!-- Campo para link manual -->
+            <v-text-field
+              v-if="sendMethod === 'manual'"
+              v-model="manualPaymentLink"
+              label="URL del payment link"
+              placeholder="https://checkout.stripe.com/..."
+              variant="outlined"
+              density="compact"
+              :rules="linkRules"
+              prepend-inner-icon="mdi-link"
+              class="mt-3"
+            />
           </v-card-text>
         </v-card>
 
-        <!-- Input para link manual (solo si está seleccionado) -->
-        <v-expand-transition>
-          <div v-if="sendMethod === 'manual'">
-            <v-text-field
-              v-model="manualPaymentLink"
-              label="Link de pago"
-              placeholder="https://checkout.stripe.com/c/pay/..."
-              prepend-icon="mdi-link"
-              variant="outlined"
-              :rules="linkRules"
-              class="mb-4">
-            </v-text-field>
-          </div>
-        </v-expand-transition>
-
-        <!-- Configuración adicional -->
+        <!-- Mensaje personalizado (opcional) -->
         <v-card variant="outlined">
           <v-card-text>
-            <h4 class="text-subtitle-1 font-weight-bold mb-3">Configuración:</h4>
-
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="expirationHours"
-                  :items="expirationOptions"
-                  label="Expiración del link"
-                  variant="outlined"
-                  density="compact">
-                </v-select>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-switch
-                  v-model="sendWhatsApp"
-                  label="También enviar por WhatsApp"
-                  color="green"
-                  density="compact">
-                </v-switch>
-              </v-col>
-            </v-row>
+            <h4 class="text-subtitle-1 font-weight-bold mb-3">Personalización:</h4>
 
             <v-textarea
               v-model="customMessage"
@@ -106,38 +88,43 @@
               placeholder="Mensaje adicional para el cliente..."
               variant="outlined"
               rows="3"
-              counter="500"
-              :rules="messageRules">
-            </v-textarea>
+              :rules="messageRules"
+              counter="300"
+              hint="Este mensaje se incluirá en tu template de email existente"
+            />
           </v-card-text>
         </v-card>
 
-        <!-- Preview del email -->
-        <v-expansion-panels class="mt-4">
-          <v-expansion-panel>
-            <v-expansion-panel-title>
-              <v-icon icon="mdi-eye" class="mr-2"></v-icon>
-              Vista previa del email
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <div class="email-preview">
-                <div class="preview-content pa-3" style="background: #f5f5f5; border-radius: 8px;">
-                  <h4>Para: {{ reservation?.clientEmail }}</h4>
-                  <h4>Asunto: Link de Pago - {{ reservation?.serviceName }}</h4>
-                  <hr class="my-2">
-                  <p><strong>Estimado/a {{ reservation?.clientName }},</strong></p>
-                  <p>Tu reserva está confirmada. Para completar el proceso, por favor realiza el pago:</p>
-                  <p><strong>Servicio:</strong> {{ reservation?.serviceName }}</p>
-                  <p><strong>Total:</strong> ${{ reservation?.totalPrice }}</p>
-                  <div v-if="customMessage" class="mt-2 pa-2" style="background: #e3f2fd; border-radius: 4px;">
-                    <strong>Mensaje especial:</strong><br>
-                    {{ customMessage }}
-                  </div>
-                </div>
+        <!-- Error state -->
+        <v-alert
+          v-if="errorMessage"
+          color="error"
+          variant="tonal"
+          class="mt-4"
+          closable
+          @click:close="errorMessage = ''"
+        >
+          <div class="d-flex align-start">
+            <v-icon icon="mdi-alert-circle" class="mr-2 mt-1"></v-icon>
+            <div>
+              <strong>Error al enviar</strong>
+              <div class="text-body-2 mt-1">{{ errorMessage }}</div>
+            </div>
+          </div>
+        </v-alert>
+
+        <!-- Info: template usage -->
+        <v-alert v-else color="success" variant="tonal" class="mt-4">
+          <div class="d-flex align-start">
+            <v-icon icon="mdi-email-check" class="mr-2 mt-1"></v-icon>
+            <div>
+              <strong>Tu email template se usará automáticamente</strong>
+              <div class="text-body-2 mt-1">
+                El payment link se integrará en tu diseño existente con toda la información de la reserva.
               </div>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+            </div>
+          </div>
+        </v-alert>
       </v-card-text>
 
       <!-- Actions -->
@@ -168,8 +155,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 import type { ReservationView } from '@/views/ReservationView';
+import { emailServiceKey } from '@/services/EmailService';
 
 // Props
 interface Props {
@@ -185,13 +173,15 @@ const emit = defineEmits<{
   'payment-sent': [reservation: ReservationView, result: any];
 }>();
 
+// ✅ Inject EmailService
+const emailService = inject(emailServiceKey);
+
 // Reactive state
 const sendMethod = ref<'auto' | 'manual'>('auto');
 const manualPaymentLink = ref('');
-const expirationHours = ref(48);
-const sendWhatsApp = ref(false);
 const customMessage = ref('');
 const loading = ref(false);
+const errorMessage = ref('');
 
 // Computed
 const show = computed({
@@ -200,19 +190,13 @@ const show = computed({
 });
 
 const canSend = computed(() => {
+  if (!props.reservation) return false;
+
   if (sendMethod.value === 'manual') {
     return manualPaymentLink.value && isValidUrl(manualPaymentLink.value);
   }
   return true;
 });
-
-// Options
-const expirationOptions = [
-  { title: '24 horas', value: 24 },
-  { title: '48 horas', value: 48 },
-  { title: '72 horas', value: 72 },
-  { title: '1 semana', value: 168 }
-];
 
 // Validation rules
 const linkRules = [
@@ -221,7 +205,7 @@ const linkRules = [
 ];
 
 const messageRules = [
-  (v: string) => !v || v.length <= 500 || 'El mensaje no puede exceder 500 caracteres'
+  (v: string) => !v || v.length <= 300 || 'El mensaje no puede exceder 300 caracteres'
 ];
 
 // Methods
@@ -239,74 +223,90 @@ function isValidUrl(url: string): boolean {
   }
 }
 
+// ✅ IMPLEMENTACIÓN SIMPLIFICADA: Enviar payment link usando template existente
 async function sendPaymentLink() {
   if (!props.reservation) return;
 
   loading.value = true;
 
   try {
-    let result;
+    let paymentUrl: string;
 
     if (sendMethod.value === 'auto') {
-      // Generar link automáticamente usando Stripe
-      result = await generateAutomaticPaymentLink();
+      // ✅ Generar link automáticamente usando Stripe
+      paymentUrl = await generateStripePaymentUrl();
     } else {
-      // Usar link manual
-      result = await sendManualPaymentLink();
+      // ✅ Usar link manual
+      paymentUrl = manualPaymentLink.value;
     }
 
-    if (result.success) {
-      emit('payment-sent', props.reservation, result);
-      closeModal();
-    } else {
-      // Manejar error
-      console.error('Error sending payment link:', result.error);
+    // ✅ Preparar datos para el template existente
+    const emailData = {
+      ...props.reservation,
+      // ✅ CLAVE: Agregar el payment link al objeto
+      paymentLink: paymentUrl,
+      customMessage: customMessage.value || undefined
+    };
+
+    console.log('📧 Sending email with payment link using existing template...', {
+      clientName: emailData.clientName,
+      paymentLink: emailData.paymentLink,
+      hasCustomMessage: !!emailData.customMessage
+    });
+
+    // ✅ Enviar usando el EmailService y template existente
+    const result = await emailService.sendReservationConfirmation(emailData);
+
+    if (!result.success) {
+      throw new Error(`Failed to send payment email: ${result.error}`);
     }
+
+    console.log('✅ Payment email sent successfully using existing template');
+
+    // ✅ Emitir evento de éxito
+    emit('payment-sent', props.reservation, {
+      success: true,
+      paymentUrl: paymentUrl,
+      emailMessageId: result.messageId,
+      method: sendMethod.value
+    });
+
+    closeModal();
 
   } catch (error) {
-    console.error('Error in sendPaymentLink:', error);
+    console.error('❌ Error in sendPaymentLink:', error);
+    errorMessage.value = error instanceof Error ? error.message : 'Error desconocido';
   } finally {
     loading.value = false;
   }
 }
 
-async function generateAutomaticPaymentLink() {
-  // TODO: Implementar con PaymentService y EmailService
-  console.log('Generating automatic payment link...');
+// ✅ Generar payment URL con Stripe (simplificado)
+async function generateStripePaymentUrl(): Promise<string> {
+  if (!props.reservation) {
+    throw new Error('No reservation data available');
+  }
 
-  // Simular llamada
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  console.log('🔧 Generating Stripe payment link for reservation:', props.reservation.bookingId);
 
-  return {
-    success: true,
-    paymentUrl: 'https://checkout.stripe.com/generated-link',
-    messageId: 'email-123'
-  };
-}
+  // TODO: Implementar con Stripe API real
+  // Por ahora, generar un link simulado
+  const mockStripeUrl = `https://checkout.stripe.com/c/pay/cs_${Date.now()}_${props.reservation.bookingId}`;
 
-async function sendManualPaymentLink() {
-  // TODO: Implementar envío con link manual
-  console.log('Sending manual payment link:', manualPaymentLink.value);
-
-  // Simular llamada
+  // Simular delay de API call
   await new Promise(resolve => setTimeout(resolve, 1500));
 
-  return {
-    success: true,
-    paymentUrl: manualPaymentLink.value,
-    messageId: 'email-456'
-  };
+  console.log('✅ Stripe payment link generated:', mockStripeUrl);
+  return mockStripeUrl;
 }
 
 function closeModal() {
   show.value = false;
-  // Reset form
   setTimeout(() => {
     sendMethod.value = 'auto';
     manualPaymentLink.value = '';
-    expirationHours.value = 48;
-    sendWhatsApp.value = false;
     customMessage.value = '';
+    errorMessage.value = '';
     loading.value = false;
   }, 300);
 }
@@ -314,20 +314,13 @@ function closeModal() {
 // Watch for reservation changes
 watch(() => props.reservation, (newReservation) => {
   if (newReservation) {
-    // Pre-fill some data based on reservation
-    expirationHours.value = 48;
+    // Reset form when reservation changes
+    customMessage.value = '';
+    manualPaymentLink.value = '';
   }
 });
 </script>
 
 <style scoped>
-.email-preview {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.preview-content {
-  font-family: Arial, sans-serif;
-  line-height: 1.5;
-}
+/* Estilos simplificados para el modal */
 </style>

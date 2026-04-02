@@ -1,119 +1,173 @@
 <template>
-  <v-navigation-drawer v-model="drawerModel" :rail="railModel" @mouseenter="onMouseEnter" @mouseleave="onMouseLeave"
-    :permanent="mdAndUp" :temporary="!mdAndUp" elevation="0" border color="surface" class="sidebar">
-    <!-- Logo y Título -->
-    <div class="brand-container pa-4 d-flex align-center">
-      <v-avatar color="primary" class="logo-avatars" elevation="1">
-        <v-icon icon="mdi-calendar-check" color="white"></v-icon>
-      </v-avatar>
-      <h2 class="text-h6 font-weight-bold brand-gradient ml-2">
-        Plan<span class="brand-accent" color="">Business</span>
-      </h2>
+  <v-navigation-drawer
+    v-model="drawerModel"
+    :rail="railModel"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+    :permanent="mdAndUp"
+    :temporary="!mdAndUp"
+    elevation="0"
+    theme="dark"
+    color="#0F172A"
+    class="modern-sidebar"
+  >
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <v-icon icon="mdi-calendar-check" size="20" color="white" />
+      </div>
+      <transition name="brand-fade">
+        <div v-if="!railModel" class="brand-text">
+          <span class="brand-name">Plan</span><span class="brand-accent">Business</span>
+        </div>
+      </transition>
     </div>
 
-    <v-divider class="mt-2 mb-3"></v-divider>
+    <div class="sidebar-section-divider" />
 
-    <!-- Sección Principal -->
-    <div class="px-3">
-      <v-list-subheader v-show="!railModel" class="text-overline font-weight-bold text-primary px-2">
-        Principal
-      </v-list-subheader>
+    <!-- Navigation -->
+    <div class="sidebar-nav">
 
-      <v-list nav class="nav-list">
-        <!-- Dashboard -->
-        <v-list-item prepend-icon="mdi-view-dashboard-outline" title="Dashboard" value="dashboard"
-          :active="currentRoute === '/dashboard'" color="primary" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': currentRoute === '/dashboard' }" to="/dashboard"></v-list-item>
+      <!-- Principal Section -->
+      <p v-if="!railModel" class="nav-section-label">PRINCIPAL</p>
 
-        <!-- Approved -->
-        <v-list-item prepend-icon="mdi-check-circle" title="Approved" value="approved-reservation"
-          :active="currentRoute === '/approved-reservation'" color="primary" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': currentRoute === '/approved-reservation' }" to="/approved-reservation" :badge="approvedCount"
-          badge-color="success"></v-list-item>
+      <v-list nav density="compact" class="nav-list pa-0">
+        <v-list-item
+          prepend-icon="mdi-view-dashboard-outline"
+          title="Dashboard"
+          to="/dashboard"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        >
+          <template v-if="!railModel" #append>
+            <span />
+          </template>
+        </v-list-item>
 
-        <!-- Pendientes -->
-        <v-list-item prepend-icon="mdi-calendar-clock" title="Pendientes" value="pending"
-          :active="currentRoute === '/pending'" color="primary" :badge="pendingCount" badge-color="error" rounded="lg"
-          class="list-item mb-1" :class="{ 'active-item': currentRoute === '/pending' }" to="/pending"></v-list-item>
+        <v-list-item
+          prepend-icon="mdi-check-circle-outline"
+          title="Aprobadas"
+          to="/approved-reservation"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        >
+          <template v-if="approvedCount > 0 && !railModel" #append>
+            <span class="nav-badge nav-badge--success">{{ approvedCount }}</span>
+          </template>
+        </v-list-item>
 
-        <!-- Rechazadas -->
-        <v-list-item prepend-icon="mdi-calendar-remove" title="Rechazadas" value="rejected"
-          :active="currentRoute === '/rejected-reservation'" color="primary" rounded="lg" class="list-item mb-1"
-          :class="{ 'active-item': currentRoute === '/rejected-reservation' }" to="/rejected-reservation"></v-list-item>
+        <v-list-item
+          prepend-icon="mdi-clock-outline"
+          title="Pendientes"
+          to="/pending"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        >
+          <template v-if="pendingCount > 0 && !railModel" #append>
+            <span class="nav-badge nav-badge--error">{{ pendingCount }}</span>
+          </template>
+        </v-list-item>
+
+        <v-list-item
+          prepend-icon="mdi-close-circle-outline"
+          title="Rechazadas"
+          to="/rejected-reservation"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        />
       </v-list>
 
-      <!-- Sección Proveedores -->
-      <v-divider class="my-3" v-show="!railModel"></v-divider>
+      <div v-if="!railModel" class="sidebar-section-divider my-3" />
 
-      <v-list-subheader v-show="!railModel" class="text-overline font-weight-bold text-primary px-2">
-        Servicios Externos
-      </v-list-subheader>
+      <!-- Servicios Section -->
+      <p v-if="!railModel" class="nav-section-label">SERVICIOS</p>
 
-      <v-list nav class="nav-list">
-        <v-list-item prepend-icon="mdi-account-hard-hat" title="Proveedores" value="suppliers"
-          :active="currentRoute === '/suppliers'" color="primary" :badge="suppliersCount" badge-color="info"
-          rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/suppliers' }"
-          to="/suppliers"></v-list-item>
+      <v-list nav density="compact" class="nav-list pa-0">
+        <v-list-item
+          prepend-icon="mdi-account-hard-hat-outline"
+          title="Proveedores"
+          to="/suppliers"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        >
+          <template v-if="suppliersCount > 0 && !railModel" #append>
+            <span class="nav-badge nav-badge--info">{{ suppliersCount }}</span>
+          </template>
+        </v-list-item>
       </v-list>
 
-      <!-- Sección Análisis -->
-      <v-divider class="my-3" v-show="!railModel"></v-divider>
+      <div v-if="!railModel" class="sidebar-section-divider my-3" />
 
+      <!-- Análisis Section -->
+      <p v-if="!railModel" class="nav-section-label">ANÁLISIS</p>
 
-      <v-list-subheader v-show="!railModel" class="text-overline font-weight-bold text-primary px-2">
-        Análisis
-      </v-list-subheader>
-
-      <v-list nav class="nav-list">
-
-        <v-list-item prepend-icon="mdi-alarm-panel" title="Inventario" value="inventory" :active="currentRoute === '/inventory'"
-          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/inventory' }"
-          to="/inventory"></v-list-item>
-
-        <v-list-item prepend-icon="mdi-history" title="Historial" value="all-reservations" :active="currentRoute === '/all-reservations'"
-          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/all-reservations' }"
-          to="/all-reservations"></v-list-item>
-
-        <v-list-item prepend-icon="mdi-chart-bar" title="Estadísticas" value="stats" :active="currentRoute === '/stats'"
-          color="primary" rounded="lg" class="list-item mb-1" :class="{ 'active-item': currentRoute === '/stats' }"
-          to="/stats"></v-list-item>
+      <v-list nav density="compact" class="nav-list pa-0">
+        <v-list-item
+          prepend-icon="mdi-package-variant-closed"
+          title="Inventario"
+          to="/inventory"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        />
+        <v-list-item
+          prepend-icon="mdi-history"
+          title="Historial"
+          to="/all-reservations"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        />
+        <v-list-item
+          prepend-icon="mdi-chart-areaspline"
+          title="Estadísticas"
+          to="/stats"
+          rounded="lg"
+          class="nav-item"
+          active-class="nav-item--active"
+          color="#818CF8"
+        />
       </v-list>
+
     </div>
-
-
   </v-navigation-drawer>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useDisplay } from 'vuetify';
 
-// Router composables
-const route = useRoute();
-const router = useRouter();
+const { mdAndUp } = useDisplay();
 
-// Props
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   drawer: boolean;
   rail: boolean;
-  mdAndUp: boolean;
-  pendingCount: number;
-  suppliersCount: number;
+  pendingCount?: number;
+  suppliersCount?: number;
   approvedCount?: number;
-}>();
+}>(), {
+  pendingCount: 0,
+  suppliersCount: 0,
+  approvedCount: 0
+});
 
-// Emits
 const emit = defineEmits<{
   (e: 'update:drawer', value: boolean): void;
   (e: 'update:rail', value: boolean): void;
-  (e: 'create-reservation'): void;
-  (e: 'logout'): void;
 }>();
 
-// Computed para obtener la ruta actual
-const currentRoute = computed(() => route.path);
-
-// Modelo v-model para drawer y rail
 const drawerModel = computed({
   get: () => props.drawer,
   set: value => emit('update:drawer', value)
@@ -124,136 +178,160 @@ const railModel = computed({
   set: value => emit('update:rail', value)
 });
 
-// Métodos
-const onMouseEnter = () => {
-  emit('update:rail', false);
-};
-
-const onMouseLeave = () => {
-  if (props.mdAndUp) {
-    emit('update:rail', true);
-  }
-};
-
-const createNewReservation = () => {
-  emit('create-reservation');
-};
-
-const handleLogout = () => {
-  emit('logout');
-};
-
-// Debug - Log route changes
-console.log('🔍 Current route:', currentRoute.value);
+const onMouseEnter = () => emit('update:rail', false);
+const onMouseLeave = () => { if (mdAndUp.value) emit('update:rail', true); };
 </script>
 
 <style scoped>
-.sidebar {
-  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+/* ─── Sidebar Container ─── */
+.modern-sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-.brand-container {
-  margin-bottom: 12px;
-  padding-left: 20px;
-  position: relative;
+/* ─── Brand ─── */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  padding: 18px 14px 14px;
+  gap: 12px;
+  min-height: 64px;
 }
 
-.logo-avatars {
-  box-shadow: 0 4px 8px rgba(var(--v-theme-primary), 0.2);
-  margin-left: -7px;
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 
-.brand-gradient {
-  background: linear-gradient(90deg,
-      rgba(var(--v-theme-primary), 1) 0%,
-      rgba(var(--v-theme-primary), 0.8) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.brand-text {
+  display: flex;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.brand-name {
+  font-size: 1.1rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  color: #FFFFFF;
+  letter-spacing: -0.3px;
 }
 
 .brand-accent {
-  opacity: 0.7;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #818CF8;
+  letter-spacing: -0.3px;
+}
+
+/* ─── Dividers ─── */
+.sidebar-section-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0 14px;
+}
+
+/* ─── Navigation ─── */
+.sidebar-nav {
+  padding: 14px 8px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 3px; }
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.nav-section-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.28);
+  padding: 4px 10px 6px;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .nav-list {
-  padding: 0 4px;
+  gap: 0;
 }
 
-.list-item {
-  transition: all 0.3s ease;
-  font-weight: 500;
-  margin-left: 0;
-  margin-right: 0;
-  position: relative;
-  overflow: hidden;
+/* Override Vuetify list item styles for dark sidebar */
+.nav-item {
+  margin-bottom: 2px !important;
+  min-height: 40px !important;
+  border-radius: 10px !important;
 }
 
-.list-item:hover {
-  background-color: rgba(var(--v-theme-primary), 0.05);
-  transform: translateX(4px);
+:deep(.nav-item .v-list-item__prepend .v-icon) {
+  color: rgba(255, 255, 255, 0.45) !important;
+  opacity: 1 !important;
 }
 
-.active-item {
-  background-color: rgba(var(--v-theme-primary), 0.1) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-  font-weight: 600;
+:deep(.nav-item .v-list-item-title) {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.55) !important;
 }
 
-/* Estilo especial para elementos activos con router-link */
-.list-item.router-link-active {
-  background-color: rgba(var(--v-theme-primary), 0.1) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-  font-weight: 600;
+:deep(.nav-item:hover .v-list-item__prepend .v-icon) {
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 
-.actions-container {
-  padding-bottom: 16px;
+:deep(.nav-item:hover .v-list-item-title) {
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
-.action-btn {
-  transition: all 0.3s ease;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  text-transform: none;
+:deep(.nav-item:hover) {
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.2);
+/* Active state */
+:deep(.nav-item--active) {
+  background: rgba(129, 140, 248, 0.15) !important;
 }
 
-.user-profile {
-  background-color: rgba(var(--v-theme-surface-variant), 0.4);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+:deep(.nav-item--active .v-list-item__prepend .v-icon) {
+  color: #818CF8 !important;
 }
 
-.user-profile:hover {
-  background-color: rgba(var(--v-theme-surface-variant), 0.6);
+:deep(.nav-item--active .v-list-item-title) {
+  color: #818CF8 !important;
+  font-weight: 600 !important;
 }
 
-.user-avatar {
-  border: 2px solid rgba(var(--v-theme-primary), 0.1);
+/* ─── Badges ─── */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
-.user-avatar-rail {
-  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.2);
-  transition: all 0.3s ease;
-}
+.nav-badge--success { background: #10B981; color: white; }
+.nav-badge--error   { background: #EF4444; color: white; }
+.nav-badge--info    { background: #3B82F6; color: white; }
 
-.user-avatar-rail:hover {
-  transform: scale(1.1);
+/* ─── Transitions ─── */
+.brand-fade-enter-active,
+.brand-fade-leave-active {
+  transition: opacity 0.18s ease;
 }
-
-.logout-btn {
-  opacity: 0.7;
-  transition: all 0.3s ease;
-}
-
-.logout-btn:hover {
-  opacity: 1;
-  transform: rotate(15deg);
+.brand-fade-enter-from,
+.brand-fade-leave-to {
+  opacity: 0;
 }
 </style>

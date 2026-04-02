@@ -245,8 +245,8 @@ export const BUSINESS_SERVICE_CONFIG: Record<string, ServiceConfig> = {
         type: 'select',
         required: true,
         options: [
-          { label: 'Standard', value: 'standard', extraPrice: 900 }, // $900 total
-          { label: 'Con Slide', value: 'with-slide', extraPrice: 1200 } // $1200 total
+          { label: 'Standard', value: 'standard', extraPrice: 900 },
+          { label: 'Con Slide', value: 'with-slide', extraPrice: 1200 }
         ]
       }
     ]
@@ -303,7 +303,7 @@ export const BUSINESS_SERVICE_CONFIG: Record<string, ServiceConfig> = {
     category: 'services',
     icon: 'mdi-baby',
     color: '#E91E63',
-    basePrice: 25,
+    basePrice: 20,
     baseTaxes: 0.18,
     baseProfit: 0.3,
     priceCalculation: 'hourly',
@@ -396,16 +396,6 @@ export const BUSINESS_SERVICE_CONFIG: Record<string, ServiceConfig> = {
 };
 
 // 🎯 FUNCIONES HELPER PARA CÁLCULOS DE NEGOCIO
-
-export interface PriceCalculation {
-  basePrice: number;
-  extraPrice: number;
-  subtotal: number;
-  taxes: number;
-  profit: number;
-  finalPrice: number;
-  clientPays: number;
-}
 
 export function calculateServicePrice(
   serviceType: string,

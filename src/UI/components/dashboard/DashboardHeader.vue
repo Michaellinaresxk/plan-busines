@@ -1,261 +1,226 @@
 <template>
-  <v-app-bar elevation="0" border class="px-2" color="primary">
-    <!-- Botón de menú móvil -->
+  <v-app-bar elevation="0" color="surface" class="app-header px-2" border="b">
+
+    <!-- Mobile menu button -->
     <v-app-bar-nav-icon
       v-if="!mdAndUp"
       @click.stop="toggleDrawer"
-      color="primary">
-    </v-app-bar-nav-icon>
+      color="on-surface-variant"
+    />
 
-    <!-- Botón de menú desktop -->
+    <!-- Desktop rail toggle -->
     <v-btn
       v-else
       @click.stop="toggleRail"
       icon="mdi-menu"
       variant="text"
-      color="primary">
-    </v-btn>
+      color="on-surface-variant"
+    />
 
-    <!-- Título -->
-    <v-app-bar-title class="text-md-h6 font-weight-medium d-none d-sm-flex">
-      Plan-Business
+    <!-- Page title — desktop only -->
+    <v-app-bar-title class="d-none d-sm-flex">
+      <span class="header-title">Plan-Business</span>
     </v-app-bar-title>
 
-    <v-spacer></v-spacer>
+    <v-spacer />
 
-    <!-- Notificaciones con sistema reactivo -->
+    <!-- Notification Bell -->
     <v-menu
       v-model="showNotificationsMenu"
       :close-on-content-click="false"
       anchor="bottom end"
       max-width="400"
-      offset="8">
-
-      <template v-slot:activator="{ props: menuProps }">
+      offset="8"
+    >
+      <template #activator="{ props: menuProps }">
         <v-btn
           v-bind="menuProps"
-          icon="mdi-bell"
           variant="text"
-          class="ml-2 notification-btn"
-          :class="{ 'notification-btn--has-urgent': hasUrgentNotifications }">
-
+          icon
+          class="notif-btn"
+          :class="{ 'notif-btn--urgent': hasUrgentNotifications }"
+        >
           <v-badge
             v-if="unreadCount > 0"
-            :content="unreadCount > 99 ? '99+' : unreadCount.toString()"
+            :content="unreadCount > 99 ? '99+' : String(unreadCount)"
             :color="hasUrgentNotifications ? 'error' : 'warning'"
             offset-x="3"
             offset-y="3"
-            class="notification-badge">
+          >
             <v-icon
-              :class="{ 'notification-bell--animate': hasNewNotifications }"
-              size="24">
-              mdi-bell
+              :class="{ 'bell-ring': hasNewNotifications }"
+              size="22"
+              color="on-surface-variant"
+            >
+              mdi-bell-outline
             </v-icon>
           </v-badge>
-
-          <v-icon v-else size="24">mdi-bell</v-icon>
+          <v-icon v-else size="22" color="on-surface-variant">mdi-bell-outline</v-icon>
         </v-btn>
       </template>
 
-      <!-- Panel de notificaciones -->
-      <v-card class="notifications-panel" rounded="lg" elevation="8">
-        <!-- Header del panel -->
-        <v-card-title class="d-flex align-center justify-space-between py-3 px-4">
-          <div class="d-flex align-center">
-            <v-icon icon="mdi-bell" size="20" class="mr-2"></v-icon>
-            <span class="text-h6">Notificaciones</span>
-            <v-chip
-              v-if="unreadCount > 0"
-              :color="hasUrgentNotifications ? 'error' : 'primary'"
-              size="small"
-              class="ml-2">
+      <!-- Notifications Panel -->
+      <v-card class="notif-panel" rounded="xl" elevation="8">
+        <v-card-title class="notif-panel-header">
+          <div class="d-flex align-center gap-2">
+            <v-icon icon="mdi-bell-outline" size="18" />
+            <span class="text-subtitle-1 font-weight-semibold">Notificaciones</span>
+            <v-chip v-if="unreadCount > 0" :color="hasUrgentNotifications ? 'error' : 'primary'" size="x-small">
               {{ unreadCount }}
             </v-chip>
           </div>
-
-          <div class="d-flex align-center gap-1">
-            <v-btn
-              icon="mdi-refresh"
-              variant="text"
-              size="small"
-              :loading="isLoading"
-              @click="checkForNewReservations">
-            </v-btn>
-
-            <v-btn
-              v-if="unreadCount > 0"
-              icon="mdi-check-all"
-              variant="text"
-              size="small"
-              @click="markAllAsRead">
-            </v-btn>
+          <div class="d-flex gap-1">
+            <v-btn icon="mdi-refresh" variant="text" size="small" :loading="isLoading" @click="checkForNewReservations" />
+            <v-btn v-if="unreadCount > 0" icon="mdi-check-all" variant="text" size="small" @click="markAllAsRead" />
           </div>
         </v-card-title>
 
-        <v-divider></v-divider>
+        <v-divider />
 
-        <!-- Lista de notificaciones -->
-        <div class="notifications-list">
-          <div v-if="isLoading && notifications.length === 0" class="loading-state">
-            <v-progress-circular indeterminate size="32" color="primary"></v-progress-circular>
-            <p class="text-caption mt-2">Cargando notificaciones...</p>
+        <div class="notif-list">
+          <div v-if="isLoading && notifications.length === 0" class="notif-empty">
+            <v-progress-circular indeterminate size="28" color="primary" />
+            <p class="text-caption mt-2">Cargando...</p>
           </div>
 
-          <div v-else-if="notifications.length === 0" class="empty-state">
-            <v-icon icon="mdi-bell-off" size="48" color="grey-lighten-1"></v-icon>
-            <p class="text-subtitle-2 mt-2">No hay notificaciones</p>
-            <p class="text-caption text-medium-emphasis">Las nuevas notificaciones aparecerán aquí</p>
+          <div v-else-if="notifications.length === 0" class="notif-empty">
+            <v-icon icon="mdi-bell-off-outline" size="40" color="grey-lighten-1" />
+            <p class="text-body-2 font-weight-medium mt-2">Sin notificaciones</p>
+            <p class="text-caption text-medium-emphasis">Las nuevas aparecerán aquí</p>
           </div>
 
-          <div v-else class="notification-items">
+          <div v-else>
             <div
               v-for="notification in displayedNotifications"
               :key="notification.id"
-              class="notification-item"
+              class="notif-item"
               :class="{
-                'notification-item--unread': !notification.isRead,
-                'notification-item--urgent': notification.severity === 'high'
+                'notif-item--unread': !notification.isRead,
+                'notif-item--urgent': notification.severity === 'high'
               }"
-              @click="handleNotificationClick(notification)">
-
-              <!-- Indicador de prioridad -->
-              <div
-                class="notification-indicator"
-                :class="`notification-indicator--${notification.severity}`">
-              </div>
-
-              <!-- Avatar/Icono -->
+              @click="handleNotificationClick(notification)"
+            >
               <v-avatar
                 :color="getNotificationColor(notification.type, notification.severity)"
-                size="36"
-                class="notification-avatar">
-                <v-icon
-                  :icon="getNotificationIcon(notification.type)"
-                  size="18"
-                  color="white">
-                </v-icon>
+                size="32"
+                class="flex-shrink-0"
+              >
+                <v-icon :icon="getNotificationIcon(notification.type)" size="16" color="white" />
               </v-avatar>
 
-              <!-- Contenido -->
-              <div class="notification-content">
-                <div class="notification-header">
-                  <h4 class="notification-title">{{ notification.title }}</h4>
-                  <span class="notification-time">{{ formatTime(notification.timestamp) }}</span>
+              <div class="notif-content">
+                <div class="notif-header">
+                  <span class="notif-title">{{ notification.title }}</span>
+                  <span class="notif-time">{{ formatTime(notification.timestamp) }}</span>
                 </div>
-
-                <p class="notification-message">{{ notification.message }}</p>
-
-                <div v-if="notification.type === 'new_reservation'" class="notification-actions">
-                  <v-btn
-                    size="x-small"
-                    color="primary"
-                    variant="tonal"
-                    @click.stop="goToPendingReservations">
+                <p class="notif-message">{{ notification.message }}</p>
+                <div v-if="notification.type === 'new_reservation'" class="mt-1">
+                  <v-btn size="x-small" color="primary" variant="tonal" @click.stop="goToPendingReservations">
                     Ver Pendientes
                   </v-btn>
                 </div>
               </div>
 
-              <!-- Botón de cerrar -->
               <v-btn
                 icon="mdi-close"
                 variant="text"
                 size="x-small"
-                class="notification-close"
-                @click.stop="removeNotification(notification.id)">
-              </v-btn>
+                class="notif-close"
+                @click.stop="removeNotification(notification.id)"
+              />
             </div>
           </div>
         </div>
 
-        <!-- Footer del panel -->
-        <v-divider></v-divider>
-        <v-card-actions class="px-4 py-2">
-          <v-btn
-            variant="text"
-            size="small"
-            block
-            @click="goToPendingReservations">
+        <v-divider />
+        <v-card-actions class="px-3 py-2">
+          <v-btn variant="text" size="small" block color="primary" @click="goToPendingReservations">
             Ver todas las reservas pendientes
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-menu>
 
-    <!-- Avatar usuario -->
-    <v-menu anchor="bottom end">
-      <template v-slot:activator="{ props }">
-        <v-btn v-bind="props" variant="text" class="ml-2">
-          <v-avatar size="40" color="text-white" variant="tonal">
-            <span class="text-caption">RM</span>
+    <!-- User Menu -->
+    <v-menu anchor="bottom end" offset="8">
+      <template #activator="{ props }">
+        <v-btn v-bind="props" variant="text" class="ml-1 user-btn">
+          <v-avatar size="34" color="primary" variant="tonal">
+            <span class="text-caption font-weight-bold">RM</span>
           </v-avatar>
-          <v-icon class="ml-1 d-none d-sm-flex" size="small">mdi-chevron-down</v-icon>
+          <v-icon class="ml-1 d-none d-sm-flex" size="small" color="on-surface-variant">
+            mdi-chevron-down
+          </v-icon>
         </v-btn>
       </template>
-      <v-card min-width="200" elevation="4" rounded="lg">
-        <v-list density="compact" nav>
-          <v-list-item prepend-icon="mdi-account-outline" title="Mi perfil" rounded="lg"></v-list-item>
-          <v-list-item prepend-icon="mdi-cog-outline" title="Configuración" rounded="lg"></v-list-item>
-          <v-divider class="my-1"></v-divider>
+      <v-card min-width="200" elevation="8" rounded="xl">
+        <v-list density="compact" nav class="py-2">
+          <v-list-item prepend-icon="mdi-account-outline" title="Mi perfil" rounded="lg" />
+          <v-list-item prepend-icon="mdi-cog-outline" title="Configuración" rounded="lg" />
+          <v-divider class="my-1" />
           <v-list-item
             prepend-icon="mdi-logout"
             title="Cerrar sesión"
             rounded="lg"
             class="text-error"
-            :loading="isLoggingOut"
-            @click="handleLogout">
-          </v-list-item>
+            :disabled="isLoggingOut"
+            @click="handleLogout"
+          />
         </v-list>
       </v-card>
     </v-menu>
 
-    <!-- Toast para nuevas notificaciones -->
+    <!-- New notification toast -->
     <v-snackbar
       v-model="showNewNotificationToast"
       :timeout="4000"
       location="top end"
       color="primary"
-      rounded="pill">
-      <div class="d-flex align-center">
-        <v-icon icon="mdi-bell-ring" class="mr-2"></v-icon>
+      rounded="pill"
+    >
+      <div class="d-flex align-center gap-2">
+        <v-icon icon="mdi-bell-ring" size="18" />
         {{ newNotificationMessage }}
       </div>
-      <template v-slot:actions>
-        <v-btn icon="mdi-close" variant="text" @click="showNewNotificationToast = false"></v-btn>
+      <template #actions>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="showNewNotificationToast = false" />
       </template>
     </v-snackbar>
   </v-app-bar>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
-import { useRouter } from 'vue-router'
-import { userServiceKey } from '@/services/userService'
-import { useNotifications } from '@/composables/useNotifications'
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
+import { useDisplay } from 'vuetify';
+import { useRouter } from 'vue-router';
+import { userServiceKey } from '@/services/userService';
+import { useNotifications } from '@/composables/useNotifications';
 
-// Props
-const props = defineProps<{
-  drawer: boolean
-  rail: boolean
-  mdAndUp: boolean
-}>()
+// ── Internal display state (no prop needed) ──
+const { mdAndUp } = useDisplay();
 
-// Emits
+// ── Props (optional for backward compat) ──
+const props = withDefaults(defineProps<{
+  drawer?: boolean;
+  rail?: boolean;
+}>(), {
+  drawer: false,
+  rail: false
+});
+
 const emit = defineEmits<{
-  (e: 'update:drawer', value: boolean): void
-  (e: 'update:rail', value: boolean): void
-  (e: 'toggle-theme'): void
-}>()
+  (e: 'update:drawer', value: boolean): void;
+  (e: 'update:rail', value: boolean): void;
+  (e: 'toggle-theme'): void;
+}>();
 
-// Dependencies
-const router = useRouter()
-const userService = inject(userServiceKey)
+const router = useRouter();
+const userService = inject(userServiceKey);
 
 if (!userService) {
-  throw new Error('UserService is not available')
+  throw new Error('UserService is not available');
 }
 
-// Composables
 const {
   notifications,
   isLoading,
@@ -264,143 +229,128 @@ const {
   checkForNewReservations,
   markAsRead,
   markAllAsRead,
-  removeNotification
-} = useNotifications()
+  removeNotification,
+} = useNotifications();
 
-// Estado local
-const isLoggingOut = ref(false)
-const showNotificationsMenu = ref(false)
-const showNewNotificationToast = ref(false)
-const newNotificationMessage = ref('')
-const hasNewNotifications = ref(false)
+// ── Local state ──
+const isLoggingOut = ref(false);
+const showNotificationsMenu = ref(false);
+const showNewNotificationToast = ref(false);
+const newNotificationMessage = ref('');
+const hasNewNotifications = ref(false);
 
-// Computed properties
-const hasUrgentNotifications = computed(() => urgentNotifications.value.length > 0)
+// ── Computed ──
+const hasUrgentNotifications = computed(() => urgentNotifications.value.length > 0);
+const displayedNotifications = computed(() => notifications.value.slice(0, 10));
 
-const displayedNotifications = computed(() =>
-  notifications.value.slice(0, 10) // Mostrar solo las 10 más recientes
-)
-
-// Métodos de utilidad
-const getNotificationIcon = (type: string): string => {
-  const icons = {
+// ── Helpers ──
+function getNotificationIcon(type: string): string {
+  const map: Record<string, string> = {
     new_reservation: 'mdi-calendar-plus',
     urgent_pending: 'mdi-clock-alert',
     payment_received: 'mdi-credit-card',
-    system: 'mdi-information'
-  }
-  return icons[type] || 'mdi-bell'
+    system: 'mdi-information',
+  };
+  return map[type] ?? 'mdi-bell';
 }
 
-const getNotificationColor = (type: string, severity: string): string => {
-  if (severity === 'high') return 'error'
-  if (severity === 'medium') return 'warning'
-
-  const colors = {
+function getNotificationColor(type: string, severity: string): string {
+  if (severity === 'high') return 'error';
+  if (severity === 'medium') return 'warning';
+  const map: Record<string, string> = {
     new_reservation: 'primary',
     urgent_pending: 'error',
     payment_received: 'success',
-    system: 'info'
-  }
-  return colors[type] || 'grey'
+    system: 'info',
+  };
+  return map[type] ?? 'grey';
 }
 
-const formatTime = (timestamp: Date): string => {
-  const now = new Date()
-  const diff = now.getTime() - timestamp.getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (minutes < 1) return 'Ahora'
-  if (minutes < 60) return `${minutes}m`
-  if (hours < 24) return `${hours}h`
-  return `${days}d`
+function formatTime(timestamp: Date): string {
+  const diff = Date.now() - timestamp.getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (m < 1) return 'Ahora';
+  if (m < 60) return `${m}m`;
+  if (h < 24) return `${h}h`;
+  return `${d}d`;
 }
 
-// Event handlers
-const toggleDrawer = () => {
-  emit('update:drawer', !props.drawer)
+// ── Actions ──
+function toggleDrawer() {
+  emit('update:drawer', !props.drawer);
 }
 
-const toggleRail = () => {
-  emit('update:rail', !props.rail)
+function toggleRail() {
+  emit('update:rail', !props.rail);
 }
 
-const handleNotificationClick = (notification: any) => {
-  markAsRead(notification.id)
-
-  if (notification.type === 'new_reservation' || notification.type === 'urgent_pending') {
-    goToPendingReservations()
+function handleNotificationClick(notification: any) {
+  markAsRead(notification.id);
+  if (['new_reservation', 'urgent_pending'].includes(notification.type)) {
+    goToPendingReservations();
   }
 }
 
-const goToPendingReservations = () => {
-  showNotificationsMenu.value = false
-  router.push({ name: 'PendingReservations' })
+function goToPendingReservations() {
+  showNotificationsMenu.value = false;
+  router.push({ name: 'PendingReservations' });
 }
 
-const handleLogout = async () => {
+async function handleLogout() {
+  isLoggingOut.value = true;
   try {
-    isLoggingOut.value = true
-    await userService.logout()
-    router.push({ name: 'Login' })
-  } catch (error) {
-    console.error('Error during logout:', error)
+    await userService!.logout();
+    router.push({ name: 'Login' });
+  } catch (e) {
+    console.error('Logout error:', e);
   } finally {
-    isLoggingOut.value = false
+    isLoggingOut.value = false;
   }
 }
 
-// Escuchar eventos de nuevas notificaciones
-const handleNotificationEvent = (event: CustomEvent) => {
-  const { type, data } = event.detail
-
+function handleNotificationEvent(event: Event) {
+  const { type, data } = (event as CustomEvent).detail;
   if (type === 'new_notifications' && data.length > 0) {
-    hasNewNotifications.value = true
-
-    // Mostrar toast para la primera notificación
-    const firstNotification = data[0]
-    newNotificationMessage.value = `${firstNotification.title}: ${firstNotification.message}`
-    showNewNotificationToast.value = true
-
-    // Remover animación después de 3 segundos
-    setTimeout(() => {
-      hasNewNotifications.value = false
-    }, 3000)
+    hasNewNotifications.value = true;
+    newNotificationMessage.value = `${data[0].title}: ${data[0].message}`;
+    showNewNotificationToast.value = true;
+    setTimeout(() => { hasNewNotifications.value = false; }, 3000);
   }
 }
 
-// Lifecycle
-onMounted(() => {
-  window.addEventListener('notification-event', handleNotificationEvent)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('notification-event', handleNotificationEvent)
-})
+onMounted(() => window.addEventListener('notification-event', handleNotificationEvent));
+onUnmounted(() => window.removeEventListener('notification-event', handleNotificationEvent));
 </script>
 
 <style scoped>
-/* Botón de notificaciones */
-.notification-btn {
-  transition: all 0.3s ease;
+.app-header {
+  border-bottom-color: rgba(var(--v-theme-on-surface), 0.08) !important;
 }
 
-.notification-btn--has-urgent {
+.header-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+  letter-spacing: -0.2px;
+}
+
+/* Notification button */
+.notif-btn {
+  transition: transform 0.2s ease;
+}
+
+.notif-btn--urgent {
   animation: urgentPulse 2s infinite;
 }
 
 @keyframes urgentPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.06); }
 }
 
-.notification-badge {
-  position: relative;
-}
-
-.notification-bell--animate {
+.bell-ring {
   animation: bellRing 0.5s ease-in-out;
 }
 
@@ -410,150 +360,111 @@ onUnmounted(() => {
   75% { transform: rotate(-15deg); }
 }
 
-/* Panel de notificaciones */
-.notifications-panel {
-  min-width: 380px;
+/* Notifications panel */
+.notif-panel {
+  min-width: 360px;
   max-width: 400px;
-  max-height: 500px;
-  overflow: hidden;
 }
 
-.notifications-list {
-  max-height: 350px;
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.notif-list {
+  max-height: 340px;
   overflow-y: auto;
 }
 
-.loading-state,
-.empty-state {
+.notif-list::-webkit-scrollbar { width: 4px; }
+.notif-list::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.15);
+  border-radius: 2px;
+}
+
+.notif-empty {
   padding: 40px 20px;
   text-align: center;
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 
-/* Elementos de notificación */
-.notification-items {
-  padding: 8px 0;
-}
-
-.notification-item {
+/* Notification items */
+.notif-item {
   display: flex;
   align-items: flex-start;
+  gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+  transition: background 0.15s ease;
   border-left: 3px solid transparent;
 }
 
-.notification-item:hover {
-  background: rgba(var(--v-theme-primary), 0.05);
+.notif-item:hover {
+  background: rgba(var(--v-theme-primary), 0.04);
 }
 
-.notification-item--unread {
-  background: rgba(var(--v-theme-primary), 0.02);
+.notif-item--unread {
+  background: rgba(var(--v-theme-primary), 0.03);
   border-left-color: rgb(var(--v-theme-primary));
 }
 
-.notification-item--urgent {
+.notif-item--urgent {
   border-left-color: rgb(var(--v-theme-error));
   background: rgba(var(--v-theme-error), 0.02);
 }
 
-.notification-indicator {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-}
-
-.notification-indicator--high {
-  background: rgb(var(--v-theme-error));
-}
-
-.notification-indicator--medium {
-  background: rgb(var(--v-theme-warning));
-}
-
-.notification-indicator--low {
-  background: rgb(var(--v-theme-info));
-}
-
-.notification-avatar {
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.notification-content {
+.notif-content {
   flex: 1;
   min-width: 0;
 }
 
-.notification-header {
+.notif-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
-.notification-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin: 0;
+.notif-title {
+  font-size: 0.85rem;
+  font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.9);
 }
 
-.notification-time {
-  font-size: 0.75rem;
-  color: rgba(var(--v-theme-on-surface), 0.6);
+.notif-time {
+  font-size: 0.72rem;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   flex-shrink: 0;
   margin-left: 8px;
 }
 
-.notification-message {
-  font-size: 0.8rem;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  margin: 0 0 8px 0;
-  line-height: 1.3;
+.notif-message {
+  font-size: 0.78rem;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  margin: 0;
+  line-height: 1.4;
 }
 
-.notification-actions {
-  margin-top: 8px;
-}
-
-.notification-close {
+.notif-close {
   flex-shrink: 0;
-  margin-left: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
-.notification-item:hover .notification-close {
-  opacity: 1;
+.notif-item:hover .notif-close {
+  opacity: 0.6;
 }
 
-/* Scrollbar personalizada */
-.notifications-list::-webkit-scrollbar {
-  width: 4px;
+/* User button */
+.user-btn {
+  border-radius: 10px;
 }
 
-.notifications-list::-webkit-scrollbar-track {
-  background: rgba(var(--v-theme-on-surface), 0.05);
-}
-
-.notifications-list::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-on-surface), 0.2);
-  border-radius: 2px;
-}
-
-.notifications-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-on-surface), 0.3);
-}
-
-/* Responsive */
 @media (max-width: 600px) {
-  .notifications-panel {
-    min-width: 320px;
+  .notif-panel {
+    min-width: 300px;
     max-width: 90vw;
   }
 }
